@@ -2,9 +2,18 @@
 
 A blockchain-based password manager.
 
-## deployments
+## Deployments
 
 - Astar: https://astar.blockscout.com/address/0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B
+
+## Earlier versions
+
+This current repo is a refactor of an earlier version where the smart contract was written in `ink!`. The conversion to `solidity` was due to an unfortunate lack of third-party block explorers able to verify `ink!` smart contracts.
+
+The earlier version consists of the following 2 repos:
+
+- [password-manager](https://github.com/lousydropout/password-manager) - houses the frontend and `ink!` smart contract
+- [password-manager-extension](https://github.com/lousydropout/password-manager-extension) - houses the Chrome extension
 
 ## Purpose of Keyvault
 
@@ -38,7 +47,7 @@ For storing new credentials or updating existing ones, the JSON structure is as 
 - `idx = -1` indicates a new credential entry.
 - `idx != -1` indicates that this entry is an updated version of the credential at the specified index.
 
-### Credential Deletion
+## Credential Deletion
 
 To mark a credential as deleted, the structure is:
 
