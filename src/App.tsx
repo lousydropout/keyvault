@@ -1,5 +1,6 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
+import { Button } from "./components/ui/button";
 
 export default function YourApp() {
   const account = useAccount();
@@ -48,12 +49,8 @@ export default function YourApp() {
                 );
               }
               return (
-                <div style={{ display: "flex", gap: 12 }}>
-                  <button
-                    onClick={openChainModal}
-                    style={{ display: "flex", alignItems: "center" }}
-                    type="button"
-                  >
+                <div className="flex gap-4">
+                  <div className="flex items-center border-2 rounded-lg px-4 py-2">
                     {chain.hasIcon && (
                       <div style={{ marginRight: 4 }}>
                         {chain.iconUrl && (
@@ -66,13 +63,13 @@ export default function YourApp() {
                       </div>
                     )}
                     {chain.name}
-                  </button>
-                  <button onClick={openAccountModal} type="button">
+                  </div>
+                  <Button onClick={openAccountModal}>
                     {account.displayName}
                     {account.displayBalance
                       ? ` (${account.displayBalance})`
                       : ""}
-                  </button>
+                  </Button>
                 </div>
               );
             })()}

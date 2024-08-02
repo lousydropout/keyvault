@@ -16,15 +16,12 @@ const projectId = "62fceac10780ac6f1980e2d6934a6493";
 const chains = [
   { ...astar, iconBackground: "#000", iconUrl: astarLogo },
 ] as const;
-// const chains = [astar] as const;
 
 const config = getDefaultConfig({
   appName: "keyvault",
   projectId,
   chains,
-  transports: {
-    [astar.id]: http(),
-  },
+  transports: { [astar.id]: http() },
 });
 
 interface Web3ModalProviderProps {
