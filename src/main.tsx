@@ -6,11 +6,16 @@ import "./index.css";
 import { Web3ModalProvider } from "./provider.tsx";
 import { Header } from "./components/header.tsx";
 import { Footer } from "./components/footer.tsx";
+import { TermsAndConditions } from "./terms.tsx";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+  },
+  {
+    path: "/terms",
+    element: <TermsAndConditions />,
   },
 ]);
 
