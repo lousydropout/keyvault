@@ -1,0 +1,1533 @@
+{
+  "source": {
+    "hash": "0x85cd887164cf4aef97c91c571beb176f5a937031c07e7338ff61c5eaf1e8ebdc",
+    "language": "ink! 4.3.0",
+    "compiler": "rustc 1.69.0",
+    "build_info": {
+      "build_mode": "Debug",
+      "cargo_contract_version": "3.0.1",
+      "rust_toolchain": "stable-x86_64-unknown-linux-gnu",
+      "wasm_opt_settings": {
+        "keep_debug_symbols": false,
+        "optimization_passes": "Z"
+      }
+    }
+  },
+  "contract": {
+    "name": "keyvault",
+    "version": "1.0.0",
+    "authors": ["lousydropout <lousydropout@gmail.com>"]
+  },
+  "spec": {
+    "constructors": [
+      {
+        "args": [
+          {
+            "label": "owner",
+            "type": {
+              "displayName": ["AccountId"],
+              "type": 0
+            }
+          },
+          {
+            "label": "latest_compatible_browser_extension_version",
+            "type": {
+              "displayName": ["u32"],
+              "type": 5
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "new",
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink_primitives", "ConstructorResult"],
+          "type": 6
+        },
+        "selector": "0x9bae9d5e"
+      }
+    ],
+    "docs": [],
+    "environment": {
+      "accountId": {
+        "displayName": ["AccountId"],
+        "type": 0
+      },
+      "balance": {
+        "displayName": ["Balance"],
+        "type": 3
+      },
+      "blockNumber": {
+        "displayName": ["BlockNumber"],
+        "type": 5
+      },
+      "chainExtension": {
+        "displayName": ["ChainExtension"],
+        "type": 32
+      },
+      "hash": {
+        "displayName": ["Hash"],
+        "type": 30
+      },
+      "maxEventTopics": 4,
+      "timestamp": {
+        "displayName": ["Timestamp"],
+        "type": 31
+      }
+    },
+    "events": [
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "user",
+            "type": {
+              "displayName": ["AccountId"],
+              "type": 0
+            }
+          }
+        ],
+        "docs": [
+          "Defines an event that is emitted",
+          "when a user registers an account."
+        ],
+        "label": "Registered"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "user",
+            "type": {
+              "displayName": ["AccountId"],
+              "type": 0
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "num_entries",
+            "type": {
+              "displayName": ["u32"],
+              "type": 5
+            }
+          }
+        ],
+        "docs": [
+          "Defines an event that is emitted",
+          "every time an update is made."
+        ],
+        "label": "AddedEntry"
+      }
+    ],
+    "lang_error": {
+      "displayName": ["ink", "LangError"],
+      "type": 8
+    },
+    "messages": [
+      {
+        "args": [
+          {
+            "label": "latest",
+            "type": {
+              "displayName": ["AccountId"],
+              "type": 0
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Sets the address of the latest KeyVault smart contract, owner-restricted."
+        ],
+        "label": "set_latest_smart_contract_address",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0xdc3f2346"
+      },
+      {
+        "args": [
+          {
+            "label": "encryption_key_hash",
+            "type": {
+              "displayName": ["Vec"],
+              "type": 4
+            }
+          }
+        ],
+        "default": false,
+        "docs": [" Creates account"],
+        "label": "create_account",
+        "mutates": true,
+        "payable": true,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0x470c28ee"
+      },
+      {
+        "args": [
+          {
+            "label": "account_id",
+            "type": {
+              "displayName": ["AccountId"],
+              "type": 0
+            }
+          }
+        ],
+        "default": false,
+        "docs": [" Retrieves the hash of the encryption key of an AccountId"],
+        "label": "get_encryption_key_hash",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 12
+        },
+        "selector": "0x279f1ad1"
+      },
+      {
+        "args": [
+          {
+            "label": "expected_index",
+            "type": {
+              "displayName": ["u32"],
+              "type": 5
+            }
+          },
+          {
+            "label": "iv",
+            "type": {
+              "displayName": ["Vec"],
+              "type": 4
+            }
+          },
+          {
+            "label": "ciphertext",
+            "type": {
+              "displayName": ["Vec"],
+              "type": 4
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Adds a new encrypted entry for the caller, ensuring sequential order."
+        ],
+        "label": "add_entry",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0x8cd84b6c"
+      },
+      {
+        "args": [
+          {
+            "label": "expected_index",
+            "type": {
+              "displayName": ["u32"],
+              "type": 5
+            }
+          },
+          {
+            "label": "entries",
+            "type": {
+              "displayName": ["Vec"],
+              "type": 14
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Adds new encrypted entries for the caller, ensuring sequential order."
+        ],
+        "label": "add_entries",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0xa70ec9e5"
+      },
+      {
+        "args": [
+          {
+            "label": "account_id",
+            "type": {
+              "displayName": ["AccountId"],
+              "type": 0
+            }
+          }
+        ],
+        "default": false,
+        "docs": [" Retrieves the number of entries for a given account ID."],
+        "label": "get_entry_count",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 16
+        },
+        "selector": "0xc280e22d"
+      },
+      {
+        "args": [
+          {
+            "label": "account_id",
+            "type": {
+              "displayName": ["AccountId"],
+              "type": 0
+            }
+          },
+          {
+            "label": "index",
+            "type": {
+              "displayName": ["u32"],
+              "type": 5
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Retrieves an encrypted entry by index for a given account ID."
+        ],
+        "label": "get_entry",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 18
+        },
+        "selector": "0x31bf3920"
+      },
+      {
+        "args": [
+          {
+            "label": "account_id",
+            "type": {
+              "displayName": ["AccountId"],
+              "type": 0
+            }
+          },
+          {
+            "label": "start_index",
+            "type": {
+              "displayName": ["u32"],
+              "type": 5
+            }
+          },
+          {
+            "label": "max_num",
+            "type": {
+              "displayName": ["u32"],
+              "type": 5
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Retrieves the encrypted entries requested for a given account ID."
+        ],
+        "label": "get_entries",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 21
+        },
+        "selector": "0xacd52579"
+      },
+      {
+        "args": [
+          {
+            "label": "encryption_key_hash",
+            "type": {
+              "displayName": ["Vec"],
+              "type": 4
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Resets the caller's account, setting their entry count to zero."
+        ],
+        "label": "reset_account",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0xe8db5848"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [" Retrieves the contract owner's account ID."],
+        "label": "get_owner",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 24
+        },
+        "selector": "0x07fcd0b1"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [" Retrieves the contract owner's account ID."],
+        "label": "get_owner_result",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 25
+        },
+        "selector": "0xaf9e84a8"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [
+          " Retrieves the latest versions for both the KeyVault smart contract and browser extension.",
+          "",
+          "   returns (",
+          "     current smart contract version,",
+          "     latest smart contract version,",
+          "     latest smart contract address,",
+          "     latest compatible browser extension version,",
+          "   )"
+        ],
+        "label": "get_versions",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 27
+        },
+        "selector": "0x2c075632"
+      },
+      {
+        "args": [
+          {
+            "label": "latest",
+            "type": {
+              "displayName": ["u8"],
+              "type": 2
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Updates the latest KeyVault smart contract version, owner-restricted."
+        ],
+        "label": "set_latest_smart_contract_version",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0x70bae51b"
+      },
+      {
+        "args": [
+          {
+            "label": "latest",
+            "type": {
+              "displayName": ["u32"],
+              "type": 5
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Updates the latest browser extension version, owner-restricted."
+        ],
+        "label": "set_latest_compatible_browser_extension_version",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0xfc0b8fc5"
+      },
+      {
+        "args": [
+          {
+            "label": "new_owner",
+            "type": {
+              "displayName": ["AccountId"],
+              "type": 0
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Updates the KeyVault smart contract owner, owner-restricted."
+        ],
+        "label": "set_owner",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0x367facd6"
+      },
+      {
+        "args": [
+          {
+            "label": "new_fee",
+            "type": {
+              "displayName": ["Balance"],
+              "type": 3
+            }
+          }
+        ],
+        "default": false,
+        "docs": [" Updates account creation fee, owner-restricted."],
+        "label": "set_account_creation_fee",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0xac0488cc"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [" Gets the smart contract's balance."],
+        "label": "get_balance",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 29
+        },
+        "selector": "0xea817e65"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [" Withdraws the smart contract's balance"],
+        "label": "withdraw",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": ["ink", "MessageResult"],
+          "type": 9
+        },
+        "selector": "0x410fcc9d"
+      }
+    ]
+  },
+  "storage": {
+    "root": {
+      "layout": {
+        "struct": {
+          "fields": [
+            {
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 0
+                }
+              },
+              "name": "owner"
+            },
+            {
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 3
+                }
+              },
+              "name": "fee"
+            },
+            {
+              "layout": {
+                "root": {
+                  "layout": {
+                    "leaf": {
+                      "key": "0x45eaa056",
+                      "ty": 4
+                    }
+                  },
+                  "root_key": "0x45eaa056"
+                }
+              },
+              "name": "encryption_key_hash"
+            },
+            {
+              "layout": {
+                "root": {
+                  "layout": {
+                    "struct": {
+                      "fields": [
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x8de8f7e4",
+                              "ty": 4
+                            }
+                          },
+                          "name": "iv"
+                        },
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x8de8f7e4",
+                              "ty": 4
+                            }
+                          },
+                          "name": "ciphertext"
+                        }
+                      ],
+                      "name": "EncryptedEntry"
+                    }
+                  },
+                  "root_key": "0x8de8f7e4"
+                }
+              },
+              "name": "entries"
+            },
+            {
+              "layout": {
+                "root": {
+                  "layout": {
+                    "leaf": {
+                      "key": "0x293dcfd0",
+                      "ty": 5
+                    }
+                  },
+                  "root_key": "0x293dcfd0"
+                }
+              },
+              "name": "num_entries"
+            },
+            {
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 2
+                }
+              },
+              "name": "latest_smart_contract_version"
+            },
+            {
+              "layout": {
+                "enum": {
+                  "dispatchKey": "0x00000000",
+                  "name": "Option",
+                  "variants": {
+                    "0": {
+                      "fields": [],
+                      "name": "None"
+                    },
+                    "1": {
+                      "fields": [
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x00000000",
+                              "ty": 0
+                            }
+                          },
+                          "name": "0"
+                        }
+                      ],
+                      "name": "Some"
+                    }
+                  }
+                }
+              },
+              "name": "latest_smart_contract_address"
+            },
+            {
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 5
+                }
+              },
+              "name": "latest_compatible_browser_extension_version"
+            }
+          ],
+          "name": "KeyVault"
+        }
+      },
+      "root_key": "0x00000000"
+    }
+  },
+  "types": [
+    {
+      "id": 0,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 1,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        },
+        "path": ["ink_primitives", "types", "AccountId"]
+      }
+    },
+    {
+      "id": 1,
+      "type": {
+        "def": {
+          "array": {
+            "len": 32,
+            "type": 2
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": {
+        "def": {
+          "primitive": "u8"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": {
+        "def": {
+          "primitive": "u128"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 2
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": {
+        "def": {
+          "primitive": "u32"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 7
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 7
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 7,
+      "type": {
+        "def": {
+          "tuple": []
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 1,
+                "name": "CouldNotReadInput"
+              }
+            ]
+          }
+        },
+        "path": ["ink_primitives", "LangError"]
+      }
+    },
+    {
+      "id": 9,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 10
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 10
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 10,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 7
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 11
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 7
+          },
+          {
+            "name": "E",
+            "type": 11
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 11,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "AccountNotFound"
+              },
+              {
+                "index": 1,
+                "name": "AccountAlreadyExists"
+              },
+              {
+                "index": 2,
+                "name": "NotOwner"
+              },
+              {
+                "index": 3,
+                "name": "InsufficientPayment"
+              },
+              {
+                "index": 4,
+                "name": "IndexMismatch"
+              },
+              {
+                "index": 5,
+                "name": "TransferFailed"
+              }
+            ]
+          }
+        },
+        "path": ["keyvault", "keyvault", "Error"]
+      }
+    },
+    {
+      "id": 12,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 13
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 13
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 13,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 4
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 11
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 4
+          },
+          {
+            "name": "E",
+            "type": 11
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 14,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 15
+          }
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": {
+        "def": {
+          "tuple": [4, 4]
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 17
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 17
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 17,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 5
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 11
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 5
+          },
+          {
+            "name": "E",
+            "type": 11
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 18,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 19
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 19
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 19,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 20
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 11
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 20
+          },
+          {
+            "name": "E",
+            "type": 11
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 20,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "iv",
+                "type": 4,
+                "typeName": "Vec<u8>"
+              },
+              {
+                "name": "ciphertext",
+                "type": 4,
+                "typeName": "Vec<u8>"
+              }
+            ]
+          }
+        },
+        "path": ["keyvault", "keyvault", "EncryptedEntry"]
+      }
+    },
+    {
+      "id": 21,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 22
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 22
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 22,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 23
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 11
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 23
+          },
+          {
+            "name": "E",
+            "type": 11
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 23,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 20
+          }
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 0
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 0
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 25,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 26
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 26
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 26,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 0
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 11
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 0
+          },
+          {
+            "name": "E",
+            "type": 11
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 27,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 28
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 28
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 28,
+      "type": {
+        "def": {
+          "tuple": [2, 2, 0, 5]
+        }
+      }
+    },
+    {
+      "id": 29,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 3
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 3
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": ["Result"]
+      }
+    },
+    {
+      "id": 30,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 1,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        },
+        "path": ["ink_primitives", "types", "Hash"]
+      }
+    },
+    {
+      "id": 31,
+      "type": {
+        "def": {
+          "primitive": "u64"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "type": {
+        "def": {
+          "variant": {}
+        },
+        "path": ["ink_env", "types", "NoChainExtension"]
+      }
+    }
+  ],
+  "version": "4"
+}
