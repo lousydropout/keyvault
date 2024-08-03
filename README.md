@@ -73,6 +73,23 @@ For our blockchain-based password manager, we intend to use AES-GCM.
 - **Performance**: It is efficient for both encryption and decryption processes, important for user experience.
 - **IV Requirement**: AES-GCM requires an Initialization Vector (IV) for each encryption operation, ensuring that encryption of the same data results in different ciphertexts, enhancing security.
 
+## Notes (for developers)
+
+There are 3 main directories:
+
+- `/backend` -- hardhat project (smart contract)
+  To see the deployed contracts' addresses:
+  ```bash
+  cd backend
+  # get deployment IDs
+  npx hardhat ignition deployments
+  # get network and address of deployed contract
+  npx hardhat ignition status <deployment-id>
+  ```
+  Note that Shibuya's chain ID is `81` and Astar's chain ID is `592`.
+- `/browser-extension` -- browser extension
+- `/src` -- frontend
+
 ## License
 
 This project is licensed under the GPL-3.0 License - see the [LICENSE](https://github.com/lousydropout/keyvault/blob/main/LICENSE) file for details.
