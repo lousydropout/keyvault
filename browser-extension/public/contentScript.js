@@ -51,9 +51,9 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 // Inject data from chrome.storage.local
 chrome.storage.local.get(
-  ["encrypted", "numOnChain"],
-  ({ encrypted, numOnChain }) => {
-    window.sessionStorage.setItem("encrypted", encrypted || []);
+  ["encrypteds", "numOnChain"],
+  ({ encrypteds, numOnChain }) => {
+    window.sessionStorage.setItem("encrypteds", encrypteds || []);
     window.sessionStorage.setItem("numOnChain", numOnChain || 0);
   }
 );

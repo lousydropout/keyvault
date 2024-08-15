@@ -1,5 +1,5 @@
+import { useChromeStorageLocal } from "@/hooks/useChromeLocalStorage";
 import { useEffect } from "react";
-import { useChromeStorageLocal } from "./useChromeLocalStorage";
 
 export type Context<State> = {
   state: State;

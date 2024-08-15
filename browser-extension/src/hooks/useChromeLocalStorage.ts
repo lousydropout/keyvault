@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
-interface ChromeStorageLocalSet {
+type ChromeStorageLocalSet = {
   [key: string]: any; // To accommodate JSON parsing
-}
+};
 
 // Define the function signature with generic type T for the return value.
 function getFromChromeStorage<T>(key: string, defaultValue: T): Promise<T> {
@@ -54,6 +54,7 @@ function useChromeStorageLocal<T>(
       changes: { [key: string]: chrome.storage.StorageChange },
       areaName: string
     ) => {
+      console.log("Changes in storage: ", changes);
       if (areaName === "local" && changes[key]) {
         try {
           const newValue = changes[key].newValue;
@@ -90,4 +91,4 @@ function useChromeStorageLocal<T>(
   return [value, setStoredValue, hasLoaded];
 }
 
-export { useChromeStorageLocal, getFromChromeStorage };
+export { getFromChromeStorage, useChromeStorageLocal };

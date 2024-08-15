@@ -26,9 +26,9 @@ const config = getDefaultConfig({
   transports: { [astar.id]: http() },
 });
 
-interface Web3ModalProviderProps {
+type Web3ModalProviderProps = {
   children: React.ReactNode;
-}
+};
 
 export function Web3ModalProvider({ children }: Web3ModalProviderProps) {
   return (

@@ -1,254 +1,328 @@
-import { Encrypted, decrypt, encrypt } from "./encryption";
+import { Encrypted, decrypt, encrypt } from "@/utils/encryption";
+import { v4 as uuid, validate } from "uuid";
 
-export interface Cred {
-  prev: number;
+/**
+ * Represents an invalid credential.
+ *
+ * @remarks
+ * `reason` is currently unused
+ */
+export type InvalidCred = {
+  isValid: false;
+  encrypted: Encrypted;
+  reason?:
+    | "invalid_id"
+    | "invalid_prev"
+    | "invalid_curr"
+    | "invalid_type"
+    | "unable_to_decrypt";
+};
+
+export type BarePasswordCred = {
+  type: "password";
+  isDeleted: false;
+  id: string;
+  timestamp: string;
   url: string;
   username: string;
   password: string;
-  description?: string;
-  onChain?: boolean;
-  ciphertext?: Encrypted;
-  timestamp?: string;
-  curr?: number;
-  next?: number;
-  isDeleted?: boolean;
-}
+  description: string;
+  curr: number;
+  prev: number;
+};
 
-export interface IndexedEntries {
-  [key: string]: Cred;
-}
+/**
+ * Represents a base credential.
+ *
+ * @remarks
+ * `isValid` and `encrypted` are not part of the encrypted data.
+ */
+export type BaseCred = {
+  isValid: true; // indicates that the object is a valid credential.
+  id: string;
+  type: string;
+  encrypted?: Encrypted; // is the source encrypted data.
+  timestamp: string;
+  curr: number;
+  prev: number;
+};
 
-export async function encryptCred(
-  cryptoKey: CryptoKey,
-  entry: Cred
-): Promise<Cred> {
-  const plaintext = JSON.stringify({
-    url: entry.url,
-    username: entry.username,
-    password: entry.password,
-    description: entry.description || "",
-    prev: entry.prev,
-    timestamp: entry.timestamp || new Date().toISOString(),
-  });
-  return {
-    ...entry,
-    ciphertext: await encrypt(cryptoKey, plaintext),
-  };
-}
+export type PasswordBaseCred = BaseCred & {
+  encrypted: Encrypted;
+  type: "password";
+  isDeleted: boolean;
+};
 
-export async function addEntry(
-  cryptoKey: CryptoKey,
-  entries: Cred[],
-  entry: Cred
-): Promise<Cred[]> {
-  const newEntry = {
-    ...entry,
-    curr: entries.length,
-    timestamp: new Date().toISOString(),
-  };
-  entries.push({
-    ...(await encryptCred(cryptoKey, newEntry)),
-    onChain: false,
-    next: -1,
-  });
-  return entries;
-}
+export type PasswordAdditionCred = PasswordBaseCred & {
+  isDeleted: false;
+  url: string;
+  username: string;
+  password: string;
+  description: string;
+};
+export type PasswordDeletionCred = PasswordBaseCred & {
+  isDeleted: true;
+  url: string;
+};
+export type PasswordCred = PasswordAdditionCred | PasswordDeletionCred;
 
-export async function modifyEntry(
-  cryptoKey: CryptoKey,
-  entries: Cred[],
-  entry: Cred
-): Promise<Cred[]> {
-  entries.push({
-    ...(await encryptCred(cryptoKey, entry)),
-    onChain: false,
-    curr: entries.length,
-    next: -1,
-  });
-  return entries;
-}
+export type KeyPairCred = BaseCred & {
+  encrypted: Encrypted;
+  type: "keyPair";
+  publicKey: string;
+  privateKey: string;
+};
 
-export async function deleteEntry(
-  cryptoKey: CryptoKey,
-  entries: Cred[],
-  k: number
-): Promise<Cred[]> {
-  const entry = entries[k];
-  entry.prev = entry.curr as number;
-  entry.isDeleted = true;
+export type Cred = PasswordCred | KeyPairCred | InvalidCred;
 
-  entries.push({
-    ...(await encryptCred(cryptoKey, entry)),
-    onChain: false,
-    curr: entries.length,
-    timestamp: new Date().toISOString(),
-    next: -1,
-  });
+export type Unencrypted = {
+  passwords: PasswordCred[];
+  keyPairs: KeyPairCred[];
+};
 
-  return entries;
-}
+export type IndexedEntries = Record<string, PasswordCred>;
 
-export function checkIfValid(entries: Cred[]) {
-  const seen = new Set<number>();
-
-  for (const entry of entries) {
-    if (entry.prev === -1) continue;
-    if (seen.has(entry.prev)) return false;
-    seen.add(entry.prev);
-  }
-  return true;
-}
-
-export function getSuccessors(entries: Cred[]): number[] {
-  const result = [];
-  for (let i = 0; i < entries.length; i++) {
-    result.push(-1);
-    if (entries[i].prev > -1) result[entries[i].prev] = i;
-  }
-  return result;
-}
-
-function hash(entry: Cred): string {
-  return JSON.stringify({
-    url: entry.url,
-    username: entry.username,
-    password: entry.password,
-  });
-}
-
-export async function merge(source: Cred[], onChain: Cred[]): Promise<Cred[]> {
-  const result = source.filter((entry) => entry.onChain);
-  // assert that result contains only onChain entries
-  if (
-    source.slice(0, result.length).filter((entry) => !entry.onChain).length > 0
-  ) {
-    throw new Error(
-      "Assertion error: onChain entry exists after offChain entry. " +
-        "Cannot merge with onChain entries"
-    );
-  }
-  // assert that  entries not in result contain only offChain entries
-  if (
-    source.slice(result.length).filter((entry) => !entry.onChain).length > 0
-  ) {
-    throw new Error(
-      "Assertion error: onChain entry exists after offChain entry. " +
-        "Cannot merge with onChain entries"
-    );
-  }
-  // assert that elements in result are the same as elements in onChain
-  for (let i = 0; i < result.length; i++) {
-    if (
-      result[i].prev !== onChain[i].prev ||
-      result[i].url !== onChain[i].url ||
-      result[i].username !== onChain[i].username ||
-      result[i].password !== onChain[i].password
-    ) {
-      throw new Error(
-        `Assertion error: mismatch between onChain and offChain entries at index ${i}: (` +
-          `onChain: ${JSON.stringify(onChain[i])}, ` +
-          `offChain: ${JSON.stringify(result[i])})`
-      );
-    }
-  }
-
-  const last = result.length;
-  const successors = getSuccessors(source);
-
-  // set of "hashes" of not-yet-on-chain entries
-  const newEntries = new Set<string>(
-    source
-      .slice(last)
-      .filter((entry) => entry.prev === -1)
-      .map((entry) => hash(entry))
+/*******************************************************************************
+ * Type Guards
+ ******************************************************************************/
+const isEncryptedType = (obj: any): obj is Encrypted => {
+  return (
+    typeof obj === "object" &&
+    "iv" in obj &&
+    "ciphertext" in obj &&
+    "onChain" in obj &&
+    typeof obj.iv === "string" &&
+    typeof obj.ciphertext === "string" &&
+    typeof obj.onChain === "boolean"
   );
+};
 
-  // add entries to result array
-  function addEntriesToResult(entries: Cred[], onChain: boolean) {
-    entries.slice(last).forEach((entry, k) => {
-      result.push({ ...entry, onChain });
-      newEntries.delete(hash(entry)); // remove from newEntries if it exists there
+const isBaseCred = (obj: any): obj is BaseCred => {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    typeof obj.id === "string" &&
+    validate(obj.id) &&
+    typeof obj.timestamp === "string" &&
+    typeof obj.curr === "number" &&
+    typeof obj.prev === "number" &&
+    typeof obj.prev === "number" &&
+    typeof obj.curr === "number" &&
+    obj.prev >= -1 &&
+    obj.curr > obj.prev &&
+    ("encrypted" in obj ? isEncryptedType(obj.encrypted) : true)
+  );
+};
 
-      // update successor
-      const found = source
-        .slice(last)
-        .filter((sourceEntry) => sourceEntry.prev == entry.prev);
-      if (found.length > 0) source[successors[found[0].prev]].prev = k;
-    });
-  }
+const isPasswordBaseCred = (obj: any): obj is PasswordBaseCred => {
+  if (!isBaseCred(obj)) return false;
 
-  addEntriesToResult(onChain, true); // add onChain entries
-  addEntriesToResult(source, false); // add source entries
+  return (
+    obj.type === "password" &&
+    "isDeleted" in obj &&
+    typeof obj.isDeleted === "boolean" &&
+    "encrypted" in obj &&
+    isEncryptedType(obj.encrypted)
+  );
+};
 
+export const isPasswordCred = (obj: any): obj is PasswordCred => {
+  if (!isPasswordBaseCred(obj)) return false;
+
+  if (obj.isDeleted) return true;
+
+  return (
+    "url" in obj &&
+    typeof obj.url === "string" &&
+    "username" in obj &&
+    typeof obj.username === "string" &&
+    "password" in obj &&
+    typeof obj.password === "string" &&
+    "description" in obj &&
+    typeof obj.description === "string"
+  );
+};
+
+export const createBarePasswordCred = (params: {
+  url: string;
+  username: string;
+  password: string;
+  description: string;
+  curr: number;
+  prev: number;
+}): BarePasswordCred => {
+  const result: BarePasswordCred = {
+    type: "password",
+    isDeleted: false,
+    id: uuid(),
+    timestamp: new Date().toISOString(),
+    ...params,
+  };
   return result;
-}
+};
 
-function organizeIntoChains(entries: Cred[]): Cred[][] {
-  // Step 1: Initialize chains
-  const chains: Cred[][] = [];
+export const convertToPasswordCred = async (
+  cryptoKey: CryptoKey,
+  cred: BarePasswordCred
+): Promise<PasswordCred> => {
+  const encrypted = await encrypt(cryptoKey, cred);
 
-  // Step 2: Track which indices have been processed
-  const seen = new Set();
+  return {
+    ...cred,
+    isValid: true,
+    encrypted,
+  };
+};
 
-  // Step 3: Iterate through the array
-  entries.forEach((obj) => {
-    if (obj.prev === -1 && !seen.has(obj.curr)) {
-      const chain = [];
-      let current: Cred | null = obj;
+const isKeyPairCred = (obj: any): obj is KeyPairCred => {
+  if (!isBaseCred(obj)) return false;
 
-      // Follow the revisions chain using direct indexing
-      while (current) {
-        chain.push(current);
-        seen.add(current.curr);
-        current =
-          current.prev !== -1 && !seen.has(current.prev)
-            ? entries[current.prev]
-            : null;
-      }
+  return (
+    obj.type === "keyPair" &&
+    "publicKey" in obj &&
+    typeof obj.publicKey === "string" &&
+    "privateKey" in obj &&
+    typeof obj.privateKey === "string" &&
+    "encrypted" in obj &&
+    isEncryptedType(obj.encrypted)
+  );
+};
 
-      // Add the completed chain to the chains list
-      chains.push(chain);
-    }
-  });
-  return chains;
-}
+const isValidCred = (obj: any): obj is PasswordCred | KeyPairCred =>
+  isPasswordCred(obj) || isKeyPairCred(obj);
 
-export function getEntriesByURL(entries: Cred[]): Record<string, Cred[][]> {
-  const results: Record<string, Cred[][]> = {};
+const isCred = (obj: any): obj is Cred =>
+  isValidCred(obj) || obj.isValid === false;
 
-  organizeIntoChains(entries).forEach((chain) => {
-    if (!results[chain[0].url]) {
-      results[chain[0].url] = [];
-    }
-    results[chain[0].url].push(chain);
-  });
+/*******************************************************************************
+ * End of Type Guards
+ ******************************************************************************/
 
-  return results;
-}
-
-export function getCredsByURL(entries: Cred[]): Record<string, Cred[]> {
-  const successors = getSuccessors(entries);
-  const results: Record<string, Cred[]> = {};
-
-  entries
-    .map((entry, k) => ({ ...entry, curr: k }))
-    .filter((_, k) => successors[k] === -1)
-    .forEach((entry) => {
-      if (!results[entry.url]) {
-        results[entry.url] = [];
-      }
-      results[entry.url].push(entry);
-    });
-
-  return results;
-}
-
+/**
+ * Decrypts an encrypted entry using the provided crypto key.
+ *
+ * @param cryptoKey - The crypto key used for decryption.
+ * @param encrypted - The encrypted data to be decrypted.
+ * @returns A promise that resolves to a decrypted credential object.
+ */
 export async function decryptEntry(
   cryptoKey: CryptoKey,
-  encryptedEntry: Encrypted
+  encrypted: Encrypted
 ): Promise<Cred> {
-  return {
-    ...JSON.parse(await decrypt(cryptoKey, encryptedEntry)),
-    ciphertext: encryptedEntry,
-  };
+  try {
+    return {
+      isValid: true,
+      encrypted,
+      ...JSON.parse(await decrypt(cryptoKey, encrypted)),
+    };
+  } catch (e) {
+    return { isValid: false, encrypted };
+  }
 }
+
+/**
+ * Converts encrypted data to credentials using the provided crypto key.
+ * @param cryptoKey - The crypto key used for decryption.
+ * @param encrypteds - An array of encrypted data.
+ * @returns A promise that resolves to an array of credentials.
+ * @example
+ * ```ts
+ *   const cryptoKey = await generateCryptoKey();
+ *   const encryptedData = [encrypted1, encrypted2, encrypted3];
+ *   const credentials = await convertToCreds(cryptoKey, encryptedData);
+ *   console.log(credentials);
+ * ```
+ */
+export const convertToCreds = async (
+  cryptoKey: CryptoKey,
+  encrypteds: Encrypted[]
+): Promise<Cred[]> => {
+  return Promise.all(encrypteds.map((entry) => decryptEntry(cryptoKey, entry)));
+};
+
+/**
+ * Updates the credentials with the provided encrypted data.
+ *
+ * @param cryptoKey - The cryptographic key used for decryption.
+ * @param encrypteds - An array of encrypted data.
+ * @param creds - An array of credentials to be updated.
+ * @returns A promise that resolves to the updated array of credentials.
+ */
+export const updateCreds = async (
+  cryptoKey: CryptoKey,
+  encrypteds: Encrypted[],
+  creds: Cred[]
+): Promise<Cred[]> => {
+  const newCreds = structuredClone(creds);
+
+  // Update existing creds if needed
+  for (let i = 0; i < newCreds.length; i++) {
+    if (newCreds[i].encrypted !== encrypteds[i]) {
+      newCreds[i] = await decryptEntry(cryptoKey, encrypteds[i]);
+    }
+  }
+
+  // Add new creds if needed
+  for (let i = newCreds.length; i < encrypteds.length; i++) {
+    newCreds.push(await decryptEntry(cryptoKey, encrypteds[i]));
+  }
+
+  return newCreds;
+};
+
+/**
+ * Retrieves the key pairs from the given credentials.
+ *
+ * @param creds - The array of credentials.
+ * @returns An array of key pair credentials.
+ */
+export const getKeyPairs = (creds: Cred[]): KeyPairCred[] =>
+  creds.filter(isKeyPairCred);
+
+/**
+ * Retrieves password chains from an array of credentials.
+ *
+ * @param creds - The array of credentials.
+ * @returns An object containing password chains.
+ */
+export const getPasswordChains = (
+  creds: Cred[]
+): Record<number, PasswordCred[]> => {
+  const passwords: Record<number, PasswordCred[]> = {};
+  const prevs: Record<number, number> = { "-1": -1 };
+
+  for (let i = 0; i < creds.length; i++) {
+    if (!isPasswordCred(creds[i])) continue;
+
+    const pw = creds[i] as PasswordCred;
+    prevs[pw.curr] = pw.prev;
+
+    let first = pw.curr;
+    while (prevs[first] >= 0) first = prevs[first];
+    if (!(first in passwords)) passwords[first] = [];
+    passwords[first].push(pw);
+  }
+  return passwords;
+};
+
+/**
+ * Retrieves credentials by URL.
+ *
+ * @param creds - An array of credentials.
+ * @returns An object containing credentials grouped by URL.
+ * @example See credentials.test.ts for usage examples.
+ */
+export const getCredsByUrl = (creds: Cred[]) => {
+  const credsByUrl: Record<string, Cred[][]> = {};
+  const passwords = getPasswordChains(creds);
+
+  for (let i = 0; i < creds.length; i++) {
+    if (!(i in passwords)) continue;
+    const chain = passwords[i];
+    const url = chain[0].url;
+    if (!(url in credsByUrl)) credsByUrl[url] = [];
+    credsByUrl[url].push(chain);
+  }
+
+  return credsByUrl;
+};

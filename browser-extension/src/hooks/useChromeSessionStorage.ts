@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 
 // Assuming you have the types for chrome.storage,
 // if not you might need to install @types/chrome or define them yourself
-interface ChromeStorageSessionSet {
+type ChromeStorageSessionSet = {
   [key: string]: any; // Changed from string to any to accommodate JSON parsing
-}
+};
 
 function useChromeStorageSession<T>(
   key: string,
