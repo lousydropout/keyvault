@@ -225,20 +225,25 @@ export const parseEncryptedText = async (
 /**
  * Decrypts the given 256-bit AES-GCM encrypted data using the provided key.
  *
- * @param key - The cryptographic key used for decryption.
+ * @param cryptoKey - The cryptographic key used for decryption.
  * @param encrypted - The encrypted data to be decrypted.
  * @returns A promise that resolves to the decrypted data as a string.
  */
 export const decrypt = async (
-  key: CryptoKey,
+  cryptoKey: CryptoKey,
   encrypted: Encrypted
 ): Promise<string> => {
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64ToBuffer(encrypted.iv), tagLength: 128 },
-    key,
-    base64ToBuffer(encrypted.ciphertext)
-  );
-  return new TextDecoder("utf-8").decode(decrypted);
+  try {
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: base64ToBuffer(encrypted.iv), tagLength: 128 },
+      cryptoKey,
+      base64ToBuffer(encrypted.ciphertext)
+    );
+    return new TextDecoder("utf-8").decode(decrypted);
+  } catch (e) {
+    console.error("[decrypt] Error: ", e);
+    throw e;
+  }
 };
 
 /**

@@ -210,12 +210,14 @@ export async function decryptEntry(
   encrypted: Encrypted
 ): Promise<Cred> {
   try {
+    const decrypted = await decrypt(cryptoKey, encrypted);
     return {
       isValid: true,
       encrypted,
-      ...JSON.parse(await decrypt(cryptoKey, encrypted)),
+      ...JSON.parse(decrypted),
     };
   } catch (e) {
+    console.log("[decryptEntry] error: ", e);
     return { isValid: false, encrypted };
   }
 }

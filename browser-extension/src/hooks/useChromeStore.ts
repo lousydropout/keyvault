@@ -44,7 +44,6 @@ export const useChromeStore = <T>(
       changes: { [key: string]: chrome.storage.StorageChange },
       areaName: string
     ) => {
-      console.log("Changes in storage: ", changes);
       if (
         (persist && areaName === "local") ||
         (!persist && areaName === "session")

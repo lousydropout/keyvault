@@ -78,7 +78,6 @@ export const AddCred = ({
       curr: encrypteds.length,
     });
     const encrypted = await encrypt(cryptoKey as CryptoKey, bareCred);
-
     setEncrypteds((values) => [...values, encrypted]);
     setView("Current Page");
   };

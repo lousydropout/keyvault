@@ -2,11 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
+import { DASHBOARD } from "@/side_panel/steps";
 import { importCryptoKey } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
 import { download } from "@/utils/utility";
 import { useEffect, useState } from "react";
-import { DASHBOARD } from "./steps";
 
 type EncryptionKeySetupProps = {
   setStep: (step: number) => void;
@@ -23,7 +23,7 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
     if (!pubkey) return;
 
     getNumEntries(pubkey).then((num) => {
-      if (num) setNumOnChain(num);
+      if (num !== undefined) setNumOnChain(num);
     });
   }, [pubkey]);
 

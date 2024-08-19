@@ -55,7 +55,7 @@ export const Root = () => {
   }, [numOnChain, cryptoKey]);
 
   useEffect(() => {
-    if (!encrypteds) return;
+    if (!cryptoKey || !encrypteds) return;
 
     const startIdx = creds.length;
     if (encrypteds.length > startIdx) {
@@ -65,7 +65,7 @@ export const Root = () => {
         });
       }
     }
-  }, [encrypteds]);
+  }, [encrypteds, cryptoKey]);
 
   return (
     <>
