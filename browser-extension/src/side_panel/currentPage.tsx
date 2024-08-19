@@ -9,7 +9,7 @@ export const CurrentPage = ({ credsUrl }: { credsUrl: CredsByUrl }) => {
   const chains = credsUrl[url];
 
   return (
-    <div className="flex flex-col gap-4 px-2 py-4">
+    <div className="flex flex-col gap-2 mt-4 px-2">
       <h2 className="text-xl text-center italic font-semibold">{url}</h2>
       {chains ? (
         chains.map((chain) => {
