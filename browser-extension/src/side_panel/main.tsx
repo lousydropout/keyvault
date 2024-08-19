@@ -1,5 +1,5 @@
 import { Header, View } from "@/components/header";
-import { useChromeStorageLocal } from "@/hooks/useChromeLocalStorage";
+import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import "@/index.css";
 import { PubkeyRequest } from "@/side_panel/PubkeyRequest";
@@ -18,19 +18,19 @@ import { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
 
 export const Root = () => {
-  const [step, setStep] = useChromeStorageLocal<number>("step", WELCOME);
+  const [step, setStep] = useChromeStoreLocal<number>("step", WELCOME);
   const [view, setView] = useState<View>("Current Page");
-  const [pubkey] = useChromeStorageLocal<string>("pubkey", "");
+  const [pubkey] = useChromeStoreLocal<string>("pubkey", "");
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [numOnChain, setNumOnChain] = useChromeStorageLocal<number>(
+  const [numOnChain, setNumOnChain] = useChromeStoreLocal<number>(
     "numEntries",
     -1
   );
-  const [encrypteds, setEncrypteds] = useChromeStorageLocal<Encrypted[]>(
+  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
     `encrypteds`,
     []
   );
-  const [creds, setCreds] = useChromeStorageLocal<Cred[]>("credentials", []);
+  const [creds, setCreds] = useChromeStoreLocal<Cred[]>("credentials", []);
 
   const queryOnChainIfNeeded = async () => {
     const num = await getNumEntries(pubkey);

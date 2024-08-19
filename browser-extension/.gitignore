@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 icons.zip
+
+# Browser extension build
+vite.config.js.timestamp*

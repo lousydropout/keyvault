@@ -43,12 +43,12 @@
 
 ### Custom Hook for Side Panel
 
-The `useChromeStorageLocal` custom hook abstracts interactions with `chrome.storage.local`, enabling components (like those in the side panel) to easily get and set stored values. It also listens for changes in storage to update the component state in real time.
+The `useChromeStore` custom hook abstracts interactions with `chrome.storage.local`, enabling components (like those in the side panel) to easily get and set stored values. It also listens for changes in storage to update the component state in real time.
 
 - **Hook Definition**: The hook uses `useState` to manage local state, `useEffect` to fetch the initial value from storage, another `useEffect` to listen for storage changes, and a final `useEffect` to update storage when the state changes.
 
   ```typescript
-  function useChromeStorageLocal<T>(key: string, defaultValue: T) {
+  function useChromeStore<T>(key: string, defaultValue: T) {
     const [value, setValue] = useState<T>(defaultValue);
 
     // Fetch initial value from storage
@@ -77,7 +77,7 @@ chrome.runtime.sendMessage({ ciphertext }).catch((error) => {
 
 - The React app sends user input to the content script.
 - The content script forwards this input to the background script or directly to storage.
-- The side panel uses the `useChromeStorageLocal` hook to automatically fetch and display the stored data. The hook also ensures the side panel's state stays updated with any changes in storage, offering a reactive UI without manual refreshes.
+- The side panel uses the `useChromeStore` hook to automatically fetch and display the stored data. The hook also ensures the side panel's state stays updated with any changes in storage, offering a reactive UI without manual refreshes.
 - Error handling mechanisms are in place to ensure the extension behaves gracefully, even when parts of it are not active or available.
 
 This process outlines a robust method for data transmission in a Chrome extension, leveraging modern React practices and Chrome's extension capabilities to create a seamless user experience.

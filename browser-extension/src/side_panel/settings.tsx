@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useChromeStorageLocal } from "@/hooks/useChromeLocalStorage";
+import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { Cred } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
@@ -19,10 +19,10 @@ const logOut = async () => {
 };
 
 export const Settings = () => {
-  const [pubkey] = useChromeStorageLocal<string>("pubkey", "");
+  const [pubkey] = useChromeStoreLocal<string>("pubkey", "");
   const [jwk] = useCryptoKeyManager();
-  const [encrypteds] = useChromeStorageLocal<Encrypted[]>(`encrypteds`, []);
-  const [creds] = useChromeStorageLocal<Cred[]>("credentials", []);
+  const [encrypteds] = useChromeStoreLocal<Encrypted[]>(`encrypteds`, []);
+  const [creds] = useChromeStoreLocal<Cred[]>("credentials", []);
 
   return (
     <div className="flex flex-col justify-end">

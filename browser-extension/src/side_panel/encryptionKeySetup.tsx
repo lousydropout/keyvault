@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useChromeStorageLocal } from "@/hooks/useChromeLocalStorage";
+import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { importCryptoKey } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
@@ -12,9 +12,9 @@ type EncryptionKeySetupProps = {
   setStep: (step: number) => void;
 };
 export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
-  const [pubkey] = useChromeStorageLocal<string>("pubkey", "");
+  const [pubkey] = useChromeStoreLocal<string>("pubkey", "");
   const [jwk, setJwk, _, generateKeyHandler] = useCryptoKeyManager();
-  const [numOnChain, setNumOnChain] = useChromeStorageLocal<number>(
+  const [numOnChain, setNumOnChain] = useChromeStoreLocal<number>(
     "numEntries",
     -1
   );

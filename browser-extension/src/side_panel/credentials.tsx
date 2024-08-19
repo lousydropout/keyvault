@@ -1,6 +1,6 @@
 import { View } from "@/components/header";
 import { Button } from "@/components/ui/button";
-import { useChromeStorageLocal } from "@/hooks/useChromeLocalStorage";
+import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { Cred } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
 import { Dispatch, SetStateAction } from "react";
@@ -10,16 +10,16 @@ export const Credentials = ({
 }: {
   setView: Dispatch<SetStateAction<View>>;
 }) => {
-  const [pubkey, setPubkey] = useChromeStorageLocal<string>("pubkey", "");
-  const [numOnChain, setNumOnChain] = useChromeStorageLocal<number>(
+  const [pubkey, setPubkey] = useChromeStoreLocal<string>("pubkey", "");
+  const [numOnChain, setNumOnChain] = useChromeStoreLocal<number>(
     "numEntries",
     -1
   );
-  const [encrypteds, setEncrypteds] = useChromeStorageLocal<Encrypted[]>(
+  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
     `encrypteds`,
     []
   );
-  const [creds, setCreds] = useChromeStorageLocal<Cred[]>("credentials", []);
+  const [creds, setCreds] = useChromeStoreLocal<Cred[]>("credentials", []);
 
   return (
     <div className="flex flex-col gap-4 px-2 py-4">

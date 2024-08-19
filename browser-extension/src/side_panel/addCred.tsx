@@ -3,7 +3,7 @@ import { CopyIcon } from "@/components/icons/copy";
 import { RepeatIcon } from "@/components/icons/repeat";
 import { ViewIcon } from "@/components/icons/view";
 import { ViewOffIcon } from "@/components/icons/viewOff";
-import { useChromeStorageLocal } from "@/hooks/useChromeLocalStorage";
+import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { createBarePasswordCred } from "@/utils/credentials";
@@ -35,7 +35,7 @@ export const AddCred = ({
   setView: Dispatch<SetStateAction<View>>;
 }) => {
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [encrypteds, setEncrypteds] = useChromeStorageLocal<Encrypted[]>(
+  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
     `encrypteds`,
     []
   );
