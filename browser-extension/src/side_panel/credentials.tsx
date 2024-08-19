@@ -21,11 +21,11 @@ export const Credentials = () => {
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
-      <div className="flex justify-between items-baseline">
-        <h1 className="text-4xl text-center">Credentials</h1>
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col items-center">
+        <h1 className="text-4xl">Credentials</h1>
+        <div className="mt-2 self-end flex items-center space-x-2">
           <Label htmlFor="see-all-mode">
-            See {seeAll ? " all" : " current"}
+            {seeAll ? "All" : "Current Page"}
           </Label>
           <Switch
             id="see-all-mode"
