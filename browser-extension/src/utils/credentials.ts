@@ -1,6 +1,12 @@
 import { Encrypted, decrypt, encrypt } from "@/utils/encryption";
 import { v4 as uuid, validate } from "uuid";
 
+/*******************************************************************************
+ * Types
+ ******************************************************************************/
+
+export type CredsByUrl = Record<string, Cred[][]>;
+
 /**
  * Represents an invalid credential.
  *
@@ -126,10 +132,10 @@ const isPasswordBaseCred = (obj: any): obj is PasswordBaseCred => {
   );
 };
 
-export const isPasswordCred = (obj: any): obj is PasswordCred => {
+export const isPasswordAdditionCred = (
+  obj: any
+): obj is PasswordAdditionCred => {
   if (!isPasswordBaseCred(obj)) return false;
-
-  if (obj.isDeleted) return true;
 
   return (
     "url" in obj &&
@@ -141,6 +147,11 @@ export const isPasswordCred = (obj: any): obj is PasswordCred => {
     "description" in obj &&
     typeof obj.description === "string"
   );
+};
+
+export const isPasswordCred = (obj: any): obj is PasswordCred => {
+  if (!isPasswordBaseCred(obj)) return false;
+  return obj.isDeleted || isPasswordAdditionCred(obj);
 };
 
 export const createBarePasswordCred = (params: {
@@ -201,9 +212,9 @@ const isCred = (obj: any): obj is Cred =>
 /**
  * Decrypts an encrypted entry using the provided crypto key.
  *
- * @param cryptoKey - The crypto key used for decryption.
- * @param encrypted - The encrypted data to be decrypted.
- * @returns A promise that resolves to a decrypted credential object.
+ * @param {CryptoKey} cryptoKey - The crypto key used for decryption.
+ * @param {Encrypted} encrypted - The encrypted data to be decrypted.
+ * @returns {Promise<Cred[]>} A promise that resolves to a decrypted credential object.
  */
 export async function decryptEntry(
   cryptoKey: CryptoKey,
@@ -224,9 +235,9 @@ export async function decryptEntry(
 
 /**
  * Converts encrypted data to credentials using the provided crypto key.
- * @param cryptoKey - The crypto key used for decryption.
- * @param encrypteds - An array of encrypted data.
- * @returns A promise that resolves to an array of credentials.
+ * @param {CryptoKey} cryptoKey - The crypto key used for decryption.
+ * @param {Encrypted[]} encrypteds - An array of encrypted data.
+ * @returns {Promise<Cred[]>} A promise that resolves to an array of credentials.
  * @example
  * ```ts
  *   const cryptoKey = await generateCryptoKey();
@@ -245,10 +256,10 @@ export const convertToCreds = async (
 /**
  * Updates the credentials with the provided encrypted data.
  *
- * @param cryptoKey - The cryptographic key used for decryption.
- * @param encrypteds - An array of encrypted data.
- * @param creds - An array of credentials to be updated.
- * @returns A promise that resolves to the updated array of credentials.
+ * @param {CryptoKey} cryptoKey - The cryptographic key used for decryption.
+ * @param {Encrypted[]} encrypteds - An array of encrypted data.
+ * @param {Cred[]} creds - An array of credentials to be updated.
+ * @returns {Promise<Cred[]>} A promise that resolves to the updated array of credentials.
  */
 export const updateCreds = async (
   cryptoKey: CryptoKey,
@@ -284,8 +295,8 @@ export const getKeyPairs = (creds: Cred[]): KeyPairCred[] =>
 /**
  * Retrieves password chains from an array of credentials.
  *
- * @param creds - The array of credentials.
- * @returns An object containing password chains.
+ * @param {Cred[]} creds - The array of credentials.
+ * @returns {Record<number, PasswordCred[]>} An object containing password chains.
  */
 export const getPasswordChains = (
   creds: Cred[]
@@ -310,12 +321,12 @@ export const getPasswordChains = (
 /**
  * Retrieves credentials by URL.
  *
- * @param creds - An array of credentials.
- * @returns An object containing credentials grouped by URL.
+ * @param {Cred[]} creds - An array of credentials.
+ * @returns {CredsByUrl} An object containing credentials grouped by URL.
  * @example See credentials.test.ts for usage examples.
  */
-export const getCredsByUrl = (creds: Cred[]) => {
-  const credsByUrl: Record<string, Cred[][]> = {};
+export const getCredsByUrl = (creds: Cred[]): CredsByUrl => {
+  const credsByUrl: CredsByUrl = {};
   const passwords = getPasswordChains(creds);
 
   for (let i = 0; i < creds.length; i++) {

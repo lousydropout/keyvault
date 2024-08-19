@@ -5,7 +5,6 @@ import "@/index.css";
 import { PubkeyRequest } from "@/side_panel/PubkeyRequest";
 import { AddCred } from "@/side_panel/addCred";
 import { Credentials } from "@/side_panel/credentials";
-import { CurrentPage } from "@/side_panel/currentPage";
 import { EncryptionKeySetup } from "@/side_panel/encryptionKeySetup";
 import { Settings } from "@/side_panel/settings";
 import { DASHBOARD, SETUP_ENCRYPTION_KEY, WELCOME } from "@/side_panel/steps";
@@ -85,8 +84,8 @@ export const Root = () => {
             view={view}
             setView={setView}
           />
-          {view === "All Credentials" && <Credentials setView={setView} />}
-          {view === "Current Page" && <CurrentPage setView={setView} />}
+          {view === "All Credentials" && <Credentials />}
+          {view === "Current Page" && <Credentials />}
           {view === "Settings" && <Settings />}
           {view === "Sync" && <Sync />}
           {view === "New Credential" && <AddCred setView={setView} />}

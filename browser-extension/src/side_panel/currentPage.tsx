@@ -1,20 +1,25 @@
-import { View } from "@/components/header";
-import { Button } from "@/components/ui/button";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
-import { Dispatch, SetStateAction } from "react";
+import { CredentialCard } from "@/side_panel/credentialCard";
+import { CredsByUrl, isPasswordAdditionCred } from "@/utils/credentials";
 
-export const CurrentPage = ({
-  setView,
-}: {
-  setView: Dispatch<SetStateAction<View>>;
-}) => {
+export const CurrentPage = ({ credsUrl }: { credsUrl: CredsByUrl }) => {
   const [_, currentUrl] = useCurrentTab();
+
+  const url = currentUrl || "Unknown";
+  const chains = credsUrl[url];
+
   return (
-    <>
-      <h1>Current Page: {currentUrl}</h1>
-      <Button onClick={() => setView("All Credentials")}>
-        See all credentials
-      </Button>
-    </>
+    <div className="flex flex-col gap-4 px-2 py-4">
+      <h2 className="text-xl text-center italic font-semibold">{url}</h2>
+      {chains ? (
+        chains.map((chain) => {
+          const cred = chain[chain.length - 1];
+          if (!isPasswordAdditionCred(cred)) return <></>;
+          return <CredentialCard key={cred.id} cred={cred} />;
+        })
+      ) : (
+        <></>
+      )}
+    </div>
   );
 };

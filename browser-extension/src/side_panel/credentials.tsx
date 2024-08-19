@@ -1,32 +1,45 @@
-import { View } from "@/components/header";
-import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useChromeStoreLocal } from "@/hooks/useChromeStore";
-import { Cred } from "@/utils/credentials";
-import { Encrypted } from "@/utils/encryption";
-import { Dispatch, SetStateAction } from "react";
+import { CredentialsAll } from "@/side_panel/credentialsAll";
+import { CurrentPage } from "@/side_panel/currentPage";
+import { Cred, CredsByUrl, getCredsByUrl } from "@/utils/credentials";
+import { useEffect, useState } from "react";
 
-export const Credentials = ({
-  setView,
-}: {
-  setView: Dispatch<SetStateAction<View>>;
-}) => {
-  const [pubkey, setPubkey] = useChromeStoreLocal<string>("pubkey", "");
-  const [numOnChain, setNumOnChain] = useChromeStoreLocal<number>(
-    "numEntries",
-    -1
-  );
-  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
-    `encrypteds`,
-    []
-  );
-  const [creds, setCreds] = useChromeStoreLocal<Cred[]>("credentials", []);
+export const Credentials = () => {
+  const [creds] = useChromeStoreLocal<Cred[]>("credentials", []);
+  const [credsUrl, setCredsUrl] = useState<CredsByUrl>({});
+
+  const [seeAll, setSeeAll] = useState<boolean>(true);
+  const toggleSeeAll = () => setSeeAll((prev) => !prev);
+
+  useEffect(() => {
+    if (!creds) return;
+
+    setCredsUrl(getCredsByUrl(creds));
+  }, [creds]);
 
   return (
-    <div className="flex flex-col gap-4 px-2 py-4">
-      <h1 className="text-4xl text-center">Dashboard</h1>
-      <Button onClick={() => setView("Current Page")}>See current page</Button>
-      <h2>{pubkey}</h2>
-      <h3>numOnChain: {numOnChain}</h3>
+    <div className="flex flex-col gap-4 px-4 py-4">
+      <div className="flex justify-between items-baseline">
+        <h1 className="text-4xl text-center">Credentials</h1>
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="see-all-mode">
+            See {seeAll ? " all" : " current"}
+          </Label>
+          <Switch
+            id="see-all-mode"
+            checked={seeAll}
+            onCheckedChange={toggleSeeAll}
+            className="border-purple-200"
+          />
+        </div>
+      </div>
+      {seeAll ? (
+        <CredentialsAll credsUrl={credsUrl} />
+      ) : (
+        <CurrentPage credsUrl={credsUrl} />
+      )}
     </div>
   );
 };

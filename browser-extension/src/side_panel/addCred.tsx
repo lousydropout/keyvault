@@ -9,7 +9,13 @@ import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { createBarePasswordCred } from "@/utils/credentials";
 import { encrypt, Encrypted } from "@/utils/encryption";
 import generator from "generate-password-ts";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import {
+  Dispatch,
+  FormEvent,
+  SetStateAction,
+  useEffect,
+  useState,
+} from "react";
 
 const generatePassword = (
   length: number,
@@ -67,7 +73,7 @@ export const AddCred = ({
     setTimeout(() => setShowTooltip(false), 1000);
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const bareCred = createBarePasswordCred({
       url,
