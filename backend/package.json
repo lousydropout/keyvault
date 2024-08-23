@@ -1,5 +1,10 @@
 {
   "name": "hardhat-project",
+  "scripts": {
+    "copy-to-frontend": "cp keyvault.abi.ts ../frontend/src/keyvault.abi.ts",
+    "copy-to-browser-extension": "cp keyvault.abi.ts ../browser-extension/src/keyvault.abi.ts",
+    "abi": "npx wagmi generate; pnpm copy-to-frontend; pnpm copy-to-browser-extension"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@wagmi/cli": "^2.1.15",
