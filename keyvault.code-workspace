@@ -2,7 +2,7 @@
   "folders": [
     {
       "name": "Frontend",
-      "path": "."
+      "path": "./frontend"
     },
     {
       "name": "Browser Extension",
