@@ -14,6 +14,7 @@
     }
   ],
   "settings": {
+    "git.openRepositoryInParentFolders": "always",
     "search.exclude": {
       "**/*.{jpg,jpeg,png,svg,webm,mp4,ttf,woff,woff2}": true
     },
