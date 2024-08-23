@@ -7,6 +7,7 @@ import { importCryptoKey } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
 import { download } from "@/utils/utility";
 import { useEffect, useState } from "react";
+import { Hex } from "viem";
 
 type EncryptionKeySetupProps = {
   setStep: (step: number) => void;
@@ -22,7 +23,7 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
   useEffect(() => {
     if (!pubkey) return;
 
-    getNumEntries(pubkey).then((num) => {
+    getNumEntries(pubkey as Hex).then((num) => {
       if (num !== undefined) setNumOnChain(num);
     });
   }, [pubkey]);
@@ -38,7 +39,6 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
   const CreatingOrResetingAccount = ({
     isNew,
   }: CreatingOrResetingAccountProps) => {
-    console.log("CreatingOrResetingAccount");
     return (
       <div className="flex flex-col gap-4 px-2 py-4">
         <h1 className="text-4xl text-center mt-4">

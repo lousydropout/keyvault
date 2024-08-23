@@ -1,22 +1,18 @@
-import { shibuya } from "@/config";
-import { keyvault, keyvaultShibuyaAddress } from "@/utils/contracts";
-import { createPublicClient, http } from "viem";
-import { Encrypted, parseEncryptedText } from "./encryption";
+import { contract } from "@/utils/contracts";
+import { Encrypted, parseEncryptedText } from "@/utils/encryption";
+import { Hex } from "viem";
 
 export const getEntries = async (
-  pubkey: string,
+  pubkey: Hex,
   startFrom: number,
   limit: number
 ): Promise<Encrypted[]> => {
-  const client = createPublicClient({ chain: shibuya, transport: http() });
-
   try {
-    const results = (await client.readContract({
-      address: keyvaultShibuyaAddress,
-      abi: keyvault.abi,
-      functionName: "getEntries",
-      args: [pubkey, startFrom, limit],
-    })) as string[];
+    const results = (await contract.read.getEntries([
+      pubkey,
+      BigInt(startFrom),
+      BigInt(limit),
+    ])) as string[];
 
     const encryptedResults = await Promise.all(
       results.map(async (result) => {

@@ -15,6 +15,7 @@ import { getEntries } from "@/utils/getEntries";
 import { getNumEntries } from "@/utils/getNumEntries";
 import { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
+import { Hex } from "viem";
 
 export const Root = () => {
   const [step, setStep] = useChromeStoreLocal<number>("step", WELCOME);
@@ -32,7 +33,7 @@ export const Root = () => {
   const [creds, setCreds] = useChromeStoreLocal<Cred[]>("credentials", []);
 
   const queryOnChainIfNeeded = async () => {
-    const num = await getNumEntries(pubkey);
+    const num = await getNumEntries(pubkey as Hex);
     if (num) setNumOnChain(num);
   };
 
@@ -44,7 +45,7 @@ export const Root = () => {
       // query entries on chain
       const limit = numOnChain - encrypteds.length;
       const _encrypteds = structuredClone(encrypteds);
-      getEntries(pubkey, encrypteds.length, limit).then((newEntries) => {
+      getEntries(pubkey as Hex, encrypteds.length, limit).then((newEntries) => {
         for (let i = 0; i < newEntries.length; i++) {
           _encrypteds.push(newEntries[i]);
         }
