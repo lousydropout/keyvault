@@ -19,7 +19,7 @@ const logOut = async () => {
   await chrome.storage.local.set({
     step: WELCOME,
 
-    network: "localhost",
+    network: "astar",
 
     // Reset all the creds-related data
     pubkey: "",

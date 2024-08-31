@@ -4,7 +4,7 @@ import { createPublicClient, getContract, Hex, http } from "viem";
 import { astar, hardhat } from "viem/chains";
 
 // Modify the NETWORK constant to the desired chain here
-export const NETWORK: "localhost" | "astar" = "localhost";
+export const NETWORK: "localhost" | "astar" = "astar";
 
 /**
  * Sets the chain configuration based on the provided network.

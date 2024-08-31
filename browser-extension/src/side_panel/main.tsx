@@ -12,10 +12,14 @@ import { Sync } from "@/side_panel/sync";
 import { Cred, decryptEntry } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
 import { getEntries } from "@/utils/getEntries";
-import { getNumEntries } from "@/utils/getNumEntries";
 import { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
 import { Hex } from "viem";
+
+// const merge = (onChain: Encrypted[], curr: Encrypted[]): Encrypted[] =>{
+
+//   return []
+// }
 
 export const Root = () => {
   const [step, setStep] = useChromeStoreLocal<number>("step", WELCOME);
@@ -31,12 +35,25 @@ export const Root = () => {
     []
   );
   const [creds, setCreds] = useChromeStoreLocal<Cred[]>("credentials", []);
+  const [ocCreds, setOcCreds] = useState<Cred[]>([]);
 
   const queryOnChainIfNeeded = async () => {
-    const num = await getNumEntries(pubkey as Hex);
-    console.log("num: ", num);
-    if (num) setNumOnChain(num);
+    // TODO: figure out merge logic
+
+    const entries = await getEntries(pubkey as Hex, 0, 10);
+    console.log("entries: ", entries);
+    setOcCreds([]);
+    for (let i = 0; i < entries.length; i++) {
+      decryptEntry(cryptoKey as CryptoKey, entries[i]).then((cred) => {
+        console.log("i=", i, cred);
+        i === 0 ? setOcCreds([cred]) : setOcCreds((prev) => [...prev, cred]);
+      });
+    }
   };
+
+  useEffect(() => {
+    console.log("on-chain creds: ", ocCreds);
+  }, [ocCreds]);
 
   // query and convert on-chain entries to creds automatically
   useEffect(() => {
@@ -82,7 +99,7 @@ export const Root = () => {
       {step === DASHBOARD && (
         <>
           <Header
-            queryOnChainIfNeeded={async () => {}}
+            queryOnChainIfNeeded={queryOnChainIfNeeded}
             view={view}
             setView={setView}
           />

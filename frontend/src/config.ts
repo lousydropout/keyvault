@@ -1,11 +1,11 @@
 import { keyvaultAbi as abi } from "@/keyvault.abi";
 import { localKeyvaultAddress } from "@/localKeyvaultAddress.ts";
-import { createPublicClient, getContract, Hex } from "viem";
+import { createPublicClient, Hex } from "viem";
 import { createConfig, http } from "wagmi";
 import { astar, hardhat } from "wagmi/chains";
 
 // Modify the NETWORK constant to the desired chain here
-export const NETWORK: "localhost" | "astar" = "localhost";
+export const NETWORK: "localhost" | "astar" = "astar";
 
 /**
  * Sets the chain configuration based on the provided network.
@@ -49,8 +49,3 @@ export const config = createConfig({
 });
 
 export const client = createPublicClient({ chain, transport: http() });
-export const contract = getContract({
-  abi,
-  address: localKeyvaultAddress,
-  client,
-});

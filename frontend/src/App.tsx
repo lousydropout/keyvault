@@ -10,7 +10,7 @@ export default function App() {
   const chainId = useChainId();
   const [isOkay, setIsOkay] = useState<boolean>(false);
   const [offChainCiphertexts, setOffChainCiphertexts] = useState<string[]>([]);
-  const { writeContract, isPending, error } = useWriteContract();
+  const { writeContract, isPending, isSuccess, error } = useWriteContract();
 
   const submit = async (ciphertext: string) => {
     if (!account?.address) return;
@@ -23,11 +23,11 @@ export default function App() {
     });
   };
 
-  // useEffect(() => {
-  //   if (isSuccess) {
-  //     setOffChainCiphertexts((prev) => prev.slice(1));
-  //   }
-  // }, [isSuccess]);
+  useEffect(() => {
+    if (isSuccess) {
+      setOffChainCiphertexts((prev) => prev.slice(1));
+    }
+  }, [isSuccess]);
 
   useEffect(() => console.log("error: ", error), [error]);
 

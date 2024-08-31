@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { chain } from "@/config";
 import { Connect } from "@/Connect";
 import { useAccount, useSwitchChain } from "wagmi";
+import { astar } from "wagmi/chains";
 
 const Chain = () => {
   const account = useAccount();
@@ -11,7 +12,7 @@ const Chain = () => {
     return <></>;
   }
 
-  if (chain.id !== 31337) {
+  if (chain.id !== astar.id) {
     return (
       <Button
         className="text-slate-300 hover:text-slate-200"
