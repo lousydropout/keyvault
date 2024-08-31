@@ -3,6 +3,7 @@ import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { Cred } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
+import { WELCOME } from "./steps";
 
 const download = (data: Record<string, any>, filename: string) => {
   const jsonString = JSON.stringify(data, null, 2);
@@ -15,7 +16,18 @@ const download = (data: Record<string, any>, filename: string) => {
 };
 
 const logOut = async () => {
-  await chrome.storage.local.clear();
+  await chrome.storage.local.set({
+    step: WELCOME,
+
+    network: "localhost",
+
+    // Reset all the creds-related data
+    pubkey: "",
+    jwk: null,
+    credentials: [],
+    encrypteds: [],
+    numEntries: -1,
+  });
 };
 
 export const Settings = () => {

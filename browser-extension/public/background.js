@@ -43,3 +43,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true }) // set to `false` to allow regular popups
   .catch((error) => console.error(error));
+
+// Autofill tests
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("Extension installed");
+});
+
+// Listen for the selected credentials from the popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "fillCredentials") {
+    const { username, password } = message;
+
+    // Send the selected credentials to the content script
+    chrome.tabs.sendMessage(sender.tab.id, { username, password });
+  }
+});

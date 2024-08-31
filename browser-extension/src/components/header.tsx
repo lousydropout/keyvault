@@ -3,7 +3,26 @@ import { CredsIcon } from "@/components/icons/credsIcon";
 import { RefreshIcon } from "@/components/icons/refreshIcon";
 import { SettingsIcon } from "@/components/icons/settingsIcon";
 import { SyncIcon } from "@/components/icons/syncIcon";
+import { useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { Dispatch, SetStateAction, useState } from "react";
+
+const isOpen = async (tabId: number) => {
+  try {
+    await chrome.tabs.get(tabId);
+  } catch (_e) {
+    return false;
+  }
+  return true;
+};
+
+const openedTabs = async (tabIds: number[]) => {
+  const newTabIds = [];
+  for (const tabId of tabIds) {
+    if (await isOpen(tabId)) newTabIds.push(tabId);
+  }
+  return newTabIds;
+};
 
 export type View =
   | "All Credentials"
@@ -81,6 +100,9 @@ export const Header = ({
   setView,
   queryOnChainIfNeeded,
 }: HeadersProps) => {
+  const [tabIds, setTabIds] = useChromeStoreLocal<number[]>("tabIds", []);
+  const [tab] = useCurrentTab();
+
   return (
     <div className="flex justify-around items-end px-4 mt-4">
       {/* Dashboard */}
@@ -89,7 +111,29 @@ export const Header = ({
       </Icon>
 
       {/* Sync */}
-      <Icon view={view} label="Sync" onClick={() => setView("Sync")}>
+      <Icon
+        view={view}
+        label="Sync"
+        onClick={async () => {
+          // don't open a new tab if it's already open
+          if (new Set(tabIds).has(tab?.id || -1)) {
+            setView("Sync");
+            return;
+          }
+
+          const newTab = await chrome.tabs.create({
+            url: `http://localhost:5173`,
+          });
+          if (!newTab) return;
+
+          setTabIds([
+            ...(await openedTabs(tabIds)),
+            newTab.id ?? chrome.tabs.TAB_ID_NONE,
+          ]);
+
+          setView("Sync");
+        }}
+      >
         <SyncIcon className="w-6 h-6" />
       </Icon>
 

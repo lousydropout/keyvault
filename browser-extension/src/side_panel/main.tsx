@@ -34,6 +34,7 @@ export const Root = () => {
 
   const queryOnChainIfNeeded = async () => {
     const num = await getNumEntries(pubkey as Hex);
+    console.log("num: ", num);
     if (num) setNumOnChain(num);
   };
 

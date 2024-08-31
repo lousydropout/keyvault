@@ -50,23 +50,31 @@ export const Connect = () => {
                 );
               }
               return (
-                <Button
-                  className={`
+                <div className="flex gap-2">
+                  <Button
+                    className="flex gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-600 hover:opacity-80 active:opacity-60"
+                    onClick={openChainModal}
+                  >
+                    {chain.iconUrl && (
+                      <img
+                        alt={chain.name ?? "Chain icon"}
+                        src={chain.iconUrl}
+                        className="w-4 h-4"
+                      />
+                    )}
+                    {chain.name}
+                  </Button>
+                  <Button
+                    className={`
                       flex items-center justify-center gap-2
                       px-4 py-2
                       bg-slate-600 hover:bg-slate-600 hover:opacity-80 active:opacity-60
                     `}
-                  onClick={openAccountModal}
-                >
-                  {chain.iconUrl && (
-                    <img
-                      alt={chain.name ?? "Chain icon"}
-                      src={chain.iconUrl}
-                      className="w-4 h-4"
-                    />
-                  )}
-                  {account.displayName}
-                </Button>
+                    onClick={openAccountModal}
+                  >
+                    {account.displayName}
+                  </Button>
+                </div>
               );
             })()}
           </div>

@@ -1,40 +1,7 @@
-const LOCALHOST = "localhost";
-const WEB_DAPP = "app.blockchainkeyvault.com";
-
-window.addEventListener("message", (event) => {
-  // Fetch the targetOrigin each time a message is received
-  chrome.storage.local.get("targetOrigin", (data) => {
-    // Use the retrieved targetOrigin if it exists, otherwise default to "localhost"
-    const targetOrigin = data.targetOrigin || WEB_DAPP || LOCALHOST;
-    // get origin's hostname
-    const origin = new URL(event.origin).hostname;
-
-    // Check if the message's origin matches the targetOrigin
-    if (origin !== targetOrigin) {
-      return;
-    }
-
-    // Check if the message type is REQUEST_TAB_ID
-    if (event.data.type === "REQUEST_TAB_ID") {
-      // Retrieve the sender tab's ID
-      const senderTabId = chrome.devtools.inspectedWindow.tabId;
-
-      // Send a message back to the sender tab with the tab ID
-      window.postMessage(
-        { type: "RESPONSE_TAB_ID", tabId: senderTabId },
-        targetOrigin
-      );
-    } else {
-      // Forward message
-      chrome.runtime.sendMessage(event.data).catch((e) => {
-        console.log("[warning] potential sendMessage failure: ", e);
-      });
-    }
-  });
-});
-
 // receives messages from popup/sidepanel
 chrome.runtime.onMessage.addListener((msg) => {
+  console.log("[contentScript] Message received: ", msg);
+
   // get message
   let message;
   try {
@@ -49,11 +16,27 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
-// Inject data from chrome.storage.local
-chrome.storage.local.get(
-  ["encrypteds", "numOnChain"],
-  ({ encrypteds, numOnChain }) => {
-    window.sessionStorage.setItem("encrypteds", encrypteds || []);
-    window.sessionStorage.setItem("numOnChain", numOnChain || 0);
-  }
-);
+// let i = 0;
+// setInterval(() => {
+//   console.log("Hello from contentScript.js: ", i++);
+// }, 1000);
+// console.log("contentScript.js loaded");
+
+// Listen for the credentials sent by the background script
+function handleMessage(message) {
+  const usernameField = document.querySelector(
+    'input[type="text"], input[type="email"]'
+  );
+  const passwordField = document.querySelector('input[type="password"]');
+
+  if (usernameField) usernameField.value = message.username;
+  if (passwordField) passwordField.value = message.password;
+}
+
+// Add the event listener
+chrome.runtime.onMessage.addListener(handleMessage);
+
+// Remove the listener when the page is unloaded
+window.addEventListener("unload", () => {
+  chrome.runtime.onMessage.removeListener(handleMessage);
+});

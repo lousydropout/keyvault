@@ -1,7 +1,8 @@
 import { keyvaultAbi as abi } from "@/keyvault.abi";
-import { localKeyvaultAddress } from "@/utils/localKeyvaultAddress.ts";
-import { createPublicClient, getContract, Hex, http } from "viem";
-import { astar, hardhat } from "viem/chains";
+import { localKeyvaultAddress } from "@/localKeyvaultAddress.ts";
+import { createPublicClient, getContract, Hex } from "viem";
+import { createConfig, http } from "wagmi";
+import { astar, hardhat } from "wagmi/chains";
 
 // Modify the NETWORK constant to the desired chain here
 export const NETWORK: "localhost" | "astar" = "localhost";
@@ -36,6 +37,20 @@ const setChainConfig = (network: string) => {
   return { chain, address, apiUrl };
 };
 
+export { abi };
 export const { chain, address, apiUrl } = setChainConfig(NETWORK);
+
+export const config = createConfig({
+  chains: [hardhat, astar],
+  transports: {
+    [hardhat.id]: http(),
+    [astar.id]: http(),
+  },
+});
+
 export const client = createPublicClient({ chain, transport: http() });
-export const contract = getContract({ abi, address, client });
+export const contract = getContract({
+  abi,
+  address: localKeyvaultAddress,
+  client,
+});

@@ -1,4 +1,4 @@
-import { contract } from "@/utils/contracts";
+import { contract } from "@/config";
 import { Encrypted, parseEncryptedText } from "@/utils/encryption";
 import { Hex } from "viem";
 

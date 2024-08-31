@@ -4,59 +4,127 @@
 
 export const keyvaultAbi = [
   {
-    type: 'function',
     inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'startFrom', internalType: 'uint256', type: 'uint256' },
-      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "startFrom",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "limit",
+        type: "uint256",
+      },
     ],
-    name: 'getEntries',
-    outputs: [{ name: '', internalType: 'string[]', type: 'string[]' }],
-    stateMutability: 'view',
+    name: "getEntries",
+    outputs: [
+      {
+        internalType: "string[]",
+        name: "",
+        type: "string[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
   },
   {
-    type: 'function',
     inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'n', internalType: 'uint256', type: 'uint256' },
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "n",
+        type: "uint256",
+      },
     ],
-    name: 'getEntry',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
+    name: "getEntry",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
   },
   {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'numEntries',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "numEntries",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
   },
   {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'pubKey',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "pubKey",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
   },
   {
-    type: 'function',
     inputs: [],
-    name: 'resetEntries',
+    name: "resetEntries",
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: "nonpayable",
+    type: "function",
   },
   {
-    type: 'function',
-    inputs: [{ name: 'entry', internalType: 'string', type: 'string' }],
-    name: 'storeEntry',
+    inputs: [
+      {
+        internalType: "string",
+        name: "entry",
+        type: "string",
+      },
+    ],
+    name: "storeEntry",
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: "nonpayable",
+    type: "function",
   },
   {
-    type: 'function',
-    inputs: [{ name: 'pubkey', internalType: 'string', type: 'string' }],
-    name: 'storePubkey',
+    inputs: [
+      {
+        internalType: "string",
+        name: "pubkey",
+        type: "string",
+      },
+    ],
+    name: "storePubkey",
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: "nonpayable",
+    type: "function",
   },
-] as const
+] as const;

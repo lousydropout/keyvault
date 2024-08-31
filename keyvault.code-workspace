@@ -10,7 +10,7 @@
     },
     {
       "name": "Contract",
-      "path": "./backend"
+      "path": "./contract"
     }
   ],
   "settings": {

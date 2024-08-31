@@ -1,4 +1,4 @@
-import { contract } from "@/utils/contracts";
+import { contract } from "@/config";
 import { Hex } from "viem";
 
 export const getNumEntries = async (

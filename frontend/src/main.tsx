@@ -1,12 +1,15 @@
+import { Buffer } from "buffer";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import App from "./App.tsx";
+import { Footer } from "./components/footer.tsx";
+import { Header } from "./components/header.tsx";
 import "./index.css";
 import { Web3ModalProvider } from "./provider.tsx";
-import { Header } from "./components/header.tsx";
-import { Footer } from "./components/footer.tsx";
 import { TermsAndConditions } from "./terms.tsx";
+
+globalThis.Buffer = Buffer;
 
 const router = createBrowserRouter([
   {
@@ -22,7 +25,7 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Web3ModalProvider>
-      <div className="flex flex-col justify-between min-h-screen mx-4 my-0 p-0 md:w-1/2 md:mx-auto">
+      <div className="flex flex-col justify-between min-h-screen mx-4 my-0 p-0 md:w-2/3 xl:1/2 md:mx-auto">
         <Header />
         <RouterProvider router={router} />
         <Footer />
