@@ -1,4 +1,6 @@
+import { CustomSeparator } from "@/components/CustomSeparator";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
@@ -72,6 +74,9 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
     const [tmpJwk, setTmpJwk] = useState<JsonWebKey | null>(null);
     const [importAccount, setImportAccount] = useState<boolean | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [fileErrorMessage, setFileErrorMessage] = useState<string | null>(
+      null
+    );
 
     console.log("ExistingAccount");
 
@@ -87,6 +92,33 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
         console.log("Error importing key: ", e);
         setErrorMessage("Invalid encryption key");
       }
+    };
+
+    const handleJWKFileUpload = (
+      event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        console.error("No file selected: ", { event });
+        return;
+      }
+
+      const reader = new FileReader();
+
+      // Read the file content as text
+      reader.onload = () => {
+        try {
+          const _jwk = JSON.parse(reader.result as string) as JsonWebKey;
+          setTmpJwk(_jwk);
+          setStep(DASHBOARD);
+        } catch (e) {
+          setFileErrorMessage("Invalid JWK file");
+          console.error("Error parsing file:", e);
+        }
+      };
+
+      // Start reading the file as text
+      reader.readAsText(file);
     };
 
     const updateTmpJwk = () => {
@@ -129,6 +161,21 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
         <div className="flex flex-col gap-4 px-2 py-4">
           <h1 className="text-4xl text-center mt-4">Import encryption key</h1>
           <p className="text-xl mt-4">
+            Please select your encryption key file to import
+          </p>
+          <Input
+            type="file"
+            id="jwt-file-selector"
+            className="cursor-pointer"
+            onChange={handleJWKFileUpload}
+          />
+          {fileErrorMessage && (
+            <p className="text-red-400">{fileErrorMessage}</p>
+          )}
+
+          <CustomSeparator text="Alternatively" />
+
+          <p className="text-xl">
             Please paste your encryption key (JWT format) here:
           </p>
           <Textarea id="jwkInput" className="min-h-24" />

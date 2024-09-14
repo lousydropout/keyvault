@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { chain } from "@/config";
+import { chain, NETWORK } from "@/config";
 import { Connect } from "@/Connect";
 import { useAccount, useSwitchChain } from "wagmi";
-import { astar } from "wagmi/chains";
 
 const Chain = () => {
   const account = useAccount();
@@ -12,7 +11,7 @@ const Chain = () => {
     return <></>;
   }
 
-  if (chain.id !== astar.id) {
+  if (chain.id !== account.chainId) {
     return (
       <Button
         className="text-slate-300 hover:text-slate-200"
@@ -30,7 +29,7 @@ export const Header = () => {
   return (
     <div className="flex items-end justify-between mt-4">
       <a href="/" className="text-violet-400 font-semibold text-5xl">
-        keyvault
+        Keyvault {NETWORK === "astar" ? "" : "| localhost"}
       </a>
       <div className="flex gap-2">
         <Chain />

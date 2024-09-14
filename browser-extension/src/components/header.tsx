@@ -6,6 +6,14 @@ import { SyncIcon } from "@/components/icons/syncIcon";
 import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { Dispatch, SetStateAction, useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const isOpen = async (tabId: number) => {
   try {
@@ -28,6 +36,7 @@ export type View =
   | "All Credentials"
   | "Current Page"
   | "New Credential"
+  | "Encrypt message"
   | "Settings"
   | "Sync";
 
@@ -52,6 +61,7 @@ const Icon = ({
     Settings: "Settings",
     Sync: "Sync",
     "All Credentials": "Creds",
+    "Encrypt message": "Encrypt message",
   };
   const isActive = viewToLabel[view] === label;
 
@@ -153,13 +163,24 @@ export const Header = ({
       </Icon>
 
       {/* New Credential */}
-      <Icon
-        view={view}
-        label="Add Cred"
-        onClick={() => setView("New Credential")}
-      >
-        <AddCredIcon className="w-6 h-6" />
-      </Icon>
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <Icon view={view} label="Actions" onClick={() => {}}>
+            <AddCredIcon className="w-6 h-6" />
+          </Icon>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="bg-slate-600 text-white border-slate-500 mr-8">
+          <DropdownMenuItem
+            className="text-lg"
+            onClick={() => setView("New Credential")}
+          >
+            New Credential
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-lg">
+            Encrypt / Decrypt
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 };

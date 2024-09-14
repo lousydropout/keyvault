@@ -34,12 +34,13 @@ export const Root = () => {
     `encrypteds`,
     []
   );
+  const [modifiedEncrypteds, setModifiedEncrypteds] =
+    useChromeStoreLocal<boolean>("modifiedEncrypteds", false);
   const [creds, setCreds] = useChromeStoreLocal<Cred[]>("credentials", []);
   const [ocCreds, setOcCreds] = useState<Cred[]>([]);
 
   const queryOnChainIfNeeded = async () => {
     // TODO: figure out merge logic
-
     const entries = await getEntries(pubkey as Hex, 0, 10);
     console.log("entries: ", entries);
     setOcCreds([]);
@@ -57,33 +58,41 @@ export const Root = () => {
 
   // query and convert on-chain entries to creds automatically
   useEffect(() => {
-    if (!cryptoKey) return;
+    if (!cryptoKey || step !== DASHBOARD) return;
 
     if (numOnChain > encrypteds.filter((e) => e.onChain).length) {
       // query entries on chain
       const limit = numOnChain - encrypteds.length;
       const _encrypteds = structuredClone(encrypteds);
+
       getEntries(pubkey as Hex, encrypteds.length, limit).then((newEntries) => {
-        for (let i = 0; i < newEntries.length; i++) {
-          _encrypteds.push(newEntries[i]);
-        }
-        setEncrypteds(_encrypteds);
+        const updatedEncrypteds = [..._encrypteds, ...newEntries];
+        setEncrypteds(updatedEncrypteds);
+
+        // decrypt entries after they're fetched
+        const decryptPromises = updatedEncrypteds.map(
+          async (entry) => await decryptEntry(cryptoKey as CryptoKey, entry)
+        );
+
+        Promise.all(decryptPromises).then((decryptedCreds) => {
+          setCreds(decryptedCreds);
+        });
       });
     }
-  }, [numOnChain, cryptoKey]);
+  }, [numOnChain, cryptoKey, step]);
 
   useEffect(() => {
-    if (!cryptoKey || !encrypteds) return;
+    if (!(modifiedEncrypteds && cryptoKey && step === DASHBOARD)) return;
 
-    const startIdx = creds.length;
-    if (encrypteds.length > startIdx) {
-      for (let i = startIdx; i < encrypteds.length; i++) {
-        decryptEntry(cryptoKey as CryptoKey, encrypteds[i]).then((cred) => {
-          setCreds((prev) => [...prev, cred]);
-        });
-      }
-    }
-  }, [encrypteds, cryptoKey]);
+    const decryptPromises = encrypteds.map(
+      async (entry) => await decryptEntry(cryptoKey as CryptoKey, entry)
+    );
+
+    Promise.all(decryptPromises).then((decryptedCreds) => {
+      setCreds(decryptedCreds);
+      setModifiedEncrypteds(false);
+    });
+  }, [encrypteds, cryptoKey, modifiedEncrypteds, step]);
 
   return (
     <>

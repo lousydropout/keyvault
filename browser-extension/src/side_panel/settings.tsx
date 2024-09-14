@@ -19,7 +19,7 @@ const logOut = async () => {
   await chrome.storage.local.set({
     step: WELCOME,
 
-    network: "astar",
+    network: "localhost",
 
     // Reset all the creds-related data
     pubkey: "",
@@ -37,7 +37,7 @@ export const Settings = () => {
   const [creds] = useChromeStoreLocal<Cred[]>("credentials", []);
 
   return (
-    <div className="flex flex-col justify-end">
+    <div className="flex flex-col gap-4 justify-end">
       <h3 className="mt-8 mb-4 text-center text-lg">
         Wallet address: {pubkey || "N/A"}
       </h3>
@@ -45,7 +45,7 @@ export const Settings = () => {
       {/* encryption key */}
       <h3 className="mt-8 mb-4 text-center text-lg">Encryption key</h3>
       <Button
-        className="py-4 text-white border rounded-xl"
+        variant="secondary"
         onClick={() => download(jwk as JsonWebKey, "encryption_key.json")}
       >
         Download encryption key
@@ -54,23 +54,20 @@ export const Settings = () => {
       {/* credentials */}
       <h3 className="mt-8 mb-4 text-center text-lg">Credentials</h3>
       <Button
-        className="py-4 bg-primary text-white border rounded-xl"
+        variant="secondary"
         onClick={() => download(encrypteds, "encrypted_credentials.json")}
       >
         Download (encrypted) credentials
       </Button>
       <Button
-        className="py-4 my-4 bg-secondary text-white border rounded-xl"
+        variant="secondary"
         onClick={() => download(creds, "unencrypted_credentials.json")}
       >
         Download (unencrypted) credentials
       </Button>
 
       {/* log out */}
-      <Button
-        className="mt-40 py-4 bg-warning text-white border rounded-xl"
-        onClick={logOut}
-      >
+      <Button variant="destructive" onClick={logOut}>
         Log out
       </Button>
     </div>

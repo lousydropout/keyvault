@@ -13,3 +13,29 @@ export const download = (data: Record<string, any>, filename: string): void => {
   a.download = filename;
   a.click();
 };
+
+/**
+ * Checks if a given string is a valid JSON Web Key (JWK).
+ *
+ * @param jwkString - The string representation of the JWK.
+ * @returns A boolean indicating whether the JWK is valid or not.
+ */
+function isValidJWK(jwkString: string): boolean {
+  try {
+    const jwk = JSON.parse(jwkString);
+
+    // Check if it's an object and contains required JWK properties
+    if (
+      typeof jwk === "object" &&
+      jwk !== null &&
+      "kty" in jwk && // Key Type (required)
+      typeof jwk.kty === "string"
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch (e) {
+    return false;
+  }
+}

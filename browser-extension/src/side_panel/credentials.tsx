@@ -16,6 +16,8 @@ export const Credentials = () => {
   useEffect(() => {
     if (!creds) return;
 
+    console.log("[credentials] creds: ", creds);
+
     setCredsUrl(getCredsByUrl(creds));
   }, [creds]);
 

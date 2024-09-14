@@ -222,6 +222,7 @@ export async function decryptEntry(
 ): Promise<Cred> {
   try {
     const decrypted = await decrypt(cryptoKey, encrypted);
+    console.log("decrypted: ", decrypted);
     return {
       isValid: true,
       encrypted,

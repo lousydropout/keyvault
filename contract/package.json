@@ -4,7 +4,7 @@
     "copy-to-frontend": "cp keyvault.abi.ts ../frontend/src/keyvault.abi.ts",
     "copy-to-browser-extension": "cp keyvault.abi.ts ../browser-extension/src/keyvault.abi.ts",
     "abi": "pnpm wagmi generate; pnpm copy-to-frontend; pnpm copy-to-browser-extension",
-    "local:node": "pnpm hardhat node",
+    "local:node": "anvil",
     "local:get-address": "bash scripts/get-and-copy-address.sh",
     "local:deploy-contract": "pnpm hardhat ignition deploy ignition/modules/Keyvault.ts --deployment-id localhost-london",
     "local:deploy": "pnpm local:deploy-contract; pnpm local:get-address; rm localKeyvaultAddress.ts"
