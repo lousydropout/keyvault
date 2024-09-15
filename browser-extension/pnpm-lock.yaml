@@ -47,6 +47,9 @@ importers:
       lucide-react:
         specifier: ^0.424.0
         version: 0.424.0(react@18.2.0)
+      openpgp:
+        specifier: ^5.11.2
+        version: 5.11.2
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -117,9 +120,6 @@ importers:
       nodemon:
         specifier: ^3.1.4
         version: 3.1.4
-      openpgp:
-        specifier: ^5.11.2
-        version: 5.11.2
       postcss:
         specifier: ^8.4.33
         version: 8.4.33
