@@ -14,17 +14,15 @@ export const getEntries = async (
       BigInt(limit),
     ])) as string[];
 
-    const encryptedResults = await Promise.all(
+    return Promise.all(
       results.map(async (result) => {
         if (result) {
-          return await parseEncryptedText(result.toString());
+          return parseEncryptedText(result.toString());
         } else {
           return { iv: "", ciphertext: "", onChain: true };
         }
       })
     );
-
-    return encryptedResults;
   } catch (error) {
     console.log("[getEntries] ", error);
     throw error;

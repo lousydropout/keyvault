@@ -10,8 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
-import { useCurrentTab } from "@/hooks/useCurrentTab";
-import { createBarePasswordCred } from "@/utils/credentials";
+import {
+  basePasswordCred,
+  createBarePasswordCred,
+  updatePasswordCred,
+  type PasswordAdditionCred,
+} from "@/utils/credentials";
 import { encrypt, type Encrypted } from "@/utils/encryption";
 import generator from "generate-password-ts";
 import {
@@ -42,7 +46,12 @@ const generatePassword = (
   });
 };
 
-export const AddCred = () => {
+export const EditCred = () => {
+  const [cred, setCredToBeEdited] = useChromeStore<PasswordAdditionCred>(
+    "credToBeEdited",
+    basePasswordCred
+  );
+  const [view, setView] = useChromeStore<View>("view", "Current Page");
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
   const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
     "encrypteds",
@@ -50,27 +59,21 @@ export const AddCred = () => {
   );
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
     useChromeStoreLocal<boolean>("modifiedEncrypteds", false);
-  const [_view, setView] = useChromeStore<View>("view", "New Credential");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [username, setUsername] = useState<string>("");
-  const [_, currentUrl] = useCurrentTab();
-  const [url, setUrl] = useState<string>(currentUrl || "");
-  const [description, setDescription] = useState<string>("");
+  const [username, setUsername] = useState<string>(cred.username);
+  const [url, setUrl] = useState<string>(cred.url);
+  const [description, setDescription] = useState<string>(cred.description);
+  const [password, setPassword] = useState<string>(cred.password);
   const [lowercase, setLowercase] = useState<boolean>(true);
   const [uppercase, setUppercase] = useState<boolean>(true);
   const [numbers, setNumbers] = useState<boolean>(true);
   const [includeSymbols, setIncludeSymbols] = useState<boolean>(true);
   const [symbols, setSymbols] = useState<string>("!@#$%^&*()-+_?");
   const [length, setLength] = useState<number>(16);
-  const [password, setPassword] = useState<string>("");
   const [modifyingPw, setModifyingPw] = useState<boolean>(false);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (currentUrl) setUrl(currentUrl);
-  }, [currentUrl]);
+  const [showPassword, setShowPassword] = useState<boolean>(true);
 
   const genPw = () =>
     generatePassword(
@@ -92,12 +95,11 @@ export const AddCred = () => {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const bareCred = createBarePasswordCred({
+    const newCred = updatePasswordCred(cred, {
       url,
       username,
       password,
       description,
-      prev: -1,
       curr: encrypteds.length,
     });
 
@@ -105,7 +107,7 @@ export const AddCred = () => {
     const nonces = getNonces();
     let encrypted: Encrypted;
     while (true) {
-      encrypted = await encrypt(cryptoKey as CryptoKey, bareCred);
+      encrypted = await encrypt(cryptoKey as CryptoKey, newCred);
       if (!nonces.includes(encrypted.iv)) break;
     }
     setEncrypteds((values) => [...values, encrypted]);
@@ -118,6 +120,13 @@ export const AddCred = () => {
   };
 
   useEffect(() => {
+    setUsername(cred.username);
+    setUrl(cred.url);
+    setDescription(cred.description);
+    setPassword(cred.password);
+  }, [cred]);
+
+  useEffect(() => {
     if (!modifyingPw) setPassword(genPw());
   }, [length, lowercase, uppercase, numbers, symbols]);
 
@@ -125,6 +134,10 @@ export const AddCred = () => {
     // Programmatically focus the input when div is clicked
     inputRef.current?.focus();
   };
+
+  console.log("cred: ", cred);
+  if (cred.id === "base")
+    return <h1 className="text-2xl text-center mt-12">Loading...</h1>;
 
   return (
     <form onSubmit={handleSubmit}>
@@ -350,7 +363,7 @@ export const AddCred = () => {
           className="bg-purple-600 hover:bg-purple-700 bg-opacity-80 hover:bg-opacity-80 text-white hover:text-white px-4 py-3 mt-8 rounded disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
           disabled={!username || !password || !url}
         >
-          Add credential
+          Update credential
         </Button>
       </div>
     </form>

@@ -36,6 +36,7 @@ export type View =
   | "All Credentials"
   | "Current Page"
   | "New Credential"
+  | "Edit Credential"
   | "Encrypt message"
   | "Settings"
   | "Sync";
@@ -61,6 +62,7 @@ const Icon = ({
     Settings: "Settings",
     Sync: "Sync",
     "All Credentials": "Creds",
+    "Edit Credential": "Edit Cred",
     "Encrypt message": "Encrypt message",
   };
   const isActive = viewToLabel[view] === label;
@@ -105,11 +107,7 @@ type HeadersProps = {
   queryOnChainIfNeeded: () => Promise<void>;
 };
 
-export const Header = ({
-  view,
-  setView,
-  queryOnChainIfNeeded,
-}: HeadersProps) => {
+export const Header = ({ view, setView }: HeadersProps) => {
   const [tabIds, setTabIds] = useChromeStoreLocal<number[]>("tabIds", []);
   const [tab] = useCurrentTab();
 
@@ -148,14 +146,14 @@ export const Header = ({
       </Icon>
 
       {/* Refresh */}
-      <Icon
+      {/* <Icon
         view={view}
         label="Refresh"
         onClick={queryOnChainIfNeeded}
         disableFor={10_000}
       >
         <RefreshIcon className="w-6 h-6" />
-      </Icon>
+      </Icon> */}
 
       {/* Settings */}
       <Icon view={view} label="Settings" onClick={() => setView("Settings")}>

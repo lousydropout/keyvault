@@ -154,6 +154,25 @@ export const isPasswordCred = (obj: any): obj is PasswordCred => {
   return obj.isDeleted || isPasswordAdditionCred(obj);
 };
 
+export const basePasswordCred: PasswordAdditionCred = {
+  type: "password",
+  url: "",
+  username: "",
+  password: "",
+  description: "",
+  curr: -1,
+  prev: -1,
+  isDeleted: false,
+  id: "base",
+  timestamp: new Date().toISOString(),
+  isValid: true,
+  encrypted: {
+    iv: "",
+    ciphertext: "",
+    onChain: false,
+  },
+};
+
 export const createBarePasswordCred = (params: {
   url: string;
   username: string;
@@ -170,6 +189,36 @@ export const createBarePasswordCred = (params: {
     ...params,
   };
   return result;
+};
+
+export const updatePasswordCred = (
+  cred: PasswordCred,
+  params: {
+    url?: string;
+    username?: string;
+    password?: string;
+    description?: string;
+    curr?: number;
+  }
+): PasswordCred => {
+  return { ...cred, ...params, prev: cred.curr };
+};
+
+export const deletePasswordCred = (
+  cred: PasswordCred,
+  curr: number
+): PasswordDeletionCred => {
+  return {
+    type: "password",
+    id: uuid(),
+    url: cred.url,
+    encrypted: { iv: "", ciphertext: "", onChain: false },
+    timestamp: new Date().toISOString(),
+    isValid: true,
+    isDeleted: true,
+    prev: cred.curr,
+    curr,
+  };
 };
 
 export const convertToPasswordCred = async (
@@ -216,13 +265,12 @@ const isCred = (obj: any): obj is Cred =>
  * @param {Encrypted} encrypted - The encrypted data to be decrypted.
  * @returns {Promise<Cred[]>} A promise that resolves to a decrypted credential object.
  */
-export async function decryptEntry(
+export const decryptEntry = async (
   cryptoKey: CryptoKey,
   encrypted: Encrypted
-): Promise<Cred> {
+): Promise<Cred> => {
   try {
     const decrypted = await decrypt(cryptoKey, encrypted);
-    console.log("decrypted: ", decrypted);
     return {
       isValid: true,
       encrypted,
@@ -232,7 +280,7 @@ export async function decryptEntry(
     console.log("[decryptEntry] error: ", e);
     return { isValid: false, encrypted };
   }
-}
+};
 
 /**
  * Converts encrypted data to credentials using the provided crypto key.
@@ -247,7 +295,7 @@ export async function decryptEntry(
  *   console.log(credentials);
  * ```
  */
-export const convertToCreds = async (
+export const convertToCreds = (
   cryptoKey: CryptoKey,
   encrypteds: Encrypted[]
 ): Promise<Cred[]> => {
@@ -255,33 +303,19 @@ export const convertToCreds = async (
 };
 
 /**
- * Updates the credentials with the provided encrypted data.
+ * Decrypts an array of encrypted entries using the provided crypto key.
  *
- * @param {CryptoKey} cryptoKey - The cryptographic key used for decryption.
- * @param {Encrypted[]} encrypteds - An array of encrypted data.
- * @param {Cred[]} creds - An array of credentials to be updated.
- * @returns {Promise<Cred[]>} A promise that resolves to the updated array of credentials.
+ * @param cryptoKey - The crypto key used for decryption.
+ * @param encrypteds - The array of encrypted entries to be decrypted.
+ * @returns A promise that resolves to an array of decrypted credentials.
  */
-export const updateCreds = async (
+export const decryptEntries = (
   cryptoKey: CryptoKey,
-  encrypteds: Encrypted[],
-  creds: Cred[]
+  encrypteds: Encrypted[]
 ): Promise<Cred[]> => {
-  const newCreds = structuredClone(creds);
-
-  // Update existing creds if needed
-  for (let i = 0; i < newCreds.length; i++) {
-    if (newCreds[i].encrypted !== encrypteds[i]) {
-      newCreds[i] = await decryptEntry(cryptoKey, encrypteds[i]);
-    }
-  }
-
-  // Add new creds if needed
-  for (let i = newCreds.length; i < encrypteds.length; i++) {
-    newCreds.push(await decryptEntry(cryptoKey, encrypteds[i]));
-  }
-
-  return newCreds;
+  return Promise.all(
+    encrypteds.map((encrypted) => decryptEntry(cryptoKey, encrypted))
+  );
 };
 
 /**

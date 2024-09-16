@@ -1,6 +1,6 @@
 // receives messages from popup/sidepanel
 chrome.runtime.onMessage.addListener((msg) => {
-  console.log("[contentScript] Message received: ", msg);
+  // console.log("[contentScript] Message received: ", msg);
 
   // get message
   let message;

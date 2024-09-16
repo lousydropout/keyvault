@@ -73,14 +73,11 @@ export const deriveKeyFromPassword = async (
  *
  * @returns A promise that resolves to a CryptoKey object representing the generated key.
  */
-export const generateKey = async (): Promise<CryptoKey> => {
-  const key = await crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"]
-  );
-  return key;
-};
+export const generateKey = (): Promise<CryptoKey> =>
+  crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+    "encrypt",
+    "decrypt",
+  ]);
 
 /**
  * Generates a wrapped key using the provided password.
@@ -94,10 +91,9 @@ export const generateWrappedKey = async (password: string): Promise<Keys> => {
     true,
     ["encrypt", "decrypt"]
   );
-  return {
-    key,
-    wrappedKey: await wrapKey(key, password),
-  };
+  const wrappedKey = await wrapKey(key, password);
+
+  return { key, wrappedKey };
 };
 
 /**
@@ -106,8 +102,8 @@ export const generateWrappedKey = async (password: string): Promise<Keys> => {
  * @param key - The CryptoKey to be exported.
  * @returns A promise that resolves with the exported JsonWebKey.
  */
-export const exportCryptoKey = async (key: CryptoKey): Promise<JsonWebKey> => {
-  return await window.crypto.subtle.exportKey("jwk", key);
+export const exportCryptoKey = (key: CryptoKey): Promise<JsonWebKey> => {
+  return window.crypto.subtle.exportKey("jwk", key);
 };
 
 /**
@@ -116,10 +112,8 @@ export const exportCryptoKey = async (key: CryptoKey): Promise<JsonWebKey> => {
  * @param jwkString - The JSON Web Key string to import.
  * @returns A Promise that resolves to a CryptoKey.
  */
-export const importCryptoKey = async (
-  jwkString: JsonWebKey
-): Promise<CryptoKey> => {
-  return await window.crypto.subtle.importKey(
+export const importCryptoKey = (jwkString: JsonWebKey): Promise<CryptoKey> => {
+  return window.crypto.subtle.importKey(
     "jwk",
     jwkString,
     { name: "AES-GCM", length: 256 },
@@ -214,9 +208,7 @@ export const encrypt = async (
   };
 };
 
-export const parseEncryptedText = async (
-  encryptedText: string
-): Promise<Encrypted> => {
+export const parseEncryptedText = (encryptedText: string) => {
   const iv = encryptedText.slice(0, 16);
   const ciphertext = encryptedText.slice(16);
   return { iv, ciphertext, onChain: true };
