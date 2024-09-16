@@ -102,8 +102,6 @@ const parseVerificationResult = async (
     await verified; // throws on invalid signature
     return { isValid: true, signedBy: keyID.toHex() };
   } catch (e: unknown) {
-    const error = e as Error;
-    console.error("Signature could not be verified: " + error.message);
     return { isValid: false, signedBy: keyID.toHex() };
   }
 };
@@ -204,8 +202,6 @@ const decryptMessage = async ({
     await signatures[0].verified;
     return { isValid: true, plaintext, signedBy };
   } catch (e) {
-    const error = e as Error;
-    console.warn("Signature could not be verified: " + error.message);
     return {
       isValid: false,
       plaintext,
