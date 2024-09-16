@@ -20,9 +20,9 @@ describe("Encryption", () => {
     const passwordCred = await convertToPasswordCred(key, cred);
     const unencrypted = JSON.parse(await decrypt(key, passwordCred.encrypted));
 
-    console.log("passwordCred: ", passwordCred);
-    console.log("isPasswordCred(passwordCred): ", isPasswordCred(passwordCred));
-    console.log("unencrypted: ", unencrypted);
+    // console.log("passwordCred: ", passwordCred);
+    // console.log("isPasswordCred(passwordCred): ", isPasswordCred(passwordCred));
+    // console.log("unencrypted: ", unencrypted);
 
     expect(isPasswordCred(passwordCred)).toBeTruthy();
     expect(unencrypted).toEqual(cred);
