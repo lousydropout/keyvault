@@ -344,14 +344,24 @@ export const AddCred = () => {
             className="border border-gray-300 px-3 py-2 rounded bg-transparent text-lg"
           />
         </div>
-        <Button
-          type="submit"
-          variant="outline"
-          className="bg-purple-600 hover:bg-purple-700 bg-opacity-80 hover:bg-opacity-80 text-white hover:text-white px-4 py-3 mt-8 rounded disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
-          disabled={!username || !password || !url}
-        >
-          Add credential
-        </Button>
+        <div className="flex flex-col gap-4 mt-8">
+          <Button
+            type="submit"
+            variant="outline"
+            className="bg-purple-600 hover:bg-purple-700 bg-opacity-80 hover:bg-opacity-80 text-white hover:text-white px-4 py-3 rounded disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
+            disabled={!username || !password || !url}
+          >
+            Add credential
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            className="bg-opacity-80 hover:bg-opacity-80 text-white hover:text-white px-4 py-3 rounded disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
+            onClick={() => setView("Current Page")}
+          >
+            Cancel
+          </Button>
+        </div>{" "}
       </div>
     </form>
   );

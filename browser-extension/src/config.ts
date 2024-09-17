@@ -20,24 +20,26 @@ const setChainConfig = (network: string) => {
 
   if (!allowedNetworks.has(network)) throw new Error("Invalid chain");
 
-  let chain, address, apiUrl;
+  let chain, address, apiUrl, dappUrl;
   switch (network) {
     case "astar":
       chain = astar;
       address = "0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B" as Hex;
       apiUrl = "https://evm.astar.network"; // TODO: Get non-public RPC Node
+      dappUrl = "https://dapp.blockchainkeyvault.com";
       break;
     case "localhost":
       chain = hardhat;
       address = localKeyvaultAddress;
       apiUrl = "http://localhost:8545";
+      dappUrl = "http://localhost:5173";
       break;
     default:
       throw new Error("Invalid chain");
   }
-  return { chain, address, apiUrl };
+  return { chain, address, apiUrl, dappUrl };
 };
 
-export const { chain, address, apiUrl } = setChainConfig(NETWORK);
+export const { chain, address, apiUrl, dappUrl } = setChainConfig(NETWORK);
 export const client = createPublicClient({ chain, transport: http() });
 export const contract = getContract({ abi, address, client });

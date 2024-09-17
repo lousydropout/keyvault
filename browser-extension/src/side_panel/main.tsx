@@ -24,20 +24,17 @@ import { Hex } from "viem";
 
 export const Root = () => {
   const [step, setStep] = useChromeStoreLocal<number>("step", WELCOME);
-  const [view, setView] = useChromeStore<View>("view", "Current Page");
+  const [view] = useChromeStore<View>("view", "Current Page");
   const [pubkey] = useChromeStoreLocal<string>("pubkey", "");
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [numOnChain, setNumOnChain] = useChromeStoreLocal<number>(
-    "numEntries",
-    -1
-  );
+  const [numOnChain] = useChromeStoreLocal<number>("numEntries", -1);
   const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
     `encrypteds`,
     []
   );
   const [modifiedEncrypteds, setModifiedEncrypteds] =
     useChromeStoreLocal<boolean>("modifiedEncrypteds", false);
-  const [creds, setCreds] = useChromeStoreLocal<Cred[]>("credentials", []);
+  const [_creds, setCreds] = useChromeStoreLocal<Cred[]>("credentials", []);
   const [ocCreds, setOcCreds] = useState<Cred[]>([]);
 
   const queryOnChainIfNeeded = async () => {
@@ -101,11 +98,7 @@ export const Root = () => {
       {/* 3. Dashboard */}
       {step === DASHBOARD && (
         <>
-          <Header
-            queryOnChainIfNeeded={queryOnChainIfNeeded}
-            view={view}
-            setView={setView}
-          />
+          <Header queryOnChainIfNeeded={queryOnChainIfNeeded} />
           {view === "All Credentials" && <Credentials />}
           {view === "Current Page" && <Credentials />}
           {view === "Settings" && <Settings />}

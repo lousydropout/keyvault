@@ -12,20 +12,12 @@ import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import {
   basePasswordCred,
-  createBarePasswordCred,
   updatePasswordCred,
   type PasswordAdditionCred,
 } from "@/utils/credentials";
 import { encrypt, type Encrypted } from "@/utils/encryption";
 import generator from "generate-password-ts";
-import {
-  Dispatch,
-  FormEvent,
-  SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 const generatePassword = (
   length: number,
@@ -47,11 +39,11 @@ const generatePassword = (
 };
 
 export const EditCred = () => {
-  const [cred, setCredToBeEdited] = useChromeStore<PasswordAdditionCred>(
+  const [cred] = useChromeStore<PasswordAdditionCred>(
     "credToBeEdited",
     basePasswordCred
   );
-  const [view, setView] = useChromeStore<View>("view", "Current Page");
+  const [_view, setView] = useChromeStore<View>("view", "Current Page");
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
   const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
     "encrypteds",
@@ -135,7 +127,6 @@ export const EditCred = () => {
     inputRef.current?.focus();
   };
 
-  console.log("cred: ", cred);
   if (cred.id === "base")
     return <h1 className="text-2xl text-center mt-12">Loading...</h1>;
 
@@ -357,14 +348,24 @@ export const EditCred = () => {
             className="border border-gray-300 px-3 py-2 rounded bg-transparent text-lg"
           />
         </div>
-        <Button
-          type="submit"
-          variant="outline"
-          className="bg-purple-600 hover:bg-purple-700 bg-opacity-80 hover:bg-opacity-80 text-white hover:text-white px-4 py-3 mt-8 rounded disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
-          disabled={!username || !password || !url}
-        >
-          Update credential
-        </Button>
+        <div className="flex flex-col gap-4 mt-8">
+          <Button
+            type="submit"
+            variant="outline"
+            className="bg-purple-600 hover:bg-purple-700 bg-opacity-80 hover:bg-opacity-80 text-white hover:text-white px-4 py-3 rounded disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
+            disabled={!username || !password || !url}
+          >
+            Update credential
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            className="bg-opacity-80 hover:bg-opacity-80 text-white hover:text-white px-4 py-3 rounded disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
+            onClick={() => setView("Current Page")}
+          >
+            Cancel
+          </Button>
+        </div>
       </div>
     </form>
   );

@@ -86,11 +86,11 @@ const CredentialCard = ({
 
   return (
     <div className="flex w-full sm:w-96 mx-auto gap-2 items-center justify-end">
-      <Card className="flex w-[16rem] p-0 py-4 bg-transparent border-opacity-10 text-purple-200">
-        <CardHeader className="my-0 py-0 w-full">
+      <Card className="flex w-fit p-0 py-4 bg-transparent border-opacity-10 text-purple-200">
+        <CardHeader className="my-0 py-0 w-full flex">
           <CardDescription className={`grid grid-cols-9 gap-4 items-center`}>
             <div
-              className="col-span-3 cursor-pointer"
+              className="self-end col-span-3 cursor-pointer"
               onClick={() => {
                 chrome.tabs.sendMessage(tab?.id || chrome.tabs.TAB_ID_NONE, {
                   type: "FROM_EXTENSION",
@@ -118,7 +118,7 @@ const CredentialCard = ({
             setView("Edit Credential");
           }}
         >
-          edit
+          EDIT
         </Button>
         <Button
           variant="link"
@@ -136,7 +136,7 @@ const CredentialCard = ({
             setModifiedEncrypteds(true);
           }}
         >
-          delete
+          DELETE
         </Button>
       </div>
     </div>

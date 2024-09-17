@@ -4,6 +4,9 @@
   "version": "1.0",
   "description": "A blockchain-based password manager.",
   "permissions": ["storage", "activeTab", "sidePanel", "tabs"],
+  "externally_connectable": {
+    "matches": ["http://localhost:5173/*"]
+  },
   "action": {
     "default_icon": {
       "16": "icons/icon16.png",

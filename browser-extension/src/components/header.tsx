@@ -1,19 +1,17 @@
 import { AddCredIcon } from "@/components/icons/addCredIcon";
 import { CredsIcon } from "@/components/icons/credsIcon";
-import { RefreshIcon } from "@/components/icons/refreshIcon";
 import { SettingsIcon } from "@/components/icons/settingsIcon";
 import { SyncIcon } from "@/components/icons/syncIcon";
-import { useChromeStoreLocal } from "@/hooks/useChromeStore";
-import { useCurrentTab } from "@/hooks/useCurrentTab";
-import { Dispatch, SetStateAction, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { dappUrl } from "@/config";
+import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useCurrentTab } from "@/hooks/useCurrentTab";
+import { useState } from "react";
 
 const isOpen = async (tabId: number) => {
   try {
@@ -73,8 +71,7 @@ const Icon = ({
     ${
       isActive
         ? `text-purple-200`
-        : `text-purple-300 hover:text-purple-400
-          active:text-purple-500 focus:text-purple-500`
+        : `text-purple-300 hover:text-purple-400 active:text-purple-500 focus:text-purple-500`
     }
     `;
   const disabledIconClass = `
@@ -102,13 +99,12 @@ const Icon = ({
 };
 
 type HeadersProps = {
-  view: View;
-  setView: Dispatch<SetStateAction<View>>;
   queryOnChainIfNeeded: () => Promise<void>;
 };
 
-export const Header = ({ view, setView }: HeadersProps) => {
+export const Header = ({}: HeadersProps) => {
   const [tabIds, setTabIds] = useChromeStoreLocal<number[]>("tabIds", []);
+  const [view, setView] = useChromeStore<View>("view", "Current Page");
   const [tab] = useCurrentTab();
 
   return (
@@ -130,7 +126,7 @@ export const Header = ({ view, setView }: HeadersProps) => {
           }
 
           const newTab = await chrome.tabs.create({
-            url: `http://localhost:5173`,
+            url: dappUrl,
           });
           if (!newTab) return;
 
