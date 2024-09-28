@@ -12,7 +12,6 @@ function handlefillCredential(message) {
       if (passwordField) break;
     }
   if (passwordField) {
-    console.log("Filling in password into:", passwordField);
     passwordField.value = message.password;
     passwordField.setAttribute("data-initial-value", message.password);
     passwordField.setAttribute("value", message.password);

@@ -1,10 +1,15 @@
 import {
+  addNext,
   Cred,
+  deleteK,
   getCredsByUrl,
   getPasswordChains,
   InvalidCred,
   isPasswordCred,
+  isValidCred,
+  mergeCreds,
   PasswordCred,
+  ValidCred,
 } from "@/utils/credentials";
 
 const w: PasswordCred = {
@@ -74,12 +79,40 @@ const z: PasswordCred = {
   description: "Credential 3",
   isDeleted: false,
 };
+const y2: PasswordCred = {
+  isValid: true,
+  id: "4c9ccca3-8c75-4bd7-a0a8-7dd39b29cdcd",
+  encrypted: { iv: "iv2", ciphertext: "ciphertext2", onChain: true },
+  type: "password",
+  timestamp: "2021-11-04T01:00:00.000Z",
+  curr: 5,
+  prev: 3,
+  url: "https://example.com",
+  username: "user2",
+  password: "pass2-2",
+  description: "Credential 2",
+  isDeleted: false,
+};
 const alpha: InvalidCred = {
   isValid: false,
   encrypted: { iv: "iv5", ciphertext: "ciphertext5", onChain: true },
 };
 
 const credentials: Cred[] = [w, x, xDeleted, y, z, alpha];
+const validCreds: ValidCred[] = [w, x, xDeleted, y, z, y2];
+
+const getFields = (cred: Cred) => {
+  if (!isValidCred(cred)) throw new Error("Invalid cred");
+  return {
+    id: cred.id,
+    type: cred.type,
+    isValid: cred.isValid,
+    timestamp: cred.timestamp,
+    curr: cred.curr,
+    prev: cred.prev,
+    onChain: cred.encrypted.onChain,
+  };
+};
 
 describe("Password credentials", () => {
   const beta = {
@@ -117,11 +150,11 @@ describe("Password chains", () => {
   const passwords = getPasswordChains(credentials);
 
   it("should have modifications of the same cred be in the same array", () => {
-    expect(passwords).toEqual({
+    expect({
       "0": [w, x, xDeleted],
       "3": [y],
       "4": [z],
-    });
+    }).toEqual(passwords);
   });
 });
 
@@ -133,12 +166,113 @@ describe("Grouping credentials by URL", () => {
       "https://example.com": [[w, x, xDeleted], [y]],
       "https://example.org": [[z]],
     };
-    expect(credsByUrl).toEqual(expectedOutput);
+    expect(expectedOutput).toEqual(credsByUrl);
 
     const outputWithIncorrectOrder = {
       "https://example.com": [[y], [w, x, xDeleted]],
       "https://example.org": [[z]],
     };
-    expect(credsByUrl).not.toEqual(outputWithIncorrectOrder);
+    expect(outputWithIncorrectOrder).not.toEqual(credsByUrl);
+  });
+});
+
+describe("Transformations on encrypteds and credentials", () => {
+  it("Each cred should have a 'next' field that points to the next credential in the chain", () => {
+    const extendedCreds = addNext(validCreds);
+    const nexts = extendedCreds.map((cred) => cred.next);
+    const expected = [1, 2, -1, 5, -1, -1];
+
+    expect(nexts).toEqual(expected);
+  });
+
+  it("ID of deleted cred[k] should not appear", () => {
+    const credsOffChain = validCreds.map((cred) => {
+      const result = structuredClone(cred);
+      result.encrypted.onChain = false;
+      return result;
+    });
+
+    for (let k = 0; k < validCreds.length; k++) {
+      const output = deleteK(structuredClone(credsOffChain), k);
+
+      expect(validCreds.length - 1).toEqual(
+        output.map((cred) => (isValidCred(cred) ? cred.curr : -100)).length
+      );
+
+      expect(
+        output.map((cred) => {
+          isValidCred(cred) ? cred.id : "nope";
+        })
+      ).not.toContain(validCreds[k].id);
+    }
+  });
+
+  it("should be able to delete an off-chain and non-terminal cred at index k that", () => {
+    const credsOffChain = validCreds.map((cred) => {
+      const result = structuredClone(cred);
+      result.encrypted.onChain = false;
+      return result;
+    });
+
+    const k = 3;
+    const output = deleteK(credsOffChain, k);
+
+    expect([-1, 0, 1, -1, -1]).toEqual(
+      output.map((cred) => (isValidCred(cred) ? cred.prev : -100))
+    );
+  });
+
+  it("should be able to delete an off-chain and terminal cred at index k that", () => {
+    const credsOffChain = validCreds.map((cred) => {
+      const result = structuredClone(cred);
+      result.encrypted.onChain = false;
+      return result;
+    });
+
+    const k = 2;
+    const output = deleteK(credsOffChain, k);
+
+    expect([-1, 0, -1, -1, 2]).toEqual(
+      output.map((cred) => (isValidCred(cred) ? cred.prev : -100))
+    );
+  });
+
+  it("should be able to delete an off-chain and initial cred at index k that", () => {
+    const credsOffChain = validCreds.map((cred) => {
+      const result = structuredClone(cred);
+      result.encrypted.onChain = false;
+      return result;
+    });
+
+    const k = 0;
+    const output = deleteK(credsOffChain, k);
+
+    expect([-1, 0, -1, -1, 2]).toEqual(
+      output.map((cred) => (isValidCred(cred) ? cred.prev : -100))
+    );
+  });
+
+  it("should throw an exception when trying to delete an on-chain cred", () => {
+    const creds = structuredClone(validCreds);
+    const k = 0;
+
+    expect(() => deleteK(creds, k)).toThrow();
+  });
+
+  it("should be able to merge an off-chain creds with an on-chain one", () => {
+    const numOnChain = 3;
+    const onChainCreds = validCreds.slice(0, numOnChain);
+    const offChainCreds = validCreds.map((cred, i) => {
+      const result = structuredClone(cred);
+      if (i >= numOnChain) result.encrypted.onChain = false;
+      return result;
+    });
+
+    validCreds.forEach((cred, i) => {
+      if (i >= numOnChain) cred.encrypted.onChain = false;
+    });
+
+    const merged = mergeCreds(addNext(offChainCreds), addNext(onChainCreds));
+    expect(merged.map(getFields)).toEqual(validCreds.map(getFields));
   });
 });

@@ -2,6 +2,12 @@ import { View } from "@/components/header";
 import { CopyIcon } from "@/components/icons/copy";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader } from "@/components/ui/card";
+import {
+  CRED_TO_BE_EDITED,
+  ENCRYPTEDS,
+  MODIFIED_ENCRYPTEDS,
+  VIEW,
+} from "@/constants/hookVariables";
 import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import {
@@ -71,16 +77,16 @@ const CredentialCard = ({
   cred: PasswordAdditionCred;
   tab: chrome.tabs.Tab | undefined;
 }) => {
-  const [_view, setView] = useChromeStore<View>("view", "Current Page");
+  const [_view, setView] = useChromeStore<View>(VIEW, "Current Page");
   const [_credToBeEdited, setCredToBeEdited] =
-    useChromeStore<PasswordAdditionCred>("credToBeEdited", basePasswordCred);
+    useChromeStore<PasswordAdditionCred>(CRED_TO_BE_EDITED, basePasswordCred);
   const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
-    "encrypteds",
+    ENCRYPTEDS,
     []
   );
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useChromeStoreLocal<boolean>("modifiedEncrypteds", false);
+    useChromeStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
 
   const getNonces = () => encrypteds.map(({ iv }: Encrypted) => iv);
 

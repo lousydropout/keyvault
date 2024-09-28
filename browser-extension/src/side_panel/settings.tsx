@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
+import { CREDENTIALS, ENCRYPTEDS, PUBKEY } from "@/constants/hookVariables";
+import { LOCALHOST } from "@/constants/networks";
+import { WELCOME } from "@/constants/steps";
 import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { Cred } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
-import { WELCOME } from "./steps";
 
 const download = (data: Record<string, any>, filename: string) => {
   const jsonString = JSON.stringify(data, null, 2);
@@ -19,7 +21,7 @@ const logOut = async () => {
   await chrome.storage.local.set({
     step: WELCOME,
 
-    network: "localhost",
+    network: LOCALHOST,
 
     // Reset all the creds-related data
     pubkey: "",
@@ -31,10 +33,10 @@ const logOut = async () => {
 };
 
 export const Settings = () => {
-  const [pubkey] = useChromeStoreLocal<string>("pubkey", "");
+  const [pubkey] = useChromeStoreLocal<string>(PUBKEY, "");
   const [jwk] = useCryptoKeyManager();
-  const [encrypteds] = useChromeStoreLocal<Encrypted[]>(`encrypteds`, []);
-  const [creds] = useChromeStoreLocal<Cred[]>("credentials", []);
+  const [encrypteds] = useChromeStoreLocal<Encrypted[]>(ENCRYPTEDS, []);
+  const [creds] = useChromeStoreLocal<Cred[]>(CREDENTIALS, []);
 
   return (
     <div className="flex flex-col gap-4 justify-end">

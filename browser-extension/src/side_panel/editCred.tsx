@@ -8,6 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  CRED_TO_BE_EDITED,
+  ENCRYPTEDS,
+  MODIFIED_ENCRYPTEDS,
+  VIEW,
+} from "@/constants/hookVariables";
 import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import {
@@ -40,17 +46,17 @@ const generatePassword = (
 
 export const EditCred = () => {
   const [cred] = useChromeStore<PasswordAdditionCred>(
-    "credToBeEdited",
+    CRED_TO_BE_EDITED,
     basePasswordCred
   );
-  const [_view, setView] = useChromeStore<View>("view", "Current Page");
+  const [_view, setView] = useChromeStore<View>(VIEW, "Current Page");
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
   const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
-    "encrypteds",
+    ENCRYPTEDS,
     []
   );
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useChromeStoreLocal<boolean>("modifiedEncrypteds", false);
+    useChromeStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState<string>(cred.username);
@@ -65,7 +71,7 @@ export const EditCred = () => {
   const [length, setLength] = useState<number>(16);
   const [modifyingPw, setModifyingPw] = useState<boolean>(false);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(true);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const genPw = () =>
     generatePassword(

@@ -2,15 +2,15 @@ import { AddCredIcon } from "@/components/icons/addCredIcon";
 import { CredsIcon } from "@/components/icons/credsIcon";
 import { SettingsIcon } from "@/components/icons/settingsIcon";
 import { SyncIcon } from "@/components/icons/syncIcon";
+import { dappUrl } from "@/config";
+import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useCurrentTab } from "@/hooks/useCurrentTab";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { dappUrl } from "@/config";
-import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
-import { useCurrentTab } from "@/hooks/useCurrentTab";
+} from "@radix-ui/react-dropdown-menu";
 import { useState } from "react";
 
 const isOpen = async (tabId: number) => {
@@ -98,11 +98,7 @@ const Icon = ({
   );
 };
 
-type HeadersProps = {
-  queryOnChainIfNeeded: () => Promise<void>;
-};
-
-export const Header = ({}: HeadersProps) => {
+export const Header = () => {
   const [tabIds, setTabIds] = useChromeStoreLocal<number[]>("tabIds", []);
   const [view, setView] = useChromeStore<View>("view", "Current Page");
   const [tab] = useCurrentTab();
@@ -141,36 +137,25 @@ export const Header = ({}: HeadersProps) => {
         <SyncIcon className="w-6 h-6" />
       </Icon>
 
-      {/* Refresh */}
-      {/* <Icon
-        view={view}
-        label="Refresh"
-        onClick={queryOnChainIfNeeded}
-        disableFor={10_000}
-      >
-        <RefreshIcon className="w-6 h-6" />
-      </Icon> */}
-
       {/* Settings */}
       <Icon view={view} label="Settings" onClick={() => setView("Settings")}>
         <SettingsIcon className="w-6 h-6" />
       </Icon>
 
-      {/* New Credential */}
       <DropdownMenu>
         <DropdownMenuTrigger>
           <Icon view={view} label="Actions" onClick={() => {}}>
             <AddCredIcon className="w-6 h-6" />
           </Icon>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="bg-slate-600 text-white border-slate-500 mr-8">
+        <DropdownMenuContent className="flex flex-col gap-4 bg-slate-600 text-white border-slate-500 mr-8 p-4">
           <DropdownMenuItem
-            className="text-lg"
+            className="text-lg cursor-pointer p-2"
             onClick={() => setView("New Credential")}
           >
             New Credential
           </DropdownMenuItem>
-          <DropdownMenuItem className="text-lg">
+          <DropdownMenuItem className="text-lg cursor-pointer p-2">
             Encrypt / Decrypt
           </DropdownMenuItem>
         </DropdownMenuContent>

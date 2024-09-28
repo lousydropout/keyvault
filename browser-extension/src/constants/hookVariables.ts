@@ -1,0 +1,9 @@
+export const CREDENTIALS = "credentials" as const;
+export const CRED_TO_BE_EDITED = "credToBeEdited" as const;
+export const ENCRYPTEDS = "encrypteds" as const;
+export const MODIFIED = "modified" as const;
+export const MODIFIED_ENCRYPTEDS = "modifiedEncrypteds" as const;
+export const NUM_ENTRIES = "numEntries" as const;
+export const PUBKEY = "pubkey" as const;
+export const STEP = "step" as const;
+export const VIEW = "view" as const;

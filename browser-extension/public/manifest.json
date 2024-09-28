@@ -1,11 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "KeyVault Password Manager",
-  "version": "1.0",
+  "name": "Keyvault Password Manager",
+  "version": "0.1",
   "description": "A blockchain-based password manager.",
   "permissions": ["storage", "activeTab", "sidePanel", "tabs"],
   "externally_connectable": {
-    "matches": ["http://localhost:5173/*"]
+    "matches": [
+      "http://localhost:5173/*",
+      "https://dapp.blockchainkeyvault.com/*",
+      "https://dev.blockchainkeyvault.com/*"
+    ]
   },
   "action": {
     "default_icon": {

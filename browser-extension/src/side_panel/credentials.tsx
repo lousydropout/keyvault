@@ -1,11 +1,21 @@
-import { View } from "@/components/header";
+import { Icon } from "@/components/icon";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
+import {
+  CREDENTIALS,
+  ENCRYPTEDS,
+  MODIFIED_ENCRYPTEDS,
+  PUBKEY,
+} from "@/constants/hookVariables";
+import { useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { CredentialsAll } from "@/side_panel/credentialsAll";
 import { CurrentPage } from "@/side_panel/currentPage";
 import { Cred, CredsByUrl, getCredsByUrl } from "@/utils/credentials";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Encrypted } from "@/utils/encryption";
+import { updateEncrypteds } from "@/utils/getEntries";
+import { useEffect, useState } from "react";
+import { Hex } from "viem";
 
 const Refresh = ({ className }: { className: string }) => (
   <svg
@@ -25,7 +35,15 @@ const Refresh = ({ className }: { className: string }) => (
 );
 
 export const Credentials = () => {
-  const [creds] = useChromeStoreLocal<Cred[]>("credentials", []);
+  const [creds] = useChromeStoreLocal<Cred[]>(CREDENTIALS, []);
+  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
+    ENCRYPTEDS,
+    []
+  );
+  const [_modifiedEncrypteds, setModifiedEncrypteds] =
+    useChromeStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
+  const [pubkey] = useChromeStoreLocal<string>(PUBKEY, "");
+  const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
   const [credsUrl, setCredsUrl] = useState<CredsByUrl>({});
 
   const [seeAll, setSeeAll] = useState<boolean>(true);
@@ -35,7 +53,6 @@ export const Credentials = () => {
     if (!creds) return;
 
     console.log("[credentials] creds: ", creds);
-
     setCredsUrl(getCredsByUrl(creds));
   }, [creds]);
 
@@ -55,7 +72,19 @@ export const Credentials = () => {
               {seeAll ? "All" : "Current Page"}
             </Label>
           </div>
-          <Refresh className="absolute right-0 w-6 h-6 cursor-pointer hover:text-purple-300 active:text-purple-400" />
+          <Icon
+            onClick={async () => {
+              await updateEncrypteds(
+                cryptoKey as CryptoKey,
+                pubkey as Hex,
+                encrypteds,
+                setEncrypteds
+              );
+              setModifiedEncrypteds(true);
+            }}
+          >
+            <Refresh className="absolute right-0 w-6 h-6 cursor-pointer hover:text-purple-300 active:text-purple-400" />
+          </Icon>
         </div>
       </div>
       {seeAll ? (

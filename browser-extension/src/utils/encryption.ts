@@ -188,7 +188,8 @@ export const unwrapKey = async (
  */
 export const encrypt = async (
   key: CryptoKey,
-  plaintext: string | object
+  plaintext: string | object,
+  onChain: boolean = false
 ): Promise<Encrypted> => {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const x =
@@ -204,7 +205,7 @@ export const encrypt = async (
   return {
     iv: bufferToBase64(iv),
     ciphertext: bufferToBase64(ciphertext),
-    onChain: false,
+    onChain,
   };
 };
 

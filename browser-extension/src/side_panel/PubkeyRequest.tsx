@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PUBKEY } from "@/constants/hookVariables";
+import { SETUP_ENCRYPTION_KEY } from "@/constants/steps";
 import { useChromeStoreLocal } from "@/hooks/useChromeStore";
-import { SETUP_ENCRYPTION_KEY } from "@/side_panel/steps";
 import { useState } from "react";
 import { isAddress } from "viem/utils";
 
@@ -14,12 +15,12 @@ type PubkeyRequestProps = {
 };
 
 export const PubkeyRequest = ({ setStep }: PubkeyRequestProps) => {
-  const [pubkey, setPubkey] = useChromeStoreLocal<string>("pubkey", "");
+  const [pubkey, setPubkey] = useChromeStoreLocal<string>(PUBKEY, "");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   const handleSetPubkey = () => {
     setErrorMessage("");
-    const elem = document.getElementById("pubkey") as HTMLInputElement;
+    const elem = document.getElementById(PUBKEY) as HTMLInputElement;
     const pubkey = elem.value;
 
     if (isValidPublicKey(pubkey)) {

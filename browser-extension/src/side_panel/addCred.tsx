@@ -8,20 +8,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ENCRYPTEDS,
+  MODIFIED_ENCRYPTEDS,
+  VIEW,
+} from "@/constants/hookVariables";
 import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { createBarePasswordCred } from "@/utils/credentials";
 import { encrypt, type Encrypted } from "@/utils/encryption";
 import generator from "generate-password-ts";
-import {
-  Dispatch,
-  FormEvent,
-  SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 const generatePassword = (
   length: number,
@@ -45,12 +43,12 @@ const generatePassword = (
 export const AddCred = () => {
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
   const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
-    "encrypteds",
+    ENCRYPTEDS,
     []
   );
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useChromeStoreLocal<boolean>("modifiedEncrypteds", false);
-  const [_view, setView] = useChromeStore<View>("view", "New Credential");
+    useChromeStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
+  const [_view, setView] = useChromeStore<View>(VIEW, "New Credential");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState<string>("");

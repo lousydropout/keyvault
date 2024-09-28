@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { chain } from "@/config";
+import { ENCRYPTEDS, NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
 
 const sendData = async (tabId: number) => {
   // message does not contain any unencrypted or sensitive data
   const data = await chrome.storage.local.get([
-    "encrypteds",
-    "pubkey",
-    "numEntries",
+    ENCRYPTEDS,
+    PUBKEY,
+    NUM_ENTRIES,
   ]);
   data.encrypteds = JSON.parse(data.encrypteds);
   data.address = JSON.parse(data.pubkey);

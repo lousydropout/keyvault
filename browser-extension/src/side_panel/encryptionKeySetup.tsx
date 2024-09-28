@@ -2,9 +2,10 @@ import { CustomSeparator } from "@/components/CustomSeparator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
+import { DASHBOARD } from "@/constants/steps";
 import { useChromeStoreLocal } from "@/hooks/useChromeStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
-import { DASHBOARD } from "@/side_panel/steps";
 import { importCryptoKey } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
 import { download } from "@/utils/utility";
@@ -15,10 +16,10 @@ type EncryptionKeySetupProps = {
   setStep: (step: number) => void;
 };
 export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
-  const [pubkey] = useChromeStoreLocal<string>("pubkey", "");
+  const [pubkey] = useChromeStoreLocal<string>(PUBKEY, "");
   const [jwk, setJwk, _, generateKeyHandler] = useCryptoKeyManager();
   const [numOnChain, setNumOnChain] = useChromeStoreLocal<number>(
-    "numEntries",
+    NUM_ENTRIES,
     -1
   );
 
