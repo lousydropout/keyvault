@@ -2,6 +2,7 @@ import {
   addNext,
   Cred,
   deleteK,
+  deleteMultiOptimized,
   getCredsByUrl,
   getPasswordChains,
   InvalidCred,
@@ -207,7 +208,7 @@ describe("Transformations on encrypteds and credentials", () => {
     }
   });
 
-  it("should be able to delete an off-chain and non-terminal cred at index k that", () => {
+  it("should be able to delete an off-chain and non-terminal cred at index k", () => {
     const credsOffChain = validCreds.map((cred) => {
       const result = structuredClone(cred);
       result.encrypted.onChain = false;
@@ -222,7 +223,25 @@ describe("Transformations on encrypteds and credentials", () => {
     );
   });
 
-  it("should be able to delete an off-chain and terminal cred at index k that", () => {
+  it("should be able to delete an off-chain and non-terminal cred at index k using deleteMultiOptimized", () => {
+    const credsOffChain = validCreds.map((cred) => {
+      const result = structuredClone(cred);
+      result.encrypted.onChain = false;
+      return result;
+    });
+
+    const k = 3;
+    const output = deleteMultiOptimized(
+      credsOffChain,
+      credsOffChain.map((_, i) => i === k)
+    );
+
+    expect([-1, 0, 1, -1, -1]).toEqual(
+      output.map((cred) => (isValidCred(cred) ? cred.prev : -100))
+    );
+  });
+
+  it("should be able to delete an off-chain and terminal cred at index k at 2", () => {
     const credsOffChain = validCreds.map((cred) => {
       const result = structuredClone(cred);
       result.encrypted.onChain = false;
@@ -231,6 +250,24 @@ describe("Transformations on encrypteds and credentials", () => {
 
     const k = 2;
     const output = deleteK(credsOffChain, k);
+
+    expect([-1, 0, -1, -1, 2]).toEqual(
+      output.map((cred) => (isValidCred(cred) ? cred.prev : -100))
+    );
+  });
+
+  it("should be able to delete an off-chain and terminal cred at index k at 2 using deleteMultiOptimized", () => {
+    const credsOffChain = validCreds.map((cred) => {
+      const result = structuredClone(cred);
+      result.encrypted.onChain = false;
+      return result;
+    });
+
+    const k = 2;
+    const output = deleteMultiOptimized(
+      credsOffChain,
+      credsOffChain.map((_, i) => i === k)
+    );
 
     expect([-1, 0, -1, -1, 2]).toEqual(
       output.map((cred) => (isValidCred(cred) ? cred.prev : -100))
@@ -252,11 +289,41 @@ describe("Transformations on encrypteds and credentials", () => {
     );
   });
 
+  it("should be able to delete an off-chain and initial cred at index k at 0 using deleteMultiOptimized", () => {
+    const credsOffChain = validCreds.map((cred) => {
+      const result = structuredClone(cred);
+      result.encrypted.onChain = false;
+      return result;
+    });
+
+    const k = 0;
+    const output = deleteMultiOptimized(
+      credsOffChain,
+      credsOffChain.map((_, i) => i === k)
+    );
+
+    expect([-1, 0, -1, -1, 2]).toEqual(
+      output.map((cred) => (isValidCred(cred) ? cred.prev : -100))
+    );
+  });
+
   it("should throw an exception when trying to delete an on-chain cred", () => {
     const creds = structuredClone(validCreds);
     const k = 0;
 
     expect(() => deleteK(creds, k)).toThrow();
+  });
+
+  it("should throw an exception when trying to delete an on-chain cred when using deleteMultiOptmizied", () => {
+    const creds = structuredClone(validCreds);
+    const k = 0;
+
+    expect(() =>
+      deleteMultiOptimized(
+        creds,
+        validCreds.map((_, i) => i === k)
+      )
+    ).toThrow();
   });
 
   it("should be able to merge an off-chain creds with an on-chain one", () => {

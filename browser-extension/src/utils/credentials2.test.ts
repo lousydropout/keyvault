@@ -3,6 +3,8 @@ import {
   createBarePasswordCred,
   Cred,
   decryptEntries,
+  deleteK,
+  deleteMultiOptimized,
   isValidCred,
   markForDeletion,
   merge,
@@ -31,6 +33,7 @@ const createPassword = async (
   return encrypt(key, baseCred, onChain);
 };
 
+// Test data for testing merging
 const onChainEncrypteds = [
   await createPassword(-1, true, "1"),
   await createPassword(-1, true, "2"),
@@ -68,6 +71,19 @@ const expectedWithOoo = [
   await createPassword(4, false, "8"), // 7
 ];
 
+// Test data for testing deletion
+idx = 0;
+const encrypteds = [
+  await createPassword(-1, false, "0"),
+  await createPassword(0, false, "1"),
+  await createPassword(1, false, "2"),
+  await createPassword(-1, false, "3"),
+  await createPassword(2, false, "4"),
+  await createPassword(3, false, "5"),
+  await createPassword(4, false, "6"),
+];
+const creds = await decryptEntries(key, encrypteds);
+
 const getFields = (cred: Cred) => {
   return isValidCred(cred)
     ? {
@@ -78,13 +94,36 @@ const getFields = (cred: Cred) => {
     : {};
 };
 
+describe("Deleting creds", () => {
+  it("should be the same if via deleteMultiOptimized and repeated deleteK", async () => {
+    for (let i = 0; i < 2 ** creds.length - 1; i++) {
+      const toBeDeleted = i
+        .toString(2)
+        .padStart(creds.length, "0")
+        .split("")
+        .map((c) => c === "1");
+      const toBeDeleteds = toBeDeleted
+        .map((b, i) => (b ? i : -1))
+        .filter((i) => i !== -1);
+      let expected = structuredClone(creds) as ValidCred[];
+      toBeDeleteds.reverse().forEach((k) => {
+        expected = deleteK(expected, k);
+      });
+
+      const output = deleteMultiOptimized(creds as ValidCred[], toBeDeleted);
+
+      expect(expected.map(getFields)).toEqual(output.map(getFields));
+    }
+  });
+});
+
 describe("Merging", () => {
   it("should be able to merge mixed onchain and offchain encrypteds if out-of-order creds are okay", async () => {
     const mergedEncrypteds = await merge(
       key,
       onChainEncrypteds,
       currEncrypteds,
-      false
+      false // don't delete out-of-order creds
     );
     const mergedCreds = await decryptEntries(key, mergedEncrypteds);
 
@@ -95,8 +134,8 @@ describe("Merging", () => {
     // Cred 5 is out of order, so it should be marked for deletion
     const expectedMarkForDeletion = mergedCreds.map((_, i) => i === 5);
 
-    expect(markForDeletion(addNext(mergedCreds as ValidCred[]))).toEqual(
-      expectedMarkForDeletion
+    expect(expectedMarkForDeletion).toEqual(
+      markForDeletion(addNext(mergedCreds as ValidCred[]))
     );
   });
 
@@ -105,7 +144,7 @@ describe("Merging", () => {
       key,
       onChainEncrypteds,
       currEncrypteds,
-      true
+      true // do delete out-of-order creds
     );
     const mergedCreds = await decryptEntries(key, mergedEncrypteds);
 

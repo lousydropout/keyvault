@@ -492,13 +492,14 @@ export const addNext = (creds: ValidCred[]): ExtendedCred[] => {
  * @throws {Error} If the credential to delete is on-chain.
  */
 export const deleteK = (creds: ValidCred[], k: number): ValidCred[] => {
+  const _creds = structuredClone(creds);
   if (creds[k].encrypted.onChain)
     throw new Error("Cannot delete on-chain cred");
 
   const x: ValidCred[] = [];
 
-  for (let i = 0; i < creds.length; i++) {
-    const cred = creds[i];
+  for (let i = 0; i < _creds.length; i++) {
+    const cred = _creds[i];
 
     if (cred.curr < k) {
       x.push(cred);
@@ -508,7 +509,7 @@ export const deleteK = (creds: ValidCred[], k: number): ValidCred[] => {
       if (cred.prev > k) {
         newCred.prev = newCred.prev - 1;
       } else if (cred.prev == k) {
-        newCred.prev = creds[newCred.prev].prev;
+        newCred.prev = _creds[newCred.prev].prev;
       }
       x.push(newCred);
     }
@@ -545,34 +546,59 @@ const deleteMulti = (
  */
 export const deleteMultiOptimized = (
   creds: ValidCred[],
-  toBeDeleted: boolean[]
+  toBeDeleted: boolean[],
+  throwExceptionIfOnChain: boolean = true
 ): ValidCred[] => {
+  const _creds = structuredClone(creds);
+  for (let i = 0; i < _creds.length; i++) {
+    if (
+      toBeDeleted[i] &&
+      _creds[i].encrypted.onChain &&
+      throwExceptionIfOnChain
+    )
+      throw new Error(
+        "Cannot delete on-chain cred. Set throwExceptionIfOnChain to false to ignore this error."
+      );
+  }
+
   const results: ValidCred[] = [];
 
   // track how many positions to shift the 'curr' and 'prev' values.
-  const offsets = new Array(creds.length).fill(0);
+  const offsets = new Array(_creds.length).fill(0);
   let shift = 0;
-  for (let i = 0; i < creds.length; i++) {
+  for (let i = 0; i < _creds.length; i++) {
     if (toBeDeleted[i]) shift++;
     offsets[i] = shift;
   }
+  console.log("offsets: ", offsets);
 
   // logic for results
-  for (let k = 0; k < creds.length; k++) {
-    if (!toBeDeleted[k]) {
+  for (let k = 0; k < _creds.length; k++) {
+    const prev = _creds[k].prev;
+    if (toBeDeleted[k]) {
+      if (_creds[k].prev === -1) {
+        _creds[k].curr = -1;
+      } else {
+        _creds[k].curr = _creds[prev].curr;
+      }
+    } else {
       // update curr
-      creds[k].curr -= offsets[k];
+      _creds[k].curr -= offsets[k];
 
       // update prev
-      const prev = creds[k].prev;
-      if (prev !== -1 && toBeDeleted[prev]) {
-        creds[k].prev = creds[prev].prev;
+      if (prev !== -1 && _creds[prev].prev !== -1) {
+        _creds[k].prev = _creds[prev].curr;
       } else if (prev !== -1) {
-        creds[k].prev -= offsets[prev];
+        _creds[k].prev = _creds[prev].curr;
       }
 
       // push to results
-      results.push(creds[k]);
+      console.log("pushing: ", k, offsets[k], {
+        curr: _creds[k].curr,
+        prev: _creds[k].prev,
+        timestamp: _creds[k].timestamp,
+      });
+      results.push(_creds[k]);
     }
   }
 
