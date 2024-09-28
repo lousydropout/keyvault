@@ -453,7 +453,7 @@ export const mergeCreds = (
 
   if (maintainOrderInChain) {
     const toBeDeleted = markForDeletion(addNext(creds));
-    creds = deleteMulti(creds, toBeDeleted);
+    creds = deleteMultiOptimized(creds, toBeDeleted);
   }
 
   return creds;
@@ -518,6 +518,68 @@ export const deleteK = (creds: ValidCred[], k: number): ValidCred[] => {
 };
 
 /**
+ * Deletes multiple credentials from the given array based on the provided boolean flags.
+ *
+ * @param creds - The array of valid credentials.
+ * @param toBeDeleted - The array of boolean flags indicating which credentials should be deleted.
+ * @returns The updated array of valid credentials after deletion.
+ * @deprecated Use {@link deleteMultiOptimized} instead. Kept in case of bug in `deleteMultiOptimized`.
+ */
+const deleteMulti = (
+  creds: ValidCred[],
+  toBeDeleted: boolean[]
+): ValidCred[] => {
+  let results: ValidCred[] = structuredClone(creds);
+  for (let k = results.length - 1; k >= 0; k--) {
+    if (toBeDeleted[k]) results = deleteK(results, k);
+  }
+  return results;
+};
+
+/**
+ * Deletes multiple elements from an array of ValidCred objects and returns the updated array.
+ *
+ * @param creds - The array of ValidCred objects.
+ * @param toBeDeleted - An array of booleans indicating which elements should be deleted.
+ * @returns The updated array of ValidCred objects after deleting the specified elements.
+ */
+export const deleteMultiOptimized = (
+  creds: ValidCred[],
+  toBeDeleted: boolean[]
+): ValidCred[] => {
+  const results: ValidCred[] = [];
+
+  // track how many positions to shift the 'curr' and 'prev' values.
+  const offsets = new Array(creds.length).fill(0);
+  let shift = 0;
+  for (let i = 0; i < creds.length; i++) {
+    if (toBeDeleted[i]) shift++;
+    offsets[i] = shift;
+  }
+
+  // logic for results
+  for (let k = 0; k < creds.length; k++) {
+    if (!toBeDeleted[k]) {
+      // update curr
+      creds[k].curr -= offsets[k];
+
+      // update prev
+      const prev = creds[k].prev;
+      if (prev !== -1 && toBeDeleted[prev]) {
+        creds[k].prev = creds[prev].prev;
+      } else if (prev !== -1) {
+        creds[k].prev -= offsets[prev];
+      }
+
+      // push to results
+      results.push(creds[k]);
+    }
+  }
+
+  return results;
+};
+
+/**
  * Marks the credentials for deletion.
  *
  * @param creds - An array of ExtendedCred objects representing the credentials.
@@ -546,24 +608,6 @@ export const markForDeletion = (creds: ExtendedCred[]): boolean[] => {
     }
   }
   return toBeDeleted;
-};
-
-/**
- * Deletes multiple credentials from the given array based on the provided boolean flags.
- *
- * @param creds - The array of valid credentials.
- * @param toBeDeleted - The array of boolean flags indicating which credentials should be deleted.
- * @returns The updated array of valid credentials after deletion.
- */
-const deleteMulti = (
-  creds: ValidCred[],
-  toBeDeleted: boolean[]
-): ValidCred[] => {
-  let results: ValidCred[] = structuredClone(creds);
-  for (let k = results.length - 1; k >= 0; k--) {
-    if (toBeDeleted[k]) results = deleteK(results, k);
-  }
-  return results;
 };
 
 /**
