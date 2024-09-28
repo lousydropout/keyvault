@@ -405,6 +405,7 @@ export const getCredsByUrl = (creds: Cred[]): CredsByUrl => {
  * @param onChainCreds - The on-chain credentials array.
  * @param maintainOrderInChain - Optional. Specifies whether to maintain the order of credentials in the on-chain array. Defaults to false.
  * @returns The merged array of valid credentials.
+ * @remarks `maintainOrderInChain` assumes that the on-chain creds satisfies the monotonicity of timestamps for chains.
  * @throws {Error} If any credential in either array does not have a 'next' field.
  */
 export const mergeCreds = (
@@ -412,51 +413,68 @@ export const mergeCreds = (
   onChainCreds: ExtendedCred[],
   maintainOrderInChain: boolean = false
 ): ValidCred[] => {
-  // check that all creds have field 'next'
+  // Verify that all creds have field 'next'
   const currCredsWithoutNext = currCreds.filter(
     (cred) => cred.next === undefined
   );
   const onChainCredsWithoutNext = onChainCreds.filter(
     (cred) => cred.next === undefined
   );
-
   if (currCredsWithoutNext.length + onChainCredsWithoutNext.length > 0) {
     throw new Error("All credentials must have a 'next' field");
   }
 
-  let creds = structuredClone(onChainCreds) as ValidCred[];
+  // Clone onChainCreds to avoid modifying the original array
+  let result = structuredClone(onChainCreds) as ValidCred[];
 
-  for (
-    let i = currCreds.filter((c) => c.encrypted.onChain).length;
-    i < currCreds.length;
-    i++
-  ) {
+  // Verify `currCreds`' on-chain creds are in the correct location
+  // num: number of creds in `currCreds` that are already on-chain
+  const num = currCreds.filter((c) => c.encrypted.onChain).length;
+  for (let i = 0; i < num; i++) {
+    if (currCreds[i].id !== onChainCreds[i].id)
+      throw new Error(
+        "[mergeCreds] on-chain creds in `currCreds` are not in the correct location"
+      );
+  }
+
+  // Main logic: append off-chain creds to the appropriate chain
+  for (let i = num; i < currCreds.length; i++) {
     let cred = currCreds[i];
 
-    if (cred.prev === -1) {
-      creds.push({ ...cred, curr: creds.length, next: -1 });
+    if (isHeadOfChain(cred)) {
+      result.push({ ...cred, curr: result.length, next: -1 });
     } else {
       let prev = currCreds[cred.prev] as ValidCred;
-      prev = creds[prev.curr];
+      prev = result[prev.curr];
 
-      while (prev.next !== -1) {
-        if (prev.next === undefined) throw new Error("prev.next is undefined");
-        prev = creds[prev.next];
+      // Go to the current tail of the chain in `result`
+      while (!isTailOfChain(prev as ExtendedCred)) {
+        if (prev.next === undefined)
+          throw new Error("[mergeCreds] prev.next is undefined");
+        prev = result[prev.next];
       }
 
+      // Modifying new (potentially temporary) tail of the chain
       cred.prev = prev.curr;
-      cred.curr = creds.length;
+      cred.curr = result.length;
       cred.next = -1;
-      creds.push(cred);
+
+      // Append the new tail to the result
+      result.push(cred);
     }
   }
 
+  // Optional: maintain monotonicity of timestamps in chains
+  // Assumes that the chains on-chain are already in the correct order
   if (maintainOrderInChain) {
-    const toBeDeleted = markForDeletion(addNext(creds));
-    creds = deleteMultiOptimized(creds, toBeDeleted);
+    const toBeDeleted = markForDeletion(addNext(result));
+    result = deleteMultiOptimized(result, toBeDeleted);
   }
 
-  return creds;
+  // Delete "next" field from all creds in result since they're no longer correct
+  for (let i = 0; i < result.length; i++) delete result[i].next;
+
+  return result;
 };
 
 /**
@@ -465,15 +483,23 @@ export const mergeCreds = (
  * @returns An array of extended credentials with the "next" property added.
  */
 export const addNext = (creds: ValidCred[]): ExtendedCred[] => {
+  // 1. Clone the creds array to avoid modifying the original array.
   const x = structuredClone(creds);
+
+  // 2. Create an array of booleans to track which credentials have been processed.
   const done: boolean[] = x.map(() => false);
 
+  // 3. Main logic
   for (let i = x.length - 1; i > 0; i--) {
-    let curr = i;
-    if (done[curr]) continue;
+    if (done[i]) continue; // skip if already processed
 
-    let next = -1;
-    while (curr != -1 && !done[curr]) {
+    // If not processed, then this cred is the tail of a chain.
+    // Recurse from the tail to the head of the chain
+    let curr = i;
+    let next = -1; // the tail cred of a chain has a next of -1
+    while (curr != -1) {
+      if (done[curr]) throw new Error("[addNext] Cyclic chain detected");
+
       done[curr] = true;
       x[curr].next = next;
       next = curr;
@@ -481,6 +507,15 @@ export const addNext = (creds: ValidCred[]): ExtendedCred[] => {
     }
   }
 
+  // 4. Verify that all credentials were processed and have a "next" property.
+  if (done.includes(false))
+    throw new Error("[addNext] Not all entries were processed");
+
+  // 5. Verify that all credentials have a "next" property.
+  if (x.some((cred) => cred.next === undefined))
+    throw new Error("[addNext] Not all entries have a 'next' property");
+
+  // 6. Return the updated array of credentials.
   return x as ExtendedCred[];
 };
 
@@ -492,17 +527,20 @@ export const addNext = (creds: ValidCred[]): ExtendedCred[] => {
  * @throws {Error} If the credential to delete is on-chain.
  */
 export const deleteK = (creds: ValidCred[], k: number): ValidCred[] => {
+  // 1. Clone the creds array to avoid modifying the original array.
   const _creds = structuredClone(creds);
+
+  // 2. Check if the credential is allowed to be deleted
   if (creds[k].encrypted.onChain)
     throw new Error("Cannot delete on-chain cred");
 
-  const x: ValidCred[] = [];
+  const result: ValidCred[] = [];
 
   for (let i = 0; i < _creds.length; i++) {
     const cred = _creds[i];
 
     if (cred.curr < k) {
-      x.push(cred);
+      result.push(cred);
     } else if (cred.curr > k) {
       const newCred = structuredClone(cred);
       cred.curr = cred.curr - 1;
@@ -511,31 +549,15 @@ export const deleteK = (creds: ValidCred[], k: number): ValidCred[] => {
       } else if (cred.prev == k) {
         newCred.prev = _creds[newCred.prev].prev;
       }
-      x.push(newCred);
+      result.push(newCred);
     }
   }
 
-  return x;
+  return result;
 };
 
-/**
- * Deletes multiple credentials from the given array based on the provided boolean flags.
- *
- * @param creds - The array of valid credentials.
- * @param toBeDeleted - The array of boolean flags indicating which credentials should be deleted.
- * @returns The updated array of valid credentials after deletion.
- * @deprecated Use {@link deleteMultiOptimized} instead. Kept in case of bug in `deleteMultiOptimized`.
- */
-const deleteMulti = (
-  creds: ValidCred[],
-  toBeDeleted: boolean[]
-): ValidCred[] => {
-  let results: ValidCred[] = structuredClone(creds);
-  for (let k = results.length - 1; k >= 0; k--) {
-    if (toBeDeleted[k]) results = deleteK(results, k);
-  }
-  return results;
-};
+const isHeadOfChain = (cred: ValidCred): boolean => cred.prev === -1;
+const isTailOfChain = (cred: ExtendedCred): boolean => cred.next === -1;
 
 /**
  * Deletes multiple elements from an array of ValidCred objects and returns the updated array.
@@ -549,64 +571,64 @@ export const deleteMultiOptimized = (
   toBeDeleted: boolean[],
   throwExceptionIfOnChain: boolean = true
 ): ValidCred[] => {
+  // 1. Clone the creds array to avoid modifying the original array.
   const _creds = structuredClone(creds);
+
+  // 2. Check if the credentials to be deleted are allowed to be deleted
   for (let i = 0; i < _creds.length; i++) {
-    if (
-      toBeDeleted[i] &&
-      _creds[i].encrypted.onChain &&
-      throwExceptionIfOnChain
-    )
+    if (!toBeDeleted[i]) continue;
+
+    if (_creds[i].encrypted.onChain && throwExceptionIfOnChain)
       throw new Error(
         "Cannot delete on-chain cred. Set throwExceptionIfOnChain to false to ignore this error."
       );
   }
 
-  const results: ValidCred[] = [];
+  // 3. Create an array to store the result
+  const result: ValidCred[] = [];
 
-  // track how many positions to shift the 'curr' and 'prev' values.
+  // `offsets` track how many positions to shift the 'curr' and 'prev' values
   const offsets = new Array(_creds.length).fill(0);
   let shift = 0;
   for (let i = 0; i < _creds.length; i++) {
     if (toBeDeleted[i]) shift++;
     offsets[i] = shift;
   }
-  console.log("offsets: ", offsets);
 
-  // logic for results
+  // 4. Main logic for result
+  // Note: the following uses a cred's `curr` field to propagate the updated `prev` value
   for (let k = 0; k < _creds.length; k++) {
     const prev = _creds[k].prev;
+
+    // branch on whether to delete cred
     if (toBeDeleted[k]) {
-      if (_creds[k].prev === -1) {
+      if (isHeadOfChain(_creds[k])) {
         _creds[k].curr = -1;
       } else {
         _creds[k].curr = _creds[prev].curr;
       }
     } else {
+      // not to be deleted, but might need to update its `prev` field
+
       // update curr
       _creds[k].curr -= offsets[k];
 
       // update prev
-      if (prev !== -1 && _creds[prev].prev !== -1) {
-        _creds[k].prev = _creds[prev].curr;
-      } else if (prev !== -1) {
-        _creds[k].prev = _creds[prev].curr;
-      }
+      // Note: if cred is the head of a chain, its `prev` remain unchanged as -1
+      if (!isHeadOfChain(_creds[k])) _creds[k].prev = _creds[prev].curr;
 
-      // push to results
-      console.log("pushing: ", k, offsets[k], {
-        curr: _creds[k].curr,
-        prev: _creds[k].prev,
-        timestamp: _creds[k].timestamp,
-      });
-      results.push(_creds[k]);
+      // push to result
+      result.push(_creds[k]);
     }
   }
 
-  return results;
+  // 5. Return the updated array of credentials
+  return result;
 };
 
 /**
- * Marks the credentials for deletion.
+ * Marks the credentials for deletion by checking for violations in the
+ * chain's monotonicity property of timestamps.
  *
  * @param creds - An array of ExtendedCred objects representing the credentials.
  * @returns An array of booleans indicating which credentials should be deleted.
@@ -620,19 +642,28 @@ export const markForDeletion = (creds: ExtendedCred[]): boolean[] => {
     if (done[j]) continue;
     done[j] = true;
 
-    let curr = j;
-    let t = undefined;
+    let curr = j; // store `j` in `curr` (to be updated and used in the loop)
+    let t = undefined; // initialize t for the new chain
     while (curr !== -1) {
       done[curr] = true;
       if (t === undefined || t < extended[curr].timestamp) {
+        // since the monotonicity property of a chain's timestamps is satisfied,
+        // set the current timestamp (new max) to be the new `t`
         t = extended[curr].timestamp;
       } else {
-        if (!extended[curr].encrypted.onChain) toBeDeleted[curr] = true;
-        t = undefined;
+        // even if the monotonicity property of a chain's timestamps is violated,
+        // only delete cred if it is NOT already on-chain
+        toBeDeleted[curr] = !extended[curr].encrypted.onChain;
       }
       curr = extended[curr].next;
     }
   }
+
+  // verify that all creds were processed
+  if (done.includes(false))
+    throw new Error("[markForDeletion] Not all entries were processed");
+
+  // Return the array of booleans indicating which credentials should be deleted
   return toBeDeleted;
 };
 
@@ -652,13 +683,18 @@ export const merge = async (
   curr: Encrypted[],
   maintainOrderInChain: boolean = false
 ): Promise<Encrypted[]> => {
+  // Clone on-chain encrypteds and decrypt them
   const encrypteds = structuredClone(onChain);
   const ocCreds = await decryptEntries(cryptoKey, encrypteds);
 
-  const lastOcCred = ocCreds[ocCreds.length - 1];
-  if (!lastOcCred.isValid) throw new Error("Invalid on-chain credential");
+  // Verify that the on-chain credentials are all valid
+  for (let i = 0; i < ocCreds.length; i++) {
+    const lastOcCred = ocCreds[i];
+    if (!lastOcCred.isValid)
+      throw new Error("[merge] Invalid on-chain credential");
+  }
 
-  // parse on-chain credentials
+  // decrypt encrypteds
   const onChainCreds = await decryptEntries(cryptoKey, onChain);
   const currCreds = await decryptEntries(cryptoKey, curr);
 
@@ -669,11 +705,47 @@ export const merge = async (
     maintainOrderInChain
   );
 
-  // get merged creds' encrypted
+  // get merged creds' encrypted if on-chain, otherwise encrypt
   return Promise.all(
     mergedCreds.map((cred) => {
       if (cred.encrypted.onChain) return cred.encrypted;
       return encrypt(cryptoKey, cred);
     })
   );
+};
+
+/**
+ * Validates the chain properties of an array of credentials.
+ * Ensures that the timestamps of the credentials are monotonically increasing.
+ *
+ * @param creds - An array of credentials to validate.
+ * @returns `true` if the chain properties are valid, otherwise `false`.
+ * @throws Will throw an error if not all entries were processed.
+ */
+export const validateChainProperties = (creds: ValidCred[]): boolean => {
+  const done: boolean[] = creds.map(() => false);
+  const extended = addNext(creds);
+
+  for (let i = 0; i < extended.length; i++) {
+    if (done[i]) continue;
+
+    let t = undefined;
+    let curr = i;
+    while (curr !== -1) {
+      if (t === undefined || t < extended[curr].timestamp) {
+        // monoticity of timestamps is satisfied
+        t = extended[curr].timestamp;
+      } else {
+        // monoticity of timestamps is violated
+        return false;
+      }
+
+      done[curr] = true;
+      curr = extended[curr].next;
+    }
+  }
+
+  if (done.includes(false))
+    throw new Error("[validateChainProperties] Not all entries were processed");
+  return true;
 };
