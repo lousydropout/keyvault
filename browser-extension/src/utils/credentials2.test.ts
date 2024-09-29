@@ -4,7 +4,7 @@ import {
   Cred,
   decryptEntries,
   deleteK,
-  deleteMultiOptimized,
+  deleteMulti,
   isValidCred,
   markForDeletion,
   merge,
@@ -95,7 +95,7 @@ const getFields = (cred: Cred) => {
 };
 
 describe("Deleting creds", () => {
-  it("should be the same if via deleteMultiOptimized and repeated deleteK", async () => {
+  it("should be the same if via deleteMulti and repeated deleteK", async () => {
     for (let i = 0; i < 2 ** creds.length - 1; i++) {
       const toBeDeleted = i
         .toString(2)
@@ -110,7 +110,7 @@ describe("Deleting creds", () => {
         expected = deleteK(expected, k);
       });
 
-      const output = deleteMultiOptimized(creds as ValidCred[], toBeDeleted);
+      const output = deleteMulti(creds as ValidCred[], toBeDeleted);
 
       expect(expected.map(getFields)).toEqual(output.map(getFields));
     }

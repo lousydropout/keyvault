@@ -405,7 +405,8 @@ export const getCredsByUrl = (creds: Cred[]): CredsByUrl => {
  * @param onChainCreds - The on-chain credentials array.
  * @param maintainOrderInChain - Optional. Specifies whether to maintain the order of credentials in the on-chain array. Defaults to false.
  * @returns The merged array of valid credentials.
- * @remarks `maintainOrderInChain` assumes that the on-chain creds satisfies the monotonicity of timestamps for chains.
+ * @remarks `maintainOrderInChain` assumes that the on-chain creds are time-ordered (that is, the chains
+ *   satisfy timestamp monotonicity).
  * @throws {Error} If any credential in either array does not have a 'next' field.
  */
 export const mergeCreds = (
@@ -464,11 +465,11 @@ export const mergeCreds = (
     }
   }
 
-  // Optional: maintain monotonicity of timestamps in chains
+  // Optional: maintain time-orderedness (timestamp monotonicity)
   // Assumes that the chains on-chain are already in the correct order
   if (maintainOrderInChain) {
     const toBeDeleted = markForDeletion(addNext(result));
-    result = deleteMultiOptimized(result, toBeDeleted);
+    result = deleteMulti(result, toBeDeleted);
   }
 
   // Delete "next" field from all creds in result since they're no longer correct
@@ -566,7 +567,7 @@ const isTailOfChain = (cred: ExtendedCred): boolean => cred.next === -1;
  * @param toBeDeleted - An array of booleans indicating which elements should be deleted.
  * @returns The updated array of ValidCred objects after deleting the specified elements.
  */
-export const deleteMultiOptimized = (
+export const deleteMulti = (
   creds: ValidCred[],
   toBeDeleted: boolean[],
   throwExceptionIfOnChain: boolean = true
@@ -628,7 +629,7 @@ export const deleteMultiOptimized = (
 
 /**
  * Marks the credentials for deletion by checking for violations in the
- * chain's monotonicity property of timestamps.
+ * chain's time-orderedness (monotonicity property of timestamps).
  *
  * @param creds - An array of ExtendedCred objects representing the credentials.
  * @returns An array of booleans indicating which credentials should be deleted.
@@ -647,12 +648,11 @@ export const markForDeletion = (creds: ExtendedCred[]): boolean[] => {
     while (curr !== -1) {
       done[curr] = true;
       if (t === undefined || t < extended[curr].timestamp) {
-        // since the monotonicity property of a chain's timestamps is satisfied,
+        // since the chain is time-ordered (thus far), we can delete the cred
         // set the current timestamp (new max) to be the new `t`
         t = extended[curr].timestamp;
       } else {
-        // even if the monotonicity property of a chain's timestamps is violated,
-        // only delete cred if it is NOT already on-chain
+        // if the chain is not time-ordered, we mark cred for deletion if it is NOT already on-chain
         toBeDeleted[curr] = !extended[curr].encrypted.onChain;
       }
       curr = extended[curr].next;
@@ -715,8 +715,9 @@ export const merge = async (
 };
 
 /**
- * Validates the chain properties of an array of credentials.
- * Ensures that the timestamps of the credentials are monotonically increasing.
+ * Validates the chains' properties.
+ * Ensures that the chains are time-ordered (that the timestamps of the
+ * credentials are monotonically increasing).
  *
  * @param creds - An array of credentials to validate.
  * @returns `true` if the chain properties are valid, otherwise `false`.
@@ -733,10 +734,10 @@ export const validateChainProperties = (creds: ValidCred[]): boolean => {
     let curr = i;
     while (curr !== -1) {
       if (t === undefined || t < extended[curr].timestamp) {
-        // monoticity of timestamps is satisfied
+        // chain is thusfar time-ordered
         t = extended[curr].timestamp;
       } else {
-        // monoticity of timestamps is violated
+        // chain is not time-ordered
         return false;
       }
 

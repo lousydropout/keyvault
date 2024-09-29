@@ -2,7 +2,7 @@ import {
   addNext,
   Cred,
   deleteK,
-  deleteMultiOptimized,
+  deleteMulti,
   getCredsByUrl,
   getPasswordChains,
   InvalidCred,
@@ -223,7 +223,7 @@ describe("Transformations on encrypteds and credentials", () => {
     );
   });
 
-  it("should be able to delete an off-chain and non-terminal cred at index k using deleteMultiOptimized", () => {
+  it("should be able to delete an off-chain and non-terminal cred at index k using deleteMulti", () => {
     const credsOffChain = validCreds.map((cred) => {
       const result = structuredClone(cred);
       result.encrypted.onChain = false;
@@ -231,7 +231,7 @@ describe("Transformations on encrypteds and credentials", () => {
     });
 
     const k = 3;
-    const output = deleteMultiOptimized(
+    const output = deleteMulti(
       credsOffChain,
       credsOffChain.map((_, i) => i === k)
     );
@@ -256,7 +256,7 @@ describe("Transformations on encrypteds and credentials", () => {
     );
   });
 
-  it("should be able to delete an off-chain and terminal cred at index k at 2 using deleteMultiOptimized", () => {
+  it("should be able to delete an off-chain and terminal cred at index k at 2 using deleteMulti", () => {
     const credsOffChain = validCreds.map((cred) => {
       const result = structuredClone(cred);
       result.encrypted.onChain = false;
@@ -264,7 +264,7 @@ describe("Transformations on encrypteds and credentials", () => {
     });
 
     const k = 2;
-    const output = deleteMultiOptimized(
+    const output = deleteMulti(
       credsOffChain,
       credsOffChain.map((_, i) => i === k)
     );
@@ -289,7 +289,7 @@ describe("Transformations on encrypteds and credentials", () => {
     );
   });
 
-  it("should be able to delete an off-chain and initial cred at index k at 0 using deleteMultiOptimized", () => {
+  it("should be able to delete an off-chain and initial cred at index k at 0 using deleteMulti", () => {
     const credsOffChain = validCreds.map((cred) => {
       const result = structuredClone(cred);
       result.encrypted.onChain = false;
@@ -297,7 +297,7 @@ describe("Transformations on encrypteds and credentials", () => {
     });
 
     const k = 0;
-    const output = deleteMultiOptimized(
+    const output = deleteMulti(
       credsOffChain,
       credsOffChain.map((_, i) => i === k)
     );
@@ -319,7 +319,7 @@ describe("Transformations on encrypteds and credentials", () => {
     const k = 0;
 
     expect(() =>
-      deleteMultiOptimized(
+      deleteMulti(
         creds,
         validCreds.map((_, i) => i === k)
       )
