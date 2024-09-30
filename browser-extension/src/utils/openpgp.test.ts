@@ -1,9 +1,10 @@
 import {
-  encryptMessage,
   decryptMessage,
+  encryptMessage,
   genKey,
-  importPublicKey,
   importPrivateKey,
+  importPublicKey,
+  reformatKey,
   signClearTextMessage,
   signMessage,
   verifyDetachedSignature,
@@ -27,6 +28,8 @@ describe("PGP Module Unit Tests", () => {
     publicKey_1 = await importPublicKey(keyPair_1.publicKey);
     keyId_1 = keyPair_1.keyId;
 
+    console.log("publicKey_1: ", publicKey_1.armor());
+
     const keyPair_2 = await genKey();
     privateKey_2 = await importPrivateKey(keyPair_2.privateKey);
     publicKey_2 = await importPublicKey(keyPair_2.publicKey);
@@ -38,6 +41,27 @@ describe("PGP Module Unit Tests", () => {
     expect(keyPair).toHaveProperty("privateKey");
     expect(keyPair).toHaveProperty("publicKey");
     expect(keyPair).toHaveProperty("keyId");
+  });
+
+  test("private key should be able to generate its public key counterpart", () => {
+    const _publicKey = privateKey_1.toPublic();
+    expect(_publicKey.armor()).toEqual(publicKey_1.armor());
+  });
+
+  test("private key should be able to produce its keyId", () => {
+    const _keyId = privateKey_1.getKeyID().toHex();
+    expect(_keyId).toEqual(keyId_1);
+  });
+
+  test("should be able to import an ASCII armored private key", async () => {
+    const armoredPrivateKey = reformatKey(privateKey_1.armor());
+
+    const importedPrivateKey = await importPrivateKey({
+      body: armoredPrivateKey.body,
+      crc: armoredPrivateKey.crc,
+    });
+
+    expect(importedPrivateKey.armor()).toEqual(privateKey_1.armor());
   });
 
   test("should sign a cleartext message", async () => {

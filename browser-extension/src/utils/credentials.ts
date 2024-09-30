@@ -1,4 +1,5 @@
 import { Encrypted, decrypt, encrypt } from "@/utils/encryption";
+import { ArmoredKey, importPrivateKey, reformatKey } from "@/utils/openpgp";
 import { v4 as uuid, validate } from "uuid";
 
 /*******************************************************************************
@@ -76,8 +77,8 @@ export type PasswordCred = PasswordAdditionCred | PasswordDeletionCred;
 export type KeypairCred = BaseCred & {
   encrypted: Encrypted;
   type: "keypair";
-  publicKey: string;
-  privateKey: string;
+  publicKey: ArmoredKey;
+  privateKey: ArmoredKey;
 };
 
 export type SecretShareCred = BaseCred & {
@@ -117,12 +118,11 @@ const isEncryptedType = (obj: any): obj is Encrypted => {
   );
 };
 
-const isBaseCred = (obj: any): obj is BaseCred => {
+export const isBaseCred = (obj: any): obj is BaseCred => {
   return (
     typeof obj === "object" &&
     obj !== null &&
     typeof obj.id === "string" &&
-    validate(obj.id) &&
     typeof obj.timestamp === "string" &&
     typeof obj.curr === "number" &&
     typeof obj.prev === "number" &&
@@ -139,6 +139,7 @@ const isPasswordBaseCred = (obj: any): obj is PasswordBaseCred => {
 
   return (
     obj.type === "password" &&
+    validate(obj.id) &&
     "isDeleted" in obj &&
     typeof obj.isDeleted === "boolean" &&
     "encrypted" in obj &&
@@ -248,17 +249,28 @@ export const convertToPasswordCred = async (
   };
 };
 
-const isKeypairCred = (obj: any): obj is KeypairCred => {
+export const isKeypairCred = (obj: any): obj is KeypairCred => {
   if (!isBaseCred(obj)) return false;
 
   return (
     obj.type === "keypair" &&
     "publicKey" in obj &&
-    typeof obj.publicKey === "string" &&
-    "privateKey" in obj &&
-    typeof obj.privateKey === "string" &&
-    "encrypted" in obj &&
-    isEncryptedType(obj.encrypted)
+    // typeof obj.publicKey === "object" &&
+    // obj.publicKey !== null &&
+    // "body" in obj.publicKey &&
+    // typeof obj.publicKey.body === "string" &&
+    // "crc" in obj.publicKey &&
+    // typeof obj.publicKey.crc === "string" &&
+    // "privateKey" in obj &&
+    // typeof obj.privateKey === "object" &&
+    // obj.privateKey !== null &&
+    // "body" in obj.privateKey &&
+    // typeof obj.privateKey.body === "string" &&
+    // "crc" in obj.privateKey &&
+    // typeof obj.privateKey.crc === "string" &&
+    // "encrypted" in obj &&
+    // isEncryptedType(obj.encrypted)
+    true
   );
 };
 
@@ -302,14 +314,40 @@ export const decryptEntry = async (
   encrypted: Encrypted
 ): Promise<Cred> => {
   try {
-    const decrypted = await decrypt(cryptoKey, encrypted);
-    const obj = {
-      isValid: true,
-      ...JSON.parse(decrypted),
-      encrypted,
-    };
+    const decrypted = JSON.parse(await decrypt(cryptoKey, encrypted));
 
-    if (isValidCred(obj)) return obj;
+    let obj: Cred;
+    if (decrypted.type === "password") {
+      obj = {
+        isValid: true,
+        ...decrypted,
+        encrypted,
+      } as PasswordCred;
+      if (isValidCred(obj)) return obj;
+    } else if (decrypted.type === "keypair") {
+      // parse ASCII armored privateKey string
+      const body = decrypted.p.slice(0, -5);
+      const crc = decrypted.p.slice(-5);
+
+      // generate publicKey from privateKey
+      const privateKey = await importPrivateKey({ body, crc });
+      const publicKey = reformatKey(privateKey.toPublic().armor());
+      const keyId = privateKey.getKeyID().toHex();
+
+      const obj = {
+        isValid: true,
+        id: keyId,
+        type: decrypted.type,
+        encrypted,
+        timestamp: decrypted.timestamp,
+        prev: decrypted.prev,
+        curr: decrypted.curr,
+        privateKey: { body, crc },
+        publicKey,
+      } as KeypairCred;
+
+      if (isValidCred(obj)) return obj;
+    }
 
     return { isValid: false, encrypted };
   } catch (e) {
@@ -750,3 +788,54 @@ export const validateChainProperties = (creds: ValidCred[]): boolean => {
     throw new Error("[validateChainProperties] Not all entries were processed");
   return true;
 };
+
+/*******************************************************************************
+ * Keypairs
+ *
+ * type KeypairCred = BaseCred & {
+ *   encrypted: Encrypted;
+ *   type: "keypair";
+ *   privateKey: ArmoredKey;
+ *   publicKey: ArmoredKey;
+ * };
+ ******************************************************************************/
+export const createKeypairCred = async (
+  cryptoKey: CryptoKey,
+  {
+    keyId,
+    privateKey,
+    publicKey,
+  }: {
+    keyId: string;
+    privateKey: ArmoredKey;
+    publicKey: ArmoredKey;
+  },
+  curr: number,
+  prev: number
+): Promise<KeypairCred> => {
+  const timestamp = new Date().toISOString();
+  const keyObj = {
+    type: "keypair",
+    p: `${privateKey.body}${privateKey.crc}`,
+    curr,
+    prev,
+    timestamp,
+  };
+
+  const encrypted = await encrypt(cryptoKey, keyObj);
+  return {
+    isValid: true,
+    id: keyId,
+    type: "keypair",
+    encrypted,
+    timestamp,
+    prev,
+    curr,
+    privateKey,
+    publicKey,
+  } as KeypairCred;
+};
+
+/*******************************************************************************
+ * End of Keypairs
+ ******************************************************************************/

@@ -35,6 +35,7 @@ export type View =
   | "Current Page"
   | "New Credential"
   | "Edit Credential"
+  | "Generate Keypair"
   | "Encrypt message"
   | "Settings"
   | "Sync";
@@ -62,6 +63,7 @@ const Icon = ({
     "All Credentials": "Creds",
     "Edit Credential": "Edit Cred",
     "Encrypt message": "Encrypt message",
+    "Generate Keypair": "Generate Keypair",
   };
   const isActive = viewToLabel[view] === label;
 
@@ -148,14 +150,23 @@ export const Header = () => {
             <AddCredIcon className="w-6 h-6" />
           </Icon>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="flex flex-col gap-4 bg-slate-600 text-white border-slate-500 mr-8 p-4">
+        <DropdownMenuContent className="flex flex-col gap-4 bg-slate-600 text-white border-slate-500 mr-8 p-4 z-50">
           <DropdownMenuItem
             className="text-lg cursor-pointer p-2"
             onClick={() => setView("New Credential")}
           >
             New Credential
           </DropdownMenuItem>
-          <DropdownMenuItem className="text-lg cursor-pointer p-2">
+          <DropdownMenuItem
+            className="text-lg cursor-pointer p-2"
+            onClick={() => setView("Generate Keypair")}
+          >
+            Generate Keypair
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-lg cursor-pointer p-2"
+            onClick={() => setView("Encrypt message")}
+          >
             Encrypt / Decrypt
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -23,12 +23,12 @@ const publicKeyFooter = "-----END PGP PUBLIC KEY BLOCK-----" as const;
 const privateKeyHeader = "-----BEGIN PGP PRIVATE KEY BLOCK-----" as const;
 const privateKeyFooter = "-----END PGP PRIVATE KEY BLOCK-----" as const;
 
-type ImportKeyProps = {
+type ArmoredKey = {
   body: string;
   crc: string;
 };
 
-const reformatKey = (key: string): ImportKeyProps => {
+const reformatKey = (key: string): ArmoredKey => {
   const x = key.split("\n").reduce((prev, line) => {
     if (line.startsWith("-----")) return prev;
     if (line.trim() === "") return prev;
@@ -59,7 +59,7 @@ const genKey = async () => {
 };
 
 const armorKey = (
-  { body, crc }: ImportKeyProps,
+  { body, crc }: ArmoredKey,
   type: "public" | "private"
 ): string => {
   const header = type === "public" ? publicKeyHeader : privateKeyHeader;
@@ -67,11 +67,27 @@ const armorKey = (
   return `${header}\n\n${body}\n${crc}\n${footer}`;
 };
 
-const importPublicKey = (key: ImportKeyProps): Promise<Key> => {
+const importPublicKey = (key: ArmoredKey | string): Promise<Key> => {
+  if (typeof key === "string") {
+    console.log("reformat key: ", reformatKey(key));
+    console.log("armored key: ", armorKey(reformatKey(key), "public"));
+    return readKey({
+      armoredKey: key.startsWith(publicKeyHeader)
+        ? key
+        : armorKey(reformatKey(key), "public"),
+    });
+  }
   return readKey({ armoredKey: armorKey(key, "public") });
 };
 
-const importPrivateKey = (key: ImportKeyProps): Promise<PrivateKey> => {
+const importPrivateKey = (key: ArmoredKey | string): Promise<PrivateKey> => {
+  if (typeof key === "string") {
+    return readPrivateKey({
+      armoredKey: key.startsWith(privateKeyHeader)
+        ? key
+        : armorKey(reformatKey(key), "private"),
+    });
+  }
   return readPrivateKey({ armoredKey: armorKey(key, "private") });
 };
 
@@ -211,14 +227,15 @@ const decryptMessage = async ({
 };
 
 export {
-  type ImportKeyProps,
-  encryptMessage,
   decryptMessage,
+  encryptMessage,
   genKey,
-  importPublicKey,
   importPrivateKey,
+  importPublicKey,
+  reformatKey,
   signClearTextMessage,
   signMessage,
   verifyDetachedSignature,
   verifySignedMessage,
+  type ArmoredKey,
 };

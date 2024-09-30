@@ -5,5 +5,7 @@ export const MODIFIED = "modified" as const;
 export const MODIFIED_ENCRYPTEDS = "modifiedEncrypteds" as const;
 export const NUM_ENTRIES = "numEntries" as const;
 export const PUBKEY = "pubkey" as const;
+export const PUBLIC_KEY = "public_key" as const;
+export const PRIVATE_KEY = "private_key" as const;
 export const STEP = "step" as const;
 export const VIEW = "view" as const;
