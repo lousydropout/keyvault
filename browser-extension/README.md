@@ -1,4 +1,58 @@
-# KeyVault Chrome extension
+# KeyVault Browser extension
+
+## Installation
+
+Requirements: I use `bun` and the `package.json` scripts assume you have `bun` installed. If you don't, please check out the [Bun installation page](https://bun.sh/docs/installation) for information on how to install `bun` on your computer.
+
+Next, clone this repo and go into the `browser-extension` directory.
+
+```bash
+$ git clone git@github.com:lousydropout/keyvault.git
+$ cd keyvault/browser-extension
+```
+
+Install the packages required for this project:
+
+```bash
+$ bun install
+```
+
+Test that your installation ran okay:
+
+```bash
+$ bun test
+```
+
+Finally, build the extension for Chromium/Brave and Firefox:
+
+```bash
+$ bun dev
+```
+
+This will create a `package/keyvault-firefox.zip` for Firefox and a `dist/` directory for Chromium/Brave.
+
+For whatever reason(s), Firefox and Chromium-based browsers (i.e. Brave, Chrome, Chromium) expect different formats for their browser extensions. Firefox expects a `XPI` file for the Mozilla-approved version and a `zip` file otherwise (Developer edition). For Chromium-based browsers, you have to provide the path to the directory containing your extracted files.
+
+## Loading the keyvault extension into Firefox Developer Edition
+
+Note: "Mozilla requires all extensions to be signed by Mozilla in order for them to be installable in Release and Beta versions of Firefox." (see https://wiki.mozilla.org/Add-ons/Extension_Signing.) As far as I know, [Firefox Developer Edition](https://www.mozilla.org/en-US/firefox/developer/) will work. So, at the current time, using `keyvault` will assume you have `Firefox Developer Edition` installed.
+
+First, we need to disable requiring signatures for Add-ons.
+
+1. On Firefox, go to [about:config](about:config),
+2. type in `xpinstall.signatures.required` and set it to `false`.
+
+Then, to install the add-on,
+
+1. On Firefox, go to [about:addons](about:addons).
+2. To the right of `Manage Your Extensions`, there is a Settings/Gear icon. Click on it.
+3. Select `Install Add-on From File...` and select `keyvault/browser-extension/package/keyvault-firefox.zip`.
+
+## Loading the keyvault extension into a Chromium browser (e.g. Chrome and Brave)
+
+1. Go to [chrome://extensions/](chrome://extensions/)
+2. Ensure that `Developer mode` is `enabled`.
+3. Click on `Load unpacked` and select the `keyvault/browser-extension/dist/` directory.
 
 ## Process for transmitting data from React app to chrome extension side panel
 
