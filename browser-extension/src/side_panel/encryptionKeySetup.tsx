@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
 import { DASHBOARD } from "@/constants/steps";
-import { useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { importCryptoKey } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
@@ -16,9 +16,9 @@ type EncryptionKeySetupProps = {
   setStep: (step: number) => void;
 };
 export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
-  const [pubkey] = useChromeStoreLocal<string>(PUBKEY, "");
+  const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
   const [jwk, setJwk, _, generateKeyHandler] = useCryptoKeyManager();
-  const [numOnChain, setNumOnChain] = useChromeStoreLocal<number>(
+  const [numOnChain, setNumOnChain] = useBrowserStoreLocal<number>(
     NUM_ENTRIES,
     -1
   );

@@ -1,6 +1,15 @@
+type ContentScriptMessage = {
+  type: string;
+  action: string;
+  username?: string;
+  password?: string;
+};
+
 // Listen for the credentials sent by the background script
-function handlefillCredential(message) {
-  let selector;
+const handlefillCredential = (
+  message: ContentScriptMessage & { username: string; password: string }
+) => {
+  let selector: string;
 
   // Fill in password
   const pwSpellings = ["Passwd", "password", "Password", "passwd", "pw"];
@@ -12,7 +21,7 @@ function handlefillCredential(message) {
       if (passwordField) break;
     }
   if (passwordField) {
-    passwordField.value = message.password;
+    if ("value" in passwordField) passwordField.value = message.password;
     passwordField.setAttribute("data-initial-value", message.password);
     passwordField.setAttribute("value", message.password);
   }
@@ -21,27 +30,42 @@ function handlefillCredential(message) {
   selector = 'input[type="text"], input[type="email"]';
   const usernameField = document.querySelector(selector);
   if (usernameField) {
-    usernameField.value = message.username;
+    if ("value" in usernameField) usernameField.value = message.username;
     usernameField.setAttribute("data-initial-value", message.username);
     usernameField.setAttribute("value", message.username);
   }
-}
+};
 
-function handleMessage(msg) {
+const isContentScriptMessage = (obj: object): boolean => {
+  return (
+    "type" in obj &&
+    typeof obj.type === "string" &&
+    "action" in obj &&
+    typeof obj.action === "string"
+  );
+};
+
+function handleMessage(msg: string | ContentScriptMessage) {
   // get message
-  let message;
+  let message: ContentScriptMessage;
   try {
-    message = JSON.parse(msg);
+    message = JSON.parse(msg as string);
   } catch (e) {
-    message = msg;
+    message = msg as ContentScriptMessage;
   }
+
+  if (!isContentScriptMessage(message)) return;
 
   // forward message
   if (message.type !== "FROM_EXTENSION") return;
 
   if (message.action === "fillCredentials") {
     console.log("[contentScript] handlefillCredential: ", message);
-    handlefillCredential(message);
+    if (message.username && message.password) {
+      handlefillCredential(
+        message as ContentScriptMessage & { username: string; password: string }
+      );
+    }
   } else if ("data" in message) {
     console.log("[contentScript] postMessage: ", message);
     window.postMessage(message);

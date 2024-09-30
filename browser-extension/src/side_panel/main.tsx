@@ -9,7 +9,7 @@ import {
   VIEW,
 } from "@/constants/hookVariables";
 import { DASHBOARD, SETUP_ENCRYPTION_KEY, WELCOME } from "@/constants/steps";
-import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import "@/index.css";
 import { PubkeyRequest } from "@/side_panel/PubkeyRequest";
@@ -29,18 +29,18 @@ import { EncryptMessage } from "./encryptMessage";
 import { GenerateKeypair } from "./generateKeypair";
 
 export const Root = () => {
-  const [step, setStep] = useChromeStoreLocal<number>(STEP, WELCOME);
-  const [view] = useChromeStore<View>(VIEW, "Current Page");
-  const [pubkey] = useChromeStoreLocal<string>(PUBKEY, "");
+  const [step, setStep] = useBrowserStoreLocal<number>(STEP, WELCOME);
+  const [view] = useBrowserStore<View>(VIEW, "Current Page");
+  const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [numOnChain] = useChromeStoreLocal<number>(NUM_ENTRIES, -1);
-  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
+  const [numOnChain] = useBrowserStoreLocal<number>(NUM_ENTRIES, -1);
+  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
     ENCRYPTEDS,
     []
   );
   const [modifiedEncrypteds, setModifiedEncrypteds] =
-    useChromeStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
-  const [_creds, setCreds] = useChromeStoreLocal<Cred[]>(CREDENTIALS, []);
+    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
+  const [_creds, setCreds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
 
   // query and convert on-chain entries to creds automatically
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { CREDENTIALS, ENCRYPTEDS, MODIFIED } from "@/constants/hookVariables";
 import { ASTAR, LOCALHOST } from "@/constants/networks";
-import { useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { Cred } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
 import { astar, hardhat } from "viem/chains";
@@ -15,16 +15,19 @@ export const useChainId = (): {
   modified: boolean;
   setModified: (modified: boolean) => void;
 } => {
-  const [chainId, setChainId] = useChromeStoreLocal<number>(
+  const [chainId, setChainId] = useBrowserStoreLocal<number>(
     "chainId",
     NETWORK === LOCALHOST ? hardhat.id : astar.id
   );
-  const [_creds, setCreds] = useChromeStoreLocal<Cred[]>(CREDENTIALS, []);
-  const [_encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
+  const [_creds, setCreds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
+  const [_encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
     ENCRYPTEDS,
     []
   );
-  const [modified, setModified] = useChromeStoreLocal<boolean>(MODIFIED, false);
+  const [modified, setModified] = useBrowserStoreLocal<boolean>(
+    MODIFIED,
+    false
+  );
 
   const toggleChain = () => {
     setChainId(chainId === hardhat.id ? astar.id : hardhat.id);

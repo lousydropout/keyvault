@@ -26,4 +26,6 @@ dist-ssr
 icons.zip
 
 # Browser extension build
-vite.config.js.timestamp*
+vite.config.?s.timestamp*
+keyvault*.zip
+

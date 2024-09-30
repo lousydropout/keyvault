@@ -3,7 +3,7 @@
   "name": "Keyvault Password Manager",
   "version": "0.1",
   "description": "A blockchain-based password manager.",
-  "permissions": ["storage", "activeTab", "sidePanel", "tabs"],
+  "permissions": ["storage", "activeTab", "sidebar", "tabs"],
   "externally_connectable": {
     "matches": [
       "http://localhost:5173/*",
@@ -18,8 +18,15 @@
       "192": "icons/icon192.png"
     }
   },
-
-  "side_panel": { "default_path": "side_panel/index.html" },
+  "sidebar_action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    },
+    "default_title": "keyvault",
+    "default_panel": "side_panel/sidebar.html",
+    "open_at_install": true
+  },
   "background": {
     "service_worker": "background.js"
   },

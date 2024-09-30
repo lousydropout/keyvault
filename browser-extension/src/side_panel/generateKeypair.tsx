@@ -8,7 +8,7 @@ import {
   PUBLIC_KEY,
   VIEW,
 } from "@/constants/hookVariables";
-import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { createKeypairCred, Cred, isKeypairCred } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
@@ -17,19 +17,22 @@ import { useEffect, useState } from "react";
 
 export const GenerateKeypair = () => {
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
+  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
     ENCRYPTEDS,
     []
   );
-  const [creds] = useChromeStoreLocal<Cred[]>(CREDENTIALS, []);
-  const [publicKey, setPublicKey] = useChromeStoreLocal<string>(PUBLIC_KEY, "");
-  const [privateKey, setPrivateKey] = useChromeStoreLocal<string>(
+  const [creds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
+  const [publicKey, setPublicKey] = useBrowserStoreLocal<string>(
+    PUBLIC_KEY,
+    ""
+  );
+  const [privateKey, setPrivateKey] = useBrowserStoreLocal<string>(
     PRIVATE_KEY,
     ""
   );
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useChromeStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
-  const [_view, setView] = useChromeStore<View>(VIEW, "New Credential");
+    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
+  const [_view, setView] = useBrowserStore<View>(VIEW, "New Credential");
   const [keypairExists, setKeypairExists] = useState<boolean>(false);
 
   useEffect(() => {

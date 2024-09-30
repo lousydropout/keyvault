@@ -2,15 +2,15 @@ import { AddCredIcon } from "@/components/icons/addCredIcon";
 import { CredsIcon } from "@/components/icons/credsIcon";
 import { SettingsIcon } from "@/components/icons/settingsIcon";
 import { SyncIcon } from "@/components/icons/syncIcon";
-import { dappUrl } from "@/config";
-import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
-import { useCurrentTab } from "@/hooks/useCurrentTab";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@radix-ui/react-dropdown-menu";
+} from "@/components/ui/dropdown-menu";
+import { dappUrl } from "@/config";
+import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
+import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { useState } from "react";
 
 const isOpen = async (tabId: number) => {
@@ -101,8 +101,8 @@ const Icon = ({
 };
 
 export const Header = () => {
-  const [tabIds, setTabIds] = useChromeStoreLocal<number[]>("tabIds", []);
-  const [view, setView] = useChromeStore<View>("view", "Current Page");
+  const [tabIds, setTabIds] = useBrowserStoreLocal<number[]>("tabIds", []);
+  const [view, setView] = useBrowserStore<View>("view", "Current Page");
   const [tab] = useCurrentTab();
 
   return (

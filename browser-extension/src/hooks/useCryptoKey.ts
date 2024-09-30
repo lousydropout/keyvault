@@ -1,4 +1,4 @@
-import { useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import {
   exportCryptoKey,
   generateKey,
@@ -12,7 +12,7 @@ export function useCryptoKeyManager(): [
   CryptoKey | null,
   () => Promise<void>
 ] {
-  const [jwk, setJwk] = useChromeStoreLocal<JsonWebKey | null>("jwk", null);
+  const [jwk, setJwk] = useBrowserStoreLocal<JsonWebKey | null>("jwk", null);
   const [cryptoKey, setCryptoKey] = useState<CryptoKey | null>(null);
 
   const generateKeyHandler = async () => {

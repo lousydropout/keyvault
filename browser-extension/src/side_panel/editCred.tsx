@@ -14,7 +14,7 @@ import {
   MODIFIED_ENCRYPTEDS,
   VIEW,
 } from "@/constants/hookVariables";
-import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import {
   basePasswordCred,
@@ -45,18 +45,18 @@ const generatePassword = (
 };
 
 export const EditCred = () => {
-  const [cred] = useChromeStore<PasswordAdditionCred>(
+  const [cred] = useBrowserStore<PasswordAdditionCred>(
     CRED_TO_BE_EDITED,
     basePasswordCred
   );
-  const [_view, setView] = useChromeStore<View>(VIEW, "Current Page");
+  const [_view, setView] = useBrowserStore<View>(VIEW, "Current Page");
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
+  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
     ENCRYPTEDS,
     []
   );
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useChromeStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
+    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState<string>(cred.username);

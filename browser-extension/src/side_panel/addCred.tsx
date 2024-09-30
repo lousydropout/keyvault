@@ -13,7 +13,7 @@ import {
   MODIFIED_ENCRYPTEDS,
   VIEW,
 } from "@/constants/hookVariables";
-import { useChromeStore, useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { createBarePasswordCred } from "@/utils/credentials";
@@ -42,13 +42,13 @@ const generatePassword = (
 
 export const AddCred = () => {
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
+  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
     ENCRYPTEDS,
     []
   );
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useChromeStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
-  const [_view, setView] = useChromeStore<View>(VIEW, "New Credential");
+    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
+  const [_view, setView] = useBrowserStore<View>(VIEW, "New Credential");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState<string>("");

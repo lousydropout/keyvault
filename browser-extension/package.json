@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "vite-build": "tsc -p tsconfig.prod.json && vite build",
-    "dev": "nodemon --exec 'bun run vite-build' --watch src --watch public -e ts,tsx,js",
-    "build": "VITE_NETWORK=astar bun run vite-build",
+    "dev": "nodemon --exec 'bun run vite-build --mode chrome' --watch src --watch scripts -e ts,tsx,js",
+    "build": "VITE_NETWORK=astar bun run vite-build --mode chrome",
+    "zip": "mkdir -p packages && zip -r packages/keyvault-firefox.zip dist",
+    "dev-firefox": "nodemon --exec 'bun run vite-build --mode firefox && bun run zip' --watch src --watch scripts -e ts,tsx,js",
+    "build-firefox": "VITE_NETWORK=astar bun run vite-build --mode firefox && bun run zip",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
@@ -33,7 +36,8 @@
     "tailwindcss-animate": "^1.0.7",
     "tweetnacl": "^1.0.3",
     "uuid": "^10.0.0",
-    "viem": "~2.18.7"
+    "viem": "~2.18.7",
+    "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
     "@openpgp/web-stream-tools": "0.0.11-patch-0",
@@ -44,6 +48,7 @@
     "@types/react-dom": "^18.2.18",
     "@types/scryptsy": "^2.0.3",
     "@types/uuid": "^10.0.0",
+    "@types/webextension-polyfill": "^0.12.1",
     "@typescript-eslint/eslint-plugin": "^6.20.0",
     "@typescript-eslint/parser": "^6.20.0",
     "@vitejs/plugin-react": "^4.2.1",

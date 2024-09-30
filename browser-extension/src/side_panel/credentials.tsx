@@ -7,7 +7,7 @@ import {
   MODIFIED_ENCRYPTEDS,
   PUBKEY,
 } from "@/constants/hookVariables";
-import { useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { CredentialsAll } from "@/side_panel/credentialsAll";
 import { CurrentPage } from "@/side_panel/currentPage";
@@ -35,14 +35,14 @@ const Refresh = ({ className }: { className: string }) => (
 );
 
 export const Credentials = () => {
-  const [creds] = useChromeStoreLocal<Cred[]>(CREDENTIALS, []);
-  const [encrypteds, setEncrypteds] = useChromeStoreLocal<Encrypted[]>(
+  const [creds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
+  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
     ENCRYPTEDS,
     []
   );
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useChromeStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
-  const [pubkey] = useChromeStoreLocal<string>(PUBKEY, "");
+    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
+  const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
   const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
   const [credsUrl, setCredsUrl] = useState<CredsByUrl>({});
 

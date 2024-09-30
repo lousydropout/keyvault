@@ -3,7 +3,7 @@ import path from "path";
 import copy from "rollup-plugin-copy";
 import { defineConfig } from "vite";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -13,8 +13,14 @@ export default defineConfig({
     react(),
     copy({
       targets: [
-        { src: "public/manifest.json", dest: "dist" },
-        { src: "src/contentScript.ts", dest: "dist" },
+        {
+          src:
+            mode === "firefox"
+              ? "manifests/manifest.firefox.json"
+              : "manifests/manifest.chrome.json",
+          dest: "dist",
+          rename: "manifest.json",
+        },
       ],
       hook: "writeBundle",
     }),
@@ -22,11 +28,26 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
+        // Define the HTML entry point for side panel
         side_panel: path.resolve(__dirname, "side_panel/index.html"),
+        background: path.resolve(
+          __dirname,
+          `src/scripts/background.${mode}.ts`
+        ),
+        contentScript: path.resolve(
+          __dirname,
+          `src/scripts/contentScript.${mode}.ts`
+        ),
       },
       output: {
-        entryFileNames: `assets/[name].js`,
+        format: "es",
+        dir: "dist",
+        entryFileNames: (chunkInfo) => {
+          if (chunkInfo.name === "background") return "background.js";
+          if (chunkInfo.name === "contentScript") return "contentScript.js";
+          return `assets/[name].js`;
+        },
       },
     },
   },
-});
+}));

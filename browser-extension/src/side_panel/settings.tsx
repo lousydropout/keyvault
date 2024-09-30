@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { CREDENTIALS, ENCRYPTEDS, PUBKEY } from "@/constants/hookVariables";
 import { LOCALHOST } from "@/constants/networks";
 import { WELCOME } from "@/constants/steps";
-import { useChromeStoreLocal } from "@/hooks/useChromeStore";
+import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { Cred } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
@@ -33,10 +33,10 @@ const logOut = async () => {
 };
 
 export const Settings = () => {
-  const [pubkey] = useChromeStoreLocal<string>(PUBKEY, "");
+  const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
   const [jwk] = useCryptoKeyManager();
-  const [encrypteds] = useChromeStoreLocal<Encrypted[]>(ENCRYPTEDS, []);
-  const [creds] = useChromeStoreLocal<Cred[]>(CREDENTIALS, []);
+  const [encrypteds] = useBrowserStoreLocal<Encrypted[]>(ENCRYPTEDS, []);
+  const [creds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
 
   return (
     <div className="flex flex-col gap-4 justify-end">
