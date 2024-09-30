@@ -1,10 +1,5 @@
-import { ContentScriptMessage } from "@/scripts/types";
-
-// Listen for the credentials sent by the background script
-export const handlefillCredential = (
-  message: ContentScriptMessage & { username: string; password: string }
-) => {
-  let selector: string;
+const handlefillCredential = (message) => {
+  let selector;
 
   // Fill in password
   const pwSpellings = ["Passwd", "password", "Password", "passwd", "pw"];
@@ -30,3 +25,34 @@ export const handlefillCredential = (
     usernameField.setAttribute("value", message.username);
   }
 };
+
+function handleMessage(msg) {
+  // get message
+  let message;
+  try {
+    message = JSON.parse(msg);
+  } catch (e) {
+    message = msg;
+  }
+
+  // forward message
+  if (message.type !== "FROM_EXTENSION") return;
+
+  if (message.action === "fillCredentials") {
+    console.log("[contentScript] handlefillCredential: ", message);
+    if (message.username && message.password) {
+      handlefillCredential(message);
+    }
+  } else if ("data" in message) {
+    console.log("[contentScript] postMessage: ", message);
+    window.postMessage(message);
+  }
+}
+
+// receives messages from popup/sidepanel
+chrome.runtime.onMessage.addListener(handleMessage);
+
+// Remove the listener when the page is unloaded
+window.addEventListener("unload", () => {
+  chrome.runtime.onMessage.removeListener(handleMessage);
+});

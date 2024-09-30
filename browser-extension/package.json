@@ -5,10 +5,14 @@
   "type": "module",
   "scripts": {
     "vite-build": "tsc -p tsconfig.prod.json && vite build",
-    "dev": "nodemon --exec 'bun run vite-build --mode chrome' --watch src --watch scripts -e ts,tsx,js",
-    "build": "VITE_NETWORK=astar bun run vite-build --mode chrome",
     "zip": "mkdir -p packages && cd dist && zip -r keyvault-firefox.zip ./ && mv keyvault-firefox.zip ../packages/",
-    "dev-firefox": "nodemon --exec 'bun run vite-build --mode firefox && bun run zip' --watch src --watch scripts -e ts,tsx,js",
+    "local:build": "bun run vite-build --mode",
+    "local:chrome": "bun run local:build chrome",
+    "local:firefox": "bun run local:build firefox && bun run zip",
+    "dev:chrome": "nodemon --exec 'bun run local:chrome' --watch src --watch scripts -e ts,tsx,js",
+    "dev:firefox": "nodemon --exec 'bun run local:firefox' --watch src --watch scripts -e ts,tsx,js",
+    "dev": "nodemon --exec 'bun run local:firefox && bun run local:chrome' --watch src --watch scripts -e ts,tsx,js",
+    "build": "VITE_NETWORK=astar bun run vite-build --mode chrome",
     "build-firefox": "VITE_NETWORK=astar bun run vite-build --mode firefox && bun run zip",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"

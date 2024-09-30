@@ -4,7 +4,7 @@ import {
   INITIALIZATION,
   TO_EXTENSION,
 } from "@/scripts/constants";
-import browser, { Runtime } from "webextension-polyfill";
+import browser, { Runtime, windows } from "webextension-polyfill";
 
 // Define the message structure
 type Message = {
@@ -96,19 +96,15 @@ browser.runtime.onInstalled.addListener(() => {
   console.log("Extension installed");
 });
 
-// Listen for the selected credentials from the popup
-browser.runtime.onMessage.addListener(
-  (message: unknown, sender: Runtime.MessageSender) => {
-    const msg = message as Message; // Type assertion
-    if (msg.action === "fillCredentials") {
-      const { username, password } = msg;
-
-      // Send the selected credentials to the content script
-      if (sender.tab?.id !== undefined) {
-        browser.tabs.sendMessage(sender.tab.id, { username, password });
-      }
-    }
-
-    return true;
+// Listener for the extension icon click
+browser.pageAction.onClicked.addListener(async () => {
+  if (
+    await browser.sidebarAction.isOpen({ windowId: windows.WINDOW_ID_CURRENT })
+  ) {
+    // Close the sidebar
+    browser.sidebarAction.close();
+  } else {
+    // Open the sidebar
+    browser.sidebarAction.open();
   }
-);
+});

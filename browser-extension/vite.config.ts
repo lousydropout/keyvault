@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => ({
         ),
         contentScript: path.resolve(
           __dirname,
-          `src/scripts/contentScript.${mode}.ts`
+          `src/scripts/contentScript.${mode}.js`
         ),
       },
       output: {

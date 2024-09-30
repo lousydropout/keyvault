@@ -3,7 +3,7 @@
   "name": "Keyvault Password Manager",
   "version": "0.1",
   "description": "A blockchain-based password manager.",
-  "permissions": ["storage", "activeTab", "tabs"],
+  "permissions": ["storage", "activeTab", "tabs", "browserSettings"],
   "host_permissions": [
     "http://localhost:5173/*",
     "https://dapp.blockchainkeyvault.com/*",
@@ -15,6 +15,13 @@
       "32": "icons/icon32.png",
       "192": "icons/icon192.png"
     }
+  },
+  "page_action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    },
+    "default_title": "keyvault"
   },
   "sidebar_action": {
     "default_icon": {
@@ -39,5 +46,10 @@
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
     "192": "icons/icon192.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "strict_min_version": "120.0"
+    }
   }
 }
