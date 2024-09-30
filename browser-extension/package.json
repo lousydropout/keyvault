@@ -7,7 +7,7 @@
     "vite-build": "tsc -p tsconfig.prod.json && vite build",
     "dev": "nodemon --exec 'bun run vite-build --mode chrome' --watch src --watch scripts -e ts,tsx,js",
     "build": "VITE_NETWORK=astar bun run vite-build --mode chrome",
-    "zip": "mkdir -p packages && zip -r packages/keyvault-firefox.zip dist",
+    "zip": "mkdir -p packages && cd dist && zip -r keyvault-firefox.zip ./ && mv keyvault-firefox.zip ../packages/",
     "dev-firefox": "nodemon --exec 'bun run vite-build --mode firefox && bun run zip' --watch src --watch scripts -e ts,tsx,js",
     "build-firefox": "VITE_NETWORK=astar bun run vite-build --mode firefox && bun run zip",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

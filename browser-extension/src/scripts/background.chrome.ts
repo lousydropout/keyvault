@@ -1,8 +1,9 @@
-const ACCOUNT_CREATED = "ACCOUNT_CREATED";
-const TO_EXTENSION = "TO_EXTENSION";
-const FROM_EXTENSION = "FROM_EXTENSION";
-const INITIALIZATION = "INITIALIZATION";
-const REQUEST = "REQUEST";
+import {
+  ACCOUNT_CREATED,
+  FROM_EXTENSION,
+  INITIALIZATION,
+  TO_EXTENSION,
+} from "@/scripts/constants";
 
 // Define the message structure
 type Message = {
@@ -79,15 +80,3 @@ chrome.sidePanel
 chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension installed");
 });
-
-// // Listen for the selected credentials from the popup
-// chrome.runtime.onMessage.addListener(
-//   (message: Message, sender: chrome.runtime.MessageSender, sendResponse) => {
-//     if (message.action === "fillCredentials") {
-//       const { username, password } = message;
-
-//       // Send the selected credentials to the content script
-//       chrome.tabs.sendMessage(sender.tab?.id ?? -1, { username, password });
-//     }
-//   }
-// );

@@ -3,14 +3,12 @@
   "name": "Keyvault Password Manager",
   "version": "0.1",
   "description": "A blockchain-based password manager.",
-  "permissions": ["storage", "activeTab", "sidebar", "tabs"],
-  "externally_connectable": {
-    "matches": [
-      "http://localhost:5173/*",
-      "https://dapp.blockchainkeyvault.com/*",
-      "https://dev.blockchainkeyvault.com/*"
-    ]
-  },
+  "permissions": ["storage", "activeTab", "tabs"],
+  "host_permissions": [
+    "http://localhost:5173/*",
+    "https://dapp.blockchainkeyvault.com/*",
+    "https://dev.blockchainkeyvault.com/*"
+  ],
   "action": {
     "default_icon": {
       "16": "icons/icon16.png",
@@ -24,11 +22,12 @@
       "32": "icons/icon32.png"
     },
     "default_title": "keyvault",
-    "default_panel": "side_panel/sidebar.html",
+    "default_panel": "side_panel/index.html",
     "open_at_install": true
   },
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"],
+    "type": "module"
   },
   "content_scripts": [
     {
