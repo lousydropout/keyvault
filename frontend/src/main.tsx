@@ -1,4 +1,3 @@
-import { Buffer } from "buffer";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -8,8 +7,6 @@ import { Header } from "./components/header.tsx";
 import "./index.css";
 import { Web3ModalProvider } from "./provider.tsx";
 import { TermsAndConditions } from "./terms.tsx";
-
-globalThis.Buffer = Buffer;
 
 const router = createBrowserRouter([
   {

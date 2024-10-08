@@ -26,7 +26,6 @@
     "wagmi": "latest"
   },
   "devDependencies": {
-    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@types/lodash.merge": "^4.6.9",
     "@types/node": "^22.0.2",
     "@types/react": "^18.3.3",
