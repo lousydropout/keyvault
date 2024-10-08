@@ -5,6 +5,7 @@ import {
   CREDENTIALS,
   ENCRYPTEDS,
   MODIFIED_ENCRYPTEDS,
+  NUM_ENTRIES,
   PUBKEY,
 } from "@/constants/hookVariables";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
@@ -36,6 +37,10 @@ const Refresh = ({ className }: { className: string }) => (
 
 export const Credentials = () => {
   const [creds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
+  const [_numEntries, setNumEntries] = useBrowserStoreLocal<number>(
+    NUM_ENTRIES,
+    -1
+  );
   const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
     ENCRYPTEDS,
     []
@@ -78,6 +83,7 @@ export const Credentials = () => {
                 cryptoKey as CryptoKey,
                 pubkey as Hex,
                 encrypteds,
+                setNumEntries,
                 setEncrypteds
               );
               setModifiedEncrypteds(true);

@@ -36,9 +36,11 @@ export const updateEncrypteds = async (
   cryptoKey: CryptoKey,
   pubkey: Hex,
   encrypteds: Encrypted[],
+  setNumEntries: Dispatch<SetStateAction<number>>,
   setEncrypteds: Dispatch<SetStateAction<Encrypted[]>>
 ): Promise<void> => {
   const numOnChain = (await getNumEntries(pubkey)) ?? 0;
+  setNumEntries(numOnChain);
   const onChainEntries = encrypteds.filter((e) => e.onChain);
   const offset = onChainEntries.length;
 
