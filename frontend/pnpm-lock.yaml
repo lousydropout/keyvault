@@ -51,6 +51,9 @@ importers:
         specifier: latest
         version: 2.12.8(@tanstack/query-core@5.51.17)(@tanstack/react-query@5.51.18(react@18.3.1))(@types/react@18.3.3)(bufferutil@4.0.8)(react-dom@18.3.1(react@18.3.1))(react-native@0.74.4(@babel/core@7.25.2)(@babel/preset-env@7.25.3(@babel/core@7.25.2))(@types/react@18.3.3)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)(rollup@4.19.2)(typescript@5.5.4)(utf-8-validate@5.0.10)(viem@2.21.0(bufferutil@4.0.8)(typescript@5.5.4)(utf-8-validate@5.0.10))
     devDependencies:
+      '@esbuild-plugins/node-globals-polyfill':
+        specifier: ^0.2.3
+        version: 0.2.3(esbuild@0.21.5)
       '@types/lodash.merge':
         specifier: ^4.6.9
         version: 4.6.9
@@ -837,6 +840,11 @@ packages:
 
   '@coinbase/wallet-sdk@4.0.4':
     resolution: {integrity: sha512-74c040CRnGhfRjr3ArnkAgud86erIqdkPHNt5HR1k9u97uTIZCJww9eGYT67Qf7gHPpGS/xW8Be1D4dvRm63FA==}
+
+  '@esbuild-plugins/node-globals-polyfill@0.2.3':
+    resolution: {integrity: sha512-r3MIryXDeXDOZh7ih1l/yE9ZLORCd5e8vWg02azWRGj5SPTuoh69A2AIyn0Z31V/kHBfZ4HgWJ+OK3GTTwLmnw==}
+    peerDependencies:
+      esbuild: '*'
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -5753,6 +5761,10 @@ snapshots:
       keccak: 3.0.4
       preact: 10.23.1
       sha.js: 2.4.11
+
+  '@esbuild-plugins/node-globals-polyfill@0.2.3(esbuild@0.21.5)':
+    dependencies:
+      esbuild: 0.21.5
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true
