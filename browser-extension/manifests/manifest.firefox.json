@@ -7,7 +7,10 @@
   "host_permissions": [
     "http://localhost:5173/*",
     "https://dapp.blockchainkeyvault.com/*",
-    "https://dev.blockchainkeyvault.com/*"
+    "https://dev.blockchainkeyvault.com/*",
+    "http://localhost:5173/UpdatePublicKey",
+    "https://dapp.blockchainkeyvault.com/UpdatePublicKey",
+    "https://dev.blockchainkeyvault.com/UpdatePublicKey"
   ],
   "action": {
     "default_icon": {

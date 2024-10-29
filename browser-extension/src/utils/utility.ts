@@ -15,27 +15,53 @@ export const download = (data: Record<string, any>, filename: string): void => {
 };
 
 /**
- * Checks if a given string is a valid JSON Web Key (JWK).
+ * Converts an object to an array based on the provided key index.
  *
- * @param jwkString - The string representation of the JWK.
- * @returns A boolean indicating whether the JWK is valid or not.
+ * @param obj - The object to be converted.
+ * @param keyIndex - An array of keys to extract values from the object.
+ * @returns An array of values corresponding to the keys in the keyIndex. If a key is not found in the object, `null` is placed in the array.
  */
-function isValidJWK(jwkString: string): boolean {
-  try {
-    const jwk = JSON.parse(jwkString);
+export const objToArray = (
+  obj: Record<string, any>,
+  keyIndex: readonly string[]
+): any[] => {
+  return keyIndex.map((u) => (obj[u] === undefined ? null : obj[u]));
+};
 
-    // Check if it's an object and contains required JWK properties
-    if (
-      typeof jwk === "object" &&
-      jwk !== null &&
-      "kty" in jwk && // Key Type (required)
-      typeof jwk.kty === "string"
-    ) {
-      return true;
-    }
-
-    return false;
-  } catch (e) {
-    return false;
+/**
+ * Converts an array of values into an object using a corresponding array of keys.
+ *
+ * @param obj - The array of values to be converted into an object.
+ * @param keyIndex - The array of keys corresponding to the values in the `obj` array.
+ * @returns An object where each key from `keyIndex` is associated with the corresponding value from `obj`.
+ */
+export const arrayToObj = (
+  obj: any[],
+  keyIndex: readonly string[]
+): Record<string, any> => {
+  let result: Record<string, any> = {};
+  for (let i = 0; i < obj.length; i++) {
+    const key = keyIndex[i];
+    if (obj[i] !== null) result[key] = obj[i];
   }
-}
+  return result;
+};
+
+/**
+ * Creates a key shortener utility that can shorten and recover objects based on a given key index.
+ *
+ * @param keyIndex - An array of strings representing the keys to be used for shortening and recovering objects.
+ * @returns An object with two methods:
+ *   - `shorten`: Takes an object or an array of objects and returns a shortened array representation.
+ *   - `recover`: Takes a shortened array representation and returns the original object or array of objects.
+ */
+export const createKeyShortener = (keyIndex: readonly string[]) => {
+  return {
+    shorten: (obj: object): any[] => {
+      const result = objToArray(obj, keyIndex);
+      const k = result.findLastIndex((u) => u !== null);
+      return result.slice(0, k + 1);
+    },
+    recover: (obj: any[]): object => arrayToObj(obj, keyIndex),
+  };
+};

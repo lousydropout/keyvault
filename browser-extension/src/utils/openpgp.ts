@@ -23,22 +23,12 @@ const publicKeyFooter = "-----END PGP PUBLIC KEY BLOCK-----" as const;
 const privateKeyHeader = "-----BEGIN PGP PRIVATE KEY BLOCK-----" as const;
 const privateKeyFooter = "-----END PGP PRIVATE KEY BLOCK-----" as const;
 
-type ArmoredKey = {
-  body: string;
-  crc: string;
-};
-
-const reformatKey = (key: string): ArmoredKey => {
-  const x = key.split("\n").reduce((prev, line) => {
+const reformatKey = (key: string): string =>
+  key.split("\n").reduce((prev, line) => {
     if (line.startsWith("-----")) return prev;
     if (line.trim() === "") return prev;
     return prev + line;
   }, "");
-
-  const body = x.slice(0, -5);
-  const crc = x.slice(-5);
-  return { body, crc };
-};
 
 const genKey = async () => {
   const { privateKey, publicKey } = await generateKey({
@@ -59,16 +49,19 @@ const genKey = async () => {
 };
 
 const armorKey = (
-  { body, crc }: ArmoredKey,
+  armoredString: string,
   type: "public" | "private"
 ): string => {
+  const body = armoredString.slice(0, -5);
+  const crc = armoredString.slice(-5);
+
   const header = type === "public" ? publicKeyHeader : privateKeyHeader;
   const footer = type === "public" ? publicKeyFooter : privateKeyFooter;
   return `${header}\n\n${body}\n${crc}\n${footer}`;
 };
 
-const importPublicKey = (key: ArmoredKey | string): Promise<Key> => {
-  if (typeof key === "string") {
+const importPublicKey = (key: string): Promise<Key> => {
+  if (key.includes("\n")) {
     console.log("reformat key: ", reformatKey(key));
     console.log("armored key: ", armorKey(reformatKey(key), "public"));
     return readKey({
@@ -80,8 +73,8 @@ const importPublicKey = (key: ArmoredKey | string): Promise<Key> => {
   return readKey({ armoredKey: armorKey(key, "public") });
 };
 
-const importPrivateKey = (key: ArmoredKey | string): Promise<PrivateKey> => {
-  if (typeof key === "string") {
+const importPrivateKey = (key: string): Promise<PrivateKey> => {
+  if (key.includes("\n")) {
     return readPrivateKey({
       armoredKey: key.startsWith(privateKeyHeader)
         ? key
@@ -237,5 +230,4 @@ export {
   signMessage,
   verifyDetachedSignature,
   verifySignedMessage,
-  type ArmoredKey,
 };

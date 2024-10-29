@@ -13,49 +13,29 @@ type Message = {
   overwrite?: boolean;
 };
 
-export type Encrypted = {
-  iv: string;
-  ciphertext: string;
-};
-
 export type Context = {
+  pubkey: string;
   address: string;
   chainId: number;
-  encrypted: Encrypted;
-  numEntries: number;
-  overwrite?: boolean;
 };
-
-export function isEncrypted(obj: any): obj is Encrypted {
-  return (
-    typeof obj === "object" &&
-    obj !== null &&
-    typeof obj.iv === "string" &&
-    typeof obj.ciphertext === "string"
-  );
-}
 
 export function isContext(obj: any): obj is Context {
   return (
     typeof obj === "object" &&
     obj !== null &&
+    typeof obj.pubkey === "string" &&
     typeof obj.address === "string" &&
-    typeof obj.chainId === "number" &&
-    typeof obj.encrypted === "object" &&
-    obj.encrypted !== null &&
-    isEncrypted(obj.encrypted) &&
-    typeof obj.numEntries === "number" &&
-    (obj.overwrite === undefined || typeof obj.overwrite === "boolean")
+    typeof obj.chainId === "number"
   );
 }
 
-export const useMessage = (): Context | null => {
+export const usePubkeyMessage = (): Context | null => {
   const [context, setContext] = useState<Context | null>(null);
 
   useEffect(() => {
     // handler for messages from chrome extension via contentScript
     const handleMessage = (event: MessageEvent) => {
-      console.log("[useMessage] Received event: ", event);
+      console.log("[usePubkeyMessage] Received event: ", event);
       const { data: message }: { data: Message } = event;
 
       if (typeof message === "object" && message.type === "FROM_EXTENSION") {
@@ -65,13 +45,7 @@ export const useMessage = (): Context | null => {
 
         console.log("Received context: ", data);
 
-        if (data.overwrite) {
-          console.log("Overwriting context: ", data);
-          setContext(data);
-        } else {
-          console.log("Not overwriting context: ", data);
-          setContext((prevContext) => ({ ...prevContext, ...data }));
-        }
+        setContext(data);
       }
     };
 

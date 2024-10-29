@@ -8,7 +8,10 @@
     "matches": [
       "http://localhost:5173/*",
       "https://dapp.blockchainkeyvault.com/*",
-      "https://dev.blockchainkeyvault.com/*"
+      "https://dev.blockchainkeyvault.com/*",
+      "http://localhost:5173/UpdatePublicKey",
+      "https://dapp.blockchainkeyvault.com/UpdatePublicKey",
+      "https://dev.blockchainkeyvault.com/UpdatePublicKey"
     ]
   },
   "action": {
@@ -21,7 +24,7 @@
 
   "side_panel": { "default_path": "side_panel/index.html" },
   "background": {
-    "service_worker": ["background.js"]
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {

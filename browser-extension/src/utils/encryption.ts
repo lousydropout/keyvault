@@ -1,7 +1,11 @@
+import {
+  decode as msgpackDecode,
+  encode as msgpackEncode,
+} from "@msgpack/msgpack";
+
 export type Encrypted = {
   iv: string;
   ciphertext: string;
-  onChain: boolean;
 };
 
 export type Keys = {
@@ -31,11 +35,11 @@ export const base64ToBuffer = (base64: string): ArrayBuffer => {
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
-  return bytes.buffer;
+  return bytes.buffer as ArrayBuffer;
 };
 
 /**
- * Derives a cryptographic key from a password using PBKDF2 algorithm.
+ * Derives a cryptographic key from a password using PBKDF2base64ToBuffer algorithm.
  *
  * @param password - The password to derive the key from.
  * @param salt - The salt value used in the key derivation process.
@@ -149,7 +153,7 @@ export const wrapKey = async (
   result.set(salt, 0);
   result.set(new Uint8Array(wrappedKey), salt.length);
 
-  return bufferToBase64(result.buffer);
+  return bufferToBase64(result.buffer as ArrayBuffer);
 };
 
 /**
@@ -183,36 +187,48 @@ export const unwrapKey = async (
  * Encrypts the given plaintext using 256-bit AES-GCM using the provided key.
  *
  * @param key - The cryptographic key used for encryption.
- * @param plaintext - The plaintext to be encrypted. It can be either a string or an object.
+ * @param plainObj - The "plaintext" to be encrypted. It is expected to be an object.
  * @returns A promise that resolves to an object containing the initialization vector (iv) and the ciphertext.
  */
 export const encrypt = async (
   key: CryptoKey,
-  plaintext: string | object,
-  onChain: boolean = false
+  plainObj: object,
+  options: {
+    ivs?: Set<string>;
+  } = {}
 ): Promise<Encrypted> => {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const x =
-    typeof plaintext === "object" ? JSON.stringify(plaintext) : plaintext;
-  const secret = new TextEncoder().encode(x);
+  const ivs = options.ivs ? options.ivs : new Set<string>();
 
+  let iv: Uint8Array = new Uint8Array();
+  let ivB64 = "";
+  while (ivB64 === "" || ivB64 in ivs) {
+    iv = crypto.getRandomValues(new Uint8Array(12));
+    ivB64 = bufferToBase64(iv.buffer as ArrayBuffer);
+  }
+
+  const secret = msgpackEncode(plainObj);
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: iv, tagLength: 128 },
+    { name: "AES-GCM", iv, tagLength: 128 },
     key,
     secret
   );
 
   return {
-    iv: bufferToBase64(iv),
+    iv: ivB64,
     ciphertext: bufferToBase64(ciphertext),
-    onChain,
   };
 };
 
-export const parseEncryptedText = (encryptedText: string) => {
+/**
+ * Parses an encrypted text string into its initialization vector (IV) and ciphertext components.
+ *
+ * @param encryptedText - The encrypted text string to be parsed. The first 16 characters are assumed to be the IV, and the rest is the ciphertext.
+ * @returns An object containing the IV, ciphertext, and a flag indicating the data is on-chain.
+ */
+export const parseEncryptedText = (encryptedText: string): Encrypted => {
   const iv = encryptedText.slice(0, 16);
   const ciphertext = encryptedText.slice(16);
-  return { iv, ciphertext, onChain: true };
+  return { iv, ciphertext };
 };
 
 /**
@@ -220,23 +236,18 @@ export const parseEncryptedText = (encryptedText: string) => {
  *
  * @param cryptoKey - The cryptographic key used for decryption.
  * @param encrypted - The encrypted data to be decrypted.
- * @returns A promise that resolves to the decrypted data as a string.
+ * @returns A promise that resolves to the decrypted data as an object.
  */
 export const decrypt = async (
   cryptoKey: CryptoKey,
   encrypted: Encrypted
-): Promise<string> => {
-  try {
-    const decrypted = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: base64ToBuffer(encrypted.iv), tagLength: 128 },
-      cryptoKey,
-      base64ToBuffer(encrypted.ciphertext)
-    );
-    return new TextDecoder("utf-8").decode(decrypted);
-  } catch (e) {
-    console.error("[decrypt] Error: ", e);
-    throw e;
-  }
+): Promise<object> => {
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: base64ToBuffer(encrypted.iv), tagLength: 128 },
+    cryptoKey,
+    base64ToBuffer(encrypted.ciphertext)
+  );
+  return msgpackDecode(new Uint8Array(decrypted)) as object;
 };
 
 /**

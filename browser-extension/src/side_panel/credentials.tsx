@@ -1,21 +1,13 @@
 import { Icon } from "@/components/icon";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  CREDENTIALS,
-  ENCRYPTEDS,
-  MODIFIED_ENCRYPTEDS,
-  NUM_ENTRIES,
-  PUBKEY,
-} from "@/constants/hookVariables";
+import { CREDS_BY_URL, NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
-import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { CredentialsAll } from "@/side_panel/credentialsAll";
 import { CurrentPage } from "@/side_panel/currentPage";
-import { Cred, CredsByUrl, getCredsByUrl } from "@/utils/credentials";
-import { Encrypted } from "@/utils/encryption";
-import { updateEncrypteds } from "@/utils/getEntries";
-import { useEffect, useState } from "react";
+import { CredsByUrl } from "@/utils/credentials";
+import { getNumEntries } from "@/utils/getNumEntries";
+import { useState } from "react";
 import { Hex } from "viem";
 
 const Refresh = ({ className }: { className: string }) => (
@@ -36,30 +28,15 @@ const Refresh = ({ className }: { className: string }) => (
 );
 
 export const Credentials = () => {
-  const [creds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
-  const [_numEntries, setNumEntries] = useBrowserStoreLocal<number>(
+  const [credsUrl] = useBrowserStoreLocal<CredsByUrl>(CREDS_BY_URL, {});
+  const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
+  const [numEntries, setNumEntries] = useBrowserStoreLocal<number>(
     NUM_ENTRIES,
     -1
   );
-  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
-    ENCRYPTEDS,
-    []
-  );
-  const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
-  const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
-  const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [credsUrl, setCredsUrl] = useState<CredsByUrl>({});
 
   const [seeAll, setSeeAll] = useState<boolean>(true);
   const toggleSeeAll = () => setSeeAll((prev) => !prev);
-
-  useEffect(() => {
-    if (!creds) return;
-
-    console.log("[credentials] creds: ", creds);
-    setCredsUrl(getCredsByUrl(creds));
-  }, [creds]);
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
@@ -78,15 +55,14 @@ export const Credentials = () => {
             </Label>
           </div>
           <Icon
-            onClick={async () => {
-              await updateEncrypteds(
-                cryptoKey as CryptoKey,
-                pubkey as Hex,
-                encrypteds,
-                setNumEntries,
-                setEncrypteds
-              );
-              setModifiedEncrypteds(true);
+            onClick={() => {
+              getNumEntries(pubkey as Hex).then((num) => {
+                if (num && num !== numEntries) setNumEntries(num || numEntries);
+                console.log("[Credentials] Refreshing... nums = ", {
+                  num,
+                  numEntries,
+                });
+              });
             }}
           >
             <Refresh className="absolute right-0 w-6 h-6 cursor-pointer hover:text-purple-300 active:text-purple-400" />

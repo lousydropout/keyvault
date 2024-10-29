@@ -1,42 +1,39 @@
 import { Encrypted, decrypt, encrypt } from "@/utils/encryption";
-import { ArmoredKey, importPrivateKey, reformatKey } from "@/utils/openpgp";
-import { v4 as uuid, validate } from "uuid";
+import { createKeyShortener } from "@/utils/utility";
 
 /*******************************************************************************
  * Types
  ******************************************************************************/
+export const CURRENT_VERSION: number = 1;
+
+export const PASSWORD_TYPE = 0;
+export const KEYPAIR_TYPE = 1;
+export const SECRET_SHARE_TYPE = 2;
+
+const baseIndex = ["version", "type", "id", "timestamp"];
+export const passwordIndex = [
+  ...baseIndex,
+  "isDeleted",
+  "url",
+  "username",
+  "password",
+  "description",
+];
+export const keypairIndex = [...baseIndex, "publicKey", "privateKey"];
+export const secretShareIndex = [
+  ...baseIndex,
+  "share",
+  "for",
+  "secretTitle",
+  "additionalInfo",
+];
+
+const shortPw = createKeyShortener(passwordIndex);
+const shortKeypair = createKeyShortener(keypairIndex);
+const shortSecretShare = createKeyShortener(secretShareIndex);
 
 export type CredsByUrl = Record<string, PasswordCred[][]>;
-
-/**
- * Represents an invalid credential.
- *
- * @remarks
- * `reason` is currently unused
- */
-export type InvalidCred = {
-  isValid: false;
-  encrypted: Encrypted;
-  reason?:
-    | "invalid_id"
-    | "invalid_prev"
-    | "invalid_curr"
-    | "invalid_type"
-    | "unable_to_decrypt";
-};
-
-export type BarePasswordCred = {
-  type: "password";
-  isDeleted: false;
-  id: string;
-  timestamp: string;
-  url: string;
-  username: string;
-  password: string;
-  description: string;
-  curr: number;
-  prev: number;
-};
+export type CredsMapping = Record<string, [string, number]>;
 
 /**
  * Represents a base credential.
@@ -45,19 +42,15 @@ export type BarePasswordCred = {
  * `isValid` and `encrypted` are not part of the encrypted data.
  */
 export type BaseCred = {
-  isValid: true; // indicates that the object is a valid credential.
-  id: string;
-  type: "password" | "keypair" | "secretShare";
-  encrypted?: Encrypted; // is the source encrypted data.
-  timestamp: string;
-  prev: number;
-  curr: number;
-  next?: number;
+  version: number;
+  id: string | number; // number if PasswordCred else string
+  type: number;
+  timestamp: number;
 };
 
 export type PasswordBaseCred = BaseCred & {
-  encrypted: Encrypted;
-  type: "password";
+  type: 0; // PASSWORD_TYPE;
+  id: number;
   isDeleted: boolean;
 };
 
@@ -68,40 +61,37 @@ export type PasswordAdditionCred = PasswordBaseCred & {
   password: string;
   description: string;
 };
+
 export type PasswordDeletionCred = PasswordBaseCred & {
   isDeleted: true;
   url: string;
 };
+
 export type PasswordCred = PasswordAdditionCred | PasswordDeletionCred;
 
 export type KeypairCred = BaseCred & {
-  encrypted: Encrypted;
-  type: "keypair";
-  publicKey: ArmoredKey;
-  privateKey: ArmoredKey;
+  type: 1; // KEYPAIR_TYPE;
+  id: number;
+  publicKey: string;
+  privateKey: string;
 };
-
 export type SecretShareCred = BaseCred & {
-  encrypted: Encrypted;
-  type: "secretShare";
+  type: 2; // SECRET_SHARE_TYPE;
+  id: string;
   share: string;
   for: string;
   secretTitle: string;
   additionalInfo: string;
 };
 
-export type ValidCred = (PasswordCred | KeypairCred | SecretShareCred) & {
-  next?: number;
-};
-export type ExtendedCred = ValidCred & { next: number };
-export type Cred = ValidCred | InvalidCred;
+export type Cred = PasswordCred | KeypairCred | SecretShareCred;
 
 export type Unencrypted = {
   passwords: PasswordCred[];
   keypairs: KeypairCred[];
 };
 
-export type IndexedEntries = Record<string, PasswordCred>;
+const byTimestamp = (a: Cred, b: Cred) => a.timestamp - b.timestamp;
 
 /*******************************************************************************
  * Type Guards
@@ -111,10 +101,8 @@ const isEncryptedType = (obj: any): obj is Encrypted => {
     typeof obj === "object" &&
     "iv" in obj &&
     "ciphertext" in obj &&
-    "onChain" in obj &&
     typeof obj.iv === "string" &&
-    typeof obj.ciphertext === "string" &&
-    typeof obj.onChain === "boolean"
+    typeof obj.ciphertext === "string"
   );
 };
 
@@ -122,29 +110,15 @@ export const isBaseCred = (obj: any): obj is BaseCred => {
   return (
     typeof obj === "object" &&
     obj !== null &&
-    typeof obj.id === "string" &&
-    typeof obj.timestamp === "string" &&
-    typeof obj.curr === "number" &&
-    typeof obj.prev === "number" &&
-    typeof obj.prev === "number" &&
-    typeof obj.curr === "number" &&
-    obj.prev >= -1 &&
-    obj.curr > obj.prev &&
-    ("encrypted" in obj ? isEncryptedType(obj.encrypted) : true)
+    typeof obj.type === "number" &&
+    typeof obj.id === "number" &&
+    typeof obj.timestamp === "number"
   );
 };
 
 const isPasswordBaseCred = (obj: any): obj is PasswordBaseCred => {
   if (!isBaseCred(obj)) return false;
-
-  return (
-    obj.type === "password" &&
-    validate(obj.id) &&
-    "isDeleted" in obj &&
-    typeof obj.isDeleted === "boolean" &&
-    "encrypted" in obj &&
-    isEncryptedType(obj.encrypted)
-  );
+  return "isDeleted" in obj && typeof obj.isDeleted === "boolean";
 };
 
 export const isPasswordAdditionCred = (
@@ -170,42 +144,68 @@ export const isPasswordCred = (obj: any): obj is PasswordCred => {
 };
 
 export const basePasswordCred: PasswordAdditionCred = {
-  type: "password",
+  version: CURRENT_VERSION,
+  type: PASSWORD_TYPE,
   url: "",
   username: "",
   password: "",
   description: "",
-  curr: -1,
-  prev: -1,
   isDeleted: false,
-  id: "base",
-  timestamp: new Date().toISOString(),
-  isValid: true,
-  encrypted: {
-    iv: "",
-    ciphertext: "",
-    onChain: false,
-  },
+  id: -1,
+  timestamp: Date.now(),
 };
 
-export const createBarePasswordCred = (params: {
+/**
+ * Generates a unique identifier using cryptographic random values.
+ *
+ * @returns {number} A randomly generated unique identifier.
+ */
+export const generateId = (): number => {
+  const randomValues = new Uint32Array(1);
+  crypto.getRandomValues(randomValues);
+
+  return randomValues[0];
+};
+
+/**
+ * Creates a new password credential object.
+ *
+ * @param params - An object containing the following properties:
+ * - `url`: The URL associated with the credential.
+ * - `username`: The username for the credential.
+ * - `password`: The password for the credential.
+ * - `description`: A description of the credential.
+ *
+ * @returns A `PasswordCred` object containing the new password credential.
+ */
+export const createNewPasswordCred = (params: {
   url: string;
   username: string;
   password: string;
   description: string;
-  curr: number;
-  prev: number;
-}): BarePasswordCred => {
-  const result: BarePasswordCred = {
-    type: "password",
+}): PasswordCred => {
+  const result: PasswordCred = {
+    version: CURRENT_VERSION,
+    type: PASSWORD_TYPE,
     isDeleted: false,
-    id: uuid(),
-    timestamp: new Date().toISOString(),
+    id: generateId(),
+    timestamp: Date.now(),
     ...params,
   };
   return result;
 };
 
+/**
+ * Updates the properties of a given PasswordCred object with the provided parameters.
+ *
+ * @param cred - The original PasswordCred object to be updated.
+ * @param params - An object containing optional properties to update in the PasswordCred object.
+ * @param params.url - (Optional) The new URL to be set.
+ * @param params.username - (Optional) The new username to be set.
+ * @param params.password - (Optional) The new password to be set.
+ * @param params.description - (Optional) The new description to be set.
+ * @returns The updated PasswordCred object with the new properties and a current timestamp.
+ */
 export const updatePasswordCred = (
   cred: PasswordCred,
   params: {
@@ -213,72 +213,56 @@ export const updatePasswordCred = (
     username?: string;
     password?: string;
     description?: string;
-    curr?: number;
   }
 ): PasswordCred => {
-  return { ...cred, ...params, prev: cred.curr };
+  return { ...cred, ...params, timestamp: Date.now() };
 };
 
+/**
+ * Deletes a password credential by marking it as deleted and adding metadata.
+ *
+ * @param cred - The password credential to be deleted.
+ * @returns An object representing the deleted password credential with additional metadata.
+ */
 export const deletePasswordCred = (
-  cred: PasswordCred,
-  curr: number
+  cred: PasswordCred
 ): PasswordDeletionCred => {
   return {
-    type: "password",
-    id: uuid(),
+    version: CURRENT_VERSION,
+    type: PASSWORD_TYPE,
+    id: cred.id,
     url: cred.url,
-    encrypted: { iv: "", ciphertext: "", onChain: false },
-    timestamp: new Date().toISOString(),
-    isValid: true,
+    timestamp: Date.now(),
     isDeleted: true,
-    prev: cred.curr,
-    curr,
   };
 };
 
-export const convertToPasswordCred = async (
-  cryptoKey: CryptoKey,
-  cred: BarePasswordCred
-): Promise<PasswordCred> => {
-  const encrypted = await encrypt(cryptoKey, cred);
-
-  return {
-    ...cred,
-    isValid: true,
-    encrypted,
-  };
-};
-
+/**
+ * Checks if the given object is a KeypairCred.
+ */
 export const isKeypairCred = (obj: any): obj is KeypairCred => {
   if (!isBaseCred(obj)) return false;
 
   return (
-    obj.type === "keypair" &&
+    typeof obj === "object" &&
+    obj.type === KEYPAIR_TYPE &&
     "publicKey" in obj &&
-    // typeof obj.publicKey === "object" &&
-    // obj.publicKey !== null &&
-    // "body" in obj.publicKey &&
-    // typeof obj.publicKey.body === "string" &&
-    // "crc" in obj.publicKey &&
-    // typeof obj.publicKey.crc === "string" &&
-    // "privateKey" in obj &&
-    // typeof obj.privateKey === "object" &&
-    // obj.privateKey !== null &&
-    // "body" in obj.privateKey &&
-    // typeof obj.privateKey.body === "string" &&
-    // "crc" in obj.privateKey &&
-    // typeof obj.privateKey.crc === "string" &&
-    // "encrypted" in obj &&
-    // isEncryptedType(obj.encrypted)
-    true
+    typeof obj.publicKey === "string" &&
+    obj.publicKey !== null &&
+    "privateKey" in obj &&
+    typeof obj.privateKey === "string" &&
+    obj.privateKey !== null
   );
 };
 
+/**
+ * Checks if the given object is a SecretShareCred.
+ */
 const isSecretShareCred = (obj: any): obj is SecretShareCred => {
   if (!isBaseCred(obj)) return false;
 
   return (
-    obj.type === "secretShare" &&
+    obj.type === SECRET_SHARE_TYPE &&
     "share" in obj &&
     typeof obj.share === "string" &&
     "for" in obj &&
@@ -286,12 +270,13 @@ const isSecretShareCred = (obj: any): obj is SecretShareCred => {
     "secretTitle" in obj &&
     typeof obj.secretTitle === "string" &&
     "additionalInfo" in obj &&
-    typeof obj.additionalInfo === "string" &&
-    "encrypted" in obj &&
-    isEncryptedType(obj.encrypted)
+    typeof obj.additionalInfo === "string"
   );
 };
 
+/**
+ * Checks if the given object is a valid credential.
+ */
 export const isValidCred = (obj: any): obj is PasswordCred | KeypairCred =>
   isPasswordCred(obj) || isKeypairCred(obj) || isSecretShareCred(obj);
 
@@ -303,6 +288,28 @@ export const isCred = (obj: any): obj is Cred =>
  ******************************************************************************/
 
 /**
+ * Encrypts an array of credentials using the provided CryptoKey.
+ *
+ * @param {CryptoKey} cryptoKey - The cryptographic key used for encryption.
+ * @param {Cred[]} creds - An array of credentials to be encrypted.
+ * @returns {Promise<Encrypted>} - A promise that resolves to the encrypted credentials.
+ *
+ * @throws {Error} If a credential type is unrecognized.
+ */
+export const encryptEntries = async (
+  cryptoKey: CryptoKey,
+  creds: Cred[]
+): Promise<Encrypted> => {
+  const shortened = creds.map((u: Cred) => {
+    if (u.type === PASSWORD_TYPE) return shortPw.shorten(u);
+    if (u.type === KEYPAIR_TYPE) return shortKeypair.shorten(u);
+    if (u.type === SECRET_SHARE_TYPE) return shortSecretShare.shorten(u);
+    throw new Error(`Unrecognized type: '${JSON.stringify(u)}'`);
+  });
+  return encrypt(cryptoKey, shortened as object[]);
+};
+
+/**
  * Decrypts an encrypted entry using the provided crypto key.
  *
  * @param {CryptoKey} cryptoKey - The crypto key used for decryption.
@@ -312,48 +319,16 @@ export const isCred = (obj: any): obj is Cred =>
 export const decryptEntry = async (
   cryptoKey: CryptoKey,
   encrypted: Encrypted
-): Promise<Cred> => {
-  try {
-    const decrypted = JSON.parse(await decrypt(cryptoKey, encrypted));
+): Promise<Cred[]> => {
+  const _decrypteds = (await decrypt(cryptoKey, encrypted)) as any[];
+  const decrypteds = _decrypteds.map((u) => {
+    if (u[0] !== 1) throw new Error(`unrecognized version '${u[0]}`);
+    if (u[1] === PASSWORD_TYPE) return shortPw.recover(u);
+    if (u[1] === KEYPAIR_TYPE) return shortKeypair.recover(u);
+    if (u[1] === SECRET_SHARE_TYPE) return shortSecretShare.recover(u);
+  }) as Cred[];
 
-    let obj: Cred;
-    if (decrypted.type === "password") {
-      obj = {
-        isValid: true,
-        ...decrypted,
-        encrypted,
-      } as PasswordCred;
-      if (isValidCred(obj)) return obj;
-    } else if (decrypted.type === "keypair") {
-      // parse ASCII armored privateKey string
-      const body = decrypted.p.slice(0, -5);
-      const crc = decrypted.p.slice(-5);
-
-      // generate publicKey from privateKey
-      const privateKey = await importPrivateKey({ body, crc });
-      const publicKey = reformatKey(privateKey.toPublic().armor());
-      const keyId = privateKey.getKeyID().toHex();
-
-      const obj = {
-        isValid: true,
-        id: keyId,
-        type: decrypted.type,
-        encrypted,
-        timestamp: decrypted.timestamp,
-        prev: decrypted.prev,
-        curr: decrypted.curr,
-        privateKey: { body, crc },
-        publicKey,
-      } as KeypairCred;
-
-      if (isValidCred(obj)) return obj;
-    }
-
-    return { isValid: false, encrypted };
-  } catch (e) {
-    console.log("[decryptEntry] error: ", e);
-    return { isValid: false, encrypted };
-  }
+  return decrypteds.filter((decrypted) => isValidCred(decrypted));
 };
 
 /**
@@ -362,56 +337,87 @@ export const decryptEntry = async (
  * @param cryptoKey - The crypto key used for decryption.
  * @param encrypteds - The array of encrypted entries to be decrypted.
  * @returns {Promise<Cred[]>} A promise that resolves to an array of credentials.
- * @example
- * ```ts
- *   const cryptoKey = await generateCryptoKey();
- *   const encryptedData = [encrypted1, encrypted2, encrypted3];
- *   const credentials = await decryptEntries(cryptoKey, encryptedData);
- *   console.log(credentials);
- * ```
  */
 export const decryptEntries = async (
   cryptoKey: CryptoKey,
   encrypteds: Encrypted[]
 ): Promise<Cred[]> => {
-  return Promise.all(
+  const _creds = await Promise.all(
     encrypteds.map((encrypted) => decryptEntry(cryptoKey, encrypted))
   );
+
+  const results: Cred[] = [];
+  for (let creds of _creds) results.push(...creds);
+  return results;
+};
+
+export const prunePendingCreds = (onChain: Cred[], pending: Cred[]): Cred[] => {
+  const onChainIds = new Set(onChain.map((c) => c.id));
+  return pending.filter((c) => !onChainIds.has(c.id));
 };
 
 /**
- * Retrieves the key pairs from the given credentials.
+ * Decrypts and categorizes encrypted credential entries.
  *
- * @param creds - The array of credentials.
- * @returns An array of key pair credentials.
+ * @param {CryptoKey} cryptoKey - The cryptographic key used for decryption.
+ * @param {Encrypted[]} encrypteds - An array of encrypted credential entries.
+ * @param {Cred[]} pendings - An array of pending credential entries.
+ * @returns {Promise<{
+ *   passwords: CredsByUrl;
+ *   keypairs: KeypairCred[];
+ *   secretShares: SecretShareCred[];
+ *   pendings: Cred[];
+ * }>} A promise that resolves to an object containing categorized credentials:
+ *   - `passwords`: An object mapping URLs to password credentials.
+ *   - `keypairs`: An array of keypair credentials.
+ *   - `secretShares`: An array of secret share credentials.
+ *   - `pendings`: An array of pending credentials.
  */
-export const getKeypairs = (creds: Cred[]): KeypairCred[] =>
-  creds.filter(isKeypairCred);
+export const decryptAndCategorizeEntries = async (
+  cryptoKey: CryptoKey,
+  encrypteds: Encrypted[],
+  pendings: Cred[]
+): Promise<{
+  passwords: CredsByUrl;
+  keypairs: KeypairCred[];
+  secretShares: SecretShareCred[];
+  pendings: Cred[];
+}> => {
+  const result: {
+    passwords: CredsByUrl;
+    keypairs: KeypairCred[];
+    secretShares: SecretShareCred[];
+    pendings: Cred[];
+  } = { passwords: {}, keypairs: [], secretShares: [], pendings: [] };
 
-/**
- * Retrieves password chains from an array of credentials.
- *
- * @param {Cred[]} creds - The array of credentials.
- * @returns {Record<number, PasswordCred[]>} An object containing password chains.
- */
-export const getPasswordChains = (
-  creds: Cred[]
-): Record<number, PasswordCred[]> => {
-  const passwords: Record<number, PasswordCred[]> = {};
-  const prevs: Record<number, number> = { "-1": -1 };
+  const _creds = await decryptEntries(cryptoKey, encrypteds);
+  _creds.push(...pendings);
+  const seen = new Set();
 
-  for (let i = 0; i < creds.length; i++) {
-    if (!isPasswordCred(creds[i])) continue;
+  const passwords: PasswordCred[] = [];
+  for (const cred of _creds) {
+    if (seen.has(`${cred.id}${cred.timestamp}`)) continue;
+    seen.add(`${cred.id}${cred.timestamp}`);
 
-    const pw = creds[i] as PasswordCred;
-    prevs[pw.curr] = pw.prev;
-
-    let first = pw.curr;
-    while (prevs[first] >= 0) first = prevs[first];
-    if (!(first in passwords)) passwords[first] = [];
-    passwords[first].push(pw);
+    if (isPasswordCred(cred)) {
+      passwords.push(cred);
+    } else if (isKeypairCred(cred)) {
+      result.keypairs.push(cred);
+    } else if (isSecretShareCred(cred)) {
+      result.secretShares.push(cred);
+    } else {
+      console.log(
+        `[decryptAndCategorizeEntries] Invalid/unrecognized cred: ${cred}`
+      );
+    }
   }
-  return passwords;
+
+  result.passwords = getCredsByUrl(passwords);
+  result.keypairs = result.keypairs.sort(byTimestamp);
+  result.secretShares = result.secretShares.sort(byTimestamp);
+  result.pendings = prunePendingCreds(_creds, pendings);
+
+  return result;
 };
 
 /**
@@ -422,415 +428,191 @@ export const getPasswordChains = (
  * @example See credentials.test.ts for usage examples.
  */
 export const getCredsByUrl = (creds: Cred[]): CredsByUrl => {
+  const chains: Record<string, PasswordCred[]> = {};
   const credsByUrl: CredsByUrl = {};
-  const passwords = getPasswordChains(creds);
 
+  // group by `id` into `chains`
   for (let i = 0; i < creds.length; i++) {
-    if (!(i in passwords)) continue;
-    const chain = passwords[i];
-    const url = chain[0].url;
+    const cred = creds[i];
+    if (!isPasswordCred(cred)) continue;
+    const id = cred.id.toString(16);
+
+    if (!(id in chains)) chains[id] = [];
+    chains[id].push(cred);
+  }
+
+  // sort each `chain` by timestamp
+  for (const id in chains) chains[id] = chains[id].sort(byTimestamp);
+
+  // add chains into credsByUrl
+  for (const id in chains) {
+    const chain = chains[id];
+    const url = chain[chain.length - 1].url;
     if (!(url in credsByUrl)) credsByUrl[url] = [];
     credsByUrl[url].push(chain);
+  }
+
+  // order chains by timestamp in reverse order
+  for (const url in credsByUrl) {
+    credsByUrl[url] = credsByUrl[url].sort(
+      (a, b) => b[b.length - 1].timestamp - a[a.length - 1].timestamp
+    );
   }
 
   return credsByUrl;
 };
 
 /**
- * Merges two arrays of credentials into a single array of valid credentials.
+ * Generates a mapping from credentials by URL.
  *
- * @param currCreds - The current credentials array.
- * @param onChainCreds - The on-chain credentials array.
- * @param maintainOrderInChain - Optional. Specifies whether to maintain the order of credentials in the on-chain array. Defaults to false.
- * @returns The merged array of valid credentials.
- * @remarks `maintainOrderInChain` assumes that the on-chain creds are time-ordered (that is, the chains
- *   satisfy timestamp monotonicity).
- * @throws {Error} If any credential in either array does not have a 'next' field.
+ * This function takes an object where the keys are URLs and the values are arrays of credential chains.
+ * It returns a mapping where the keys are credential IDs and the values are arrays containing the URL and the index of the credential chain.
+ *
+ * @param credsByUrl - An object where the keys are URLs and the values are arrays of credential chains.
+ * @returns A mapping where the keys are credential IDs and the values are arrays containing the URL and the index of the credential chain.
  */
-export const mergeCreds = (
-  currCreds: ExtendedCred[],
-  onChainCreds: ExtendedCred[],
-  maintainOrderInChain: boolean = false
-): ValidCred[] => {
-  // Verify that all creds have field 'next'
-  const currCredsWithoutNext = currCreds.filter(
-    (cred) => cred.next === undefined
-  );
-  const onChainCredsWithoutNext = onChainCreds.filter(
-    (cred) => cred.next === undefined
-  );
-  if (currCredsWithoutNext.length + onChainCredsWithoutNext.length > 0) {
-    throw new Error("All credentials must have a 'next' field");
+export const getMappingFromCredsByUrl = (
+  credsByUrl: CredsByUrl
+): CredsMapping => {
+  const mapping: CredsMapping = {};
+
+  for (const url in credsByUrl) {
+    for (let i = 0; i < credsByUrl[url].length; i++) {
+      const chain = credsByUrl[url][i];
+      const cred = chain[0];
+      mapping[cred.id] = [url, i];
+    }
   }
 
-  // Clone onChainCreds to avoid modifying the original array
-  let result = structuredClone(onChainCreds) as ValidCred[];
+  return mapping;
+};
 
-  // Verify `currCreds`' on-chain creds are in the correct location
-  // num: number of creds in `currCreds` that are already on-chain
-  const num = currCreds.filter((c) => c.encrypted.onChain).length;
-  for (let i = 0; i < num; i++) {
-    if (currCreds[i].id !== onChainCreds[i].id)
+export const updateOrAddPasswordCred = (
+  cred: Cred,
+  record: CredsByUrl
+): CredsByUrl => {
+  if (!isPasswordCred(cred))
+    throw new Error(
+      `[updateWithNewPasswordCred] Invalid Password Cred: ${JSON.stringify(
+        cred
+      )}`
+    );
+  const result = structuredClone(record);
+  const map = getMappingFromCredsByUrl(record);
+
+  updateWithNewPasswordCredInPlace(cred, result, map);
+  return result;
+};
+
+/**
+ * Updates the credentials record with a new password credential.
+ *
+ * @param cred - The new password credential to be added.
+ * @param record - The current credentials record, indexed by URL.
+ * @param mapping - A mapping of credential IDs to their respective URL and index in the record.
+ * @returns An object containing the updated credentials record and mapping.
+ * @throws Will throw an error if the provided credential is not a valid password credential.
+ * @throws Will throw an error if the mapping contains invalid data for `cred.id`.
+ */
+export const updateWithNewPasswordCred = (
+  cred: Cred,
+  record: CredsByUrl,
+  mapping: CredsMapping
+): {
+  record: CredsByUrl;
+  mapping: CredsMapping;
+} => {
+  if (!isPasswordCred(cred))
+    throw new Error(
+      `[updateWithNewPasswordCred] Invalid Password Cred: ${JSON.stringify(
+        cred
+      )}`
+    );
+  const result = structuredClone(record);
+  const map = structuredClone(mapping);
+
+  updateWithNewPasswordCredInPlace(cred, result, map);
+  return { record: result, mapping: map };
+};
+
+export const updateWithNewPasswordCredInPlace = (
+  cred: Cred,
+  record: CredsByUrl,
+  mapping: CredsMapping
+) => {
+  if (!isPasswordCred(cred))
+    throw new Error(
+      `[updateWithNewPasswordCredInPlace] Invalid Password Cred: ${JSON.stringify(
+        cred
+      )}`
+    );
+
+  const { id, url } = cred;
+  if (!(url in record)) record[url] = [];
+
+  const val = mapping[id];
+  if (val) {
+    const [prevUrl, prevIdx] = val;
+    if (
+      !(prevUrl in record) ||
+      prevIdx > record[prevUrl].length ||
+      record[prevUrl][prevIdx][0].id !== cred.id
+    ) {
+      // if the [prevUrl, prevIdx] we got from `mapping` is invalid, then
+      // something is really wrong with our data
       throw new Error(
-        "[mergeCreds] on-chain creds in `currCreds` are not in the correct location"
+        `[updateWithNewPasswordCred] mapping['${prevUrl}'][${prevIdx}] does not exist`
       );
-  }
-
-  // Main logic: append off-chain creds to the appropriate chain
-  for (let i = num; i < currCreds.length; i++) {
-    let cred = currCreds[i];
-
-    if (isHeadOfChain(cred)) {
-      result.push({ ...cred, curr: result.length, next: -1 });
-    } else {
-      let prev = currCreds[cred.prev] as ValidCred;
-      prev = result[prev.curr];
-
-      // Go to the current tail of the chain in `result`
-      while (!isTailOfChain(prev as ExtendedCred)) {
-        if (prev.next === undefined)
-          throw new Error("[mergeCreds] prev.next is undefined");
-        prev = result[prev.next];
-      }
-
-      // Modifying new (potentially temporary) tail of the chain
-      cred.prev = prev.curr;
-      cred.curr = result.length;
-      cred.next = -1;
-
-      // Append the new tail to the result
-      result.push(cred);
     }
+
+    // move chain to new url
+    const chain = record[prevUrl][prevIdx];
+    record[url].push(chain);
+    record[prevUrl].splice(prevIdx, 1);
   }
 
-  // Optional: maintain time-orderedness (timestamp monotonicity)
-  // Assumes that the chains on-chain are already in the correct order
-  if (maintainOrderInChain) {
-    const toBeDeleted = markForDeletion(addNext(result));
-    result = deleteMulti(result, toBeDeleted);
-  }
+  const chainIdx = record[url].findIndex((u) => u[0].id === cred.id);
+  if (val !== undefined && chainIdx === -1)
+    throw new Error(`Chain with id ${cred.id} not found`);
 
-  // Delete "next" field from all creds in result since they're no longer correct
-  for (let i = 0; i < result.length; i++) delete result[i].next;
+  // add cred to chain
+  if (chainIdx !== -1) record[url][chainIdx].push(cred);
+  if (chainIdx === -1) record[url].push([cred]);
 
-  return result;
-};
-
-/**
- * Adds the "next" property to each credential in the array.
- * @param creds - The array of valid credentials.
- * @returns An array of extended credentials with the "next" property added.
- */
-export const addNext = (creds: ValidCred[]): ExtendedCred[] => {
-  // 1. Clone the creds array to avoid modifying the original array.
-  const x = structuredClone(creds);
-
-  // 2. Create an array of booleans to track which credentials have been processed.
-  const done: boolean[] = x.map(() => false);
-
-  // 3. Main logic
-  for (let i = x.length - 1; i > 0; i--) {
-    if (done[i]) continue; // skip if already processed
-
-    // If not processed, then this cred is the tail of a chain.
-    // Recurse from the tail to the head of the chain
-    let curr = i;
-    let next = -1; // the tail cred of a chain has a next of -1
-    while (curr != -1) {
-      if (done[curr]) throw new Error("[addNext] Cyclic chain detected");
-
-      done[curr] = true;
-      x[curr].next = next;
-      next = curr;
-      curr = x[curr].prev;
-    }
-  }
-
-  // 4. Verify that all credentials were processed and have a "next" property.
-  if (done.includes(false))
-    throw new Error("[addNext] Not all entries were processed");
-
-  // 5. Verify that all credentials have a "next" property.
-  if (x.some((cred) => cred.next === undefined))
-    throw new Error("[addNext] Not all entries have a 'next' property");
-
-  // 6. Return the updated array of credentials.
-  return x as ExtendedCred[];
-};
-
-/**
- * Deletes a credential from the array of valid credentials.
- * @param creds - The array of valid credentials.
- * @param k - The index of the credential to delete.
- * @returns The updated array of valid credentials after deletion.
- * @throws {Error} If the credential to delete is on-chain.
- */
-export const deleteK = (creds: ValidCred[], k: number): ValidCred[] => {
-  // 1. Clone the creds array to avoid modifying the original array.
-  const _creds = structuredClone(creds);
-
-  // 2. Check if the credential is allowed to be deleted
-  if (creds[k].encrypted.onChain)
-    throw new Error("Cannot delete on-chain cred");
-
-  const result: ValidCred[] = [];
-
-  for (let i = 0; i < _creds.length; i++) {
-    const cred = _creds[i];
-
-    if (cred.curr < k) {
-      result.push(cred);
-    } else if (cred.curr > k) {
-      const newCred = structuredClone(cred);
-      cred.curr = cred.curr - 1;
-      if (cred.prev > k) {
-        newCred.prev = newCred.prev - 1;
-      } else if (cred.prev == k) {
-        newCred.prev = _creds[newCred.prev].prev;
-      }
-      result.push(newCred);
-    }
-  }
-
-  return result;
-};
-
-const isHeadOfChain = (cred: ValidCred): boolean => cred.prev === -1;
-const isTailOfChain = (cred: ExtendedCred): boolean => cred.next === -1;
-
-/**
- * Deletes multiple elements from an array of ValidCred objects and returns the updated array.
- *
- * @param creds - The array of ValidCred objects.
- * @param toBeDeleted - An array of booleans indicating which elements should be deleted.
- * @returns The updated array of ValidCred objects after deleting the specified elements.
- */
-export const deleteMulti = (
-  creds: ValidCred[],
-  toBeDeleted: boolean[],
-  throwExceptionIfOnChain: boolean = true
-): ValidCred[] => {
-  // 1. Clone the creds array to avoid modifying the original array.
-  const _creds = structuredClone(creds);
-
-  // 2. Check if the credentials to be deleted are allowed to be deleted
-  for (let i = 0; i < _creds.length; i++) {
-    if (!toBeDeleted[i]) continue;
-
-    if (_creds[i].encrypted.onChain && throwExceptionIfOnChain)
-      throw new Error(
-        "Cannot delete on-chain cred. Set throwExceptionIfOnChain to false to ignore this error."
-      );
-  }
-
-  // 3. Create an array to store the result
-  const result: ValidCred[] = [];
-
-  // `offsets` track how many positions to shift the 'curr' and 'prev' values
-  const offsets = new Array(_creds.length).fill(0);
-  let shift = 0;
-  for (let i = 0; i < _creds.length; i++) {
-    if (toBeDeleted[i]) shift++;
-    offsets[i] = shift;
-  }
-
-  // 4. Main logic for result
-  // Note: the following uses a cred's `curr` field to propagate the updated `prev` value
-  for (let k = 0; k < _creds.length; k++) {
-    const prev = _creds[k].prev;
-
-    // branch on whether to delete cred
-    if (toBeDeleted[k]) {
-      if (isHeadOfChain(_creds[k])) {
-        _creds[k].curr = -1;
-      } else {
-        _creds[k].curr = _creds[prev].curr;
-      }
-    } else {
-      // not to be deleted, but might need to update its `prev` field
-
-      // update curr
-      _creds[k].curr -= offsets[k];
-
-      // update prev
-      // Note: if cred is the head of a chain, its `prev` remain unchanged as -1
-      if (!isHeadOfChain(_creds[k])) _creds[k].prev = _creds[prev].curr;
-
-      // push to result
-      result.push(_creds[k]);
-    }
-  }
-
-  // 5. Return the updated array of credentials
-  return result;
-};
-
-/**
- * Marks the credentials for deletion by checking for violations in the
- * chain's time-orderedness (monotonicity property of timestamps).
- *
- * @param creds - An array of ExtendedCred objects representing the credentials.
- * @returns An array of booleans indicating which credentials should be deleted.
- */
-export const markForDeletion = (creds: ExtendedCred[]): boolean[] => {
-  const done: boolean[] = creds.map(() => false);
-  const toBeDeleted: boolean[] = creds.map(() => false);
-  const extended = addNext(creds);
-
-  for (let j = 0; j < extended.length; j++) {
-    if (done[j]) continue;
-    done[j] = true;
-
-    let curr = j; // store `j` in `curr` (to be updated and used in the loop)
-    let t = undefined; // initialize t for the new chain
-    while (curr !== -1) {
-      done[curr] = true;
-      if (t === undefined || t < extended[curr].timestamp) {
-        // since the chain is time-ordered (thus far), we can delete the cred
-        // set the current timestamp (new max) to be the new `t`
-        t = extended[curr].timestamp;
-      } else {
-        // if the chain is not time-ordered, we mark cred for deletion if it is NOT already on-chain
-        toBeDeleted[curr] = !extended[curr].encrypted.onChain;
-      }
-      curr = extended[curr].next;
-    }
-  }
-
-  // verify that all creds were processed
-  if (done.includes(false))
-    throw new Error("[markForDeletion] Not all entries were processed");
-
-  // Return the array of booleans indicating which credentials should be deleted
-  return toBeDeleted;
-};
-
-/**
- * Merges the on-chain and off-chain credentials.
- *
- * @param cryptoKey - The cryptographic key used for encryption and decryption.
- * @param onChain - The array of encrypted on-chain credentials.
- * @param curr - The array of encrypted off-chain credentials.
- * @param maintainOrderInChain - Optional. Specifies whether to maintain the order of credentials in the on-chain array. Defaults to false.
- * @returns A promise that resolves to the array of merged and encrypted credentials.
- * @throws {Error} If the last on-chain credential is invalid.
- */
-export const merge = async (
-  cryptoKey: CryptoKey,
-  onChain: Encrypted[],
-  curr: Encrypted[],
-  maintainOrderInChain: boolean = false
-): Promise<Encrypted[]> => {
-  // Clone on-chain encrypteds and decrypt them
-  const encrypteds = structuredClone(onChain);
-  const ocCreds = await decryptEntries(cryptoKey, encrypteds);
-
-  // Verify that the on-chain credentials are all valid
-  for (let i = 0; i < ocCreds.length; i++) {
-    const lastOcCred = ocCreds[i];
-    if (!lastOcCred.isValid)
-      throw new Error("[merge] Invalid on-chain credential");
-  }
-
-  // decrypt encrypteds
-  const onChainCreds = await decryptEntries(cryptoKey, onChain);
-  const currCreds = await decryptEntries(cryptoKey, curr);
-
-  // merge on-chain and off-chain creds
-  let mergedCreds = mergeCreds(
-    addNext(currCreds as ValidCred[]),
-    addNext(onChainCreds as ValidCred[]),
-    maintainOrderInChain
+  // order chains by timestamp in reverse order
+  record[url] = record[url].sort(
+    (a, b) => b[b.length - 1].timestamp - a[a.length - 1].timestamp
   );
 
-  // get merged creds' encrypted if on-chain, otherwise encrypt
-  return Promise.all(
-    mergedCreds.map((cred) => {
-      if (cred.encrypted.onChain) return cred.encrypted;
-      return encrypt(cryptoKey, cred);
-    })
-  );
-};
-
-/**
- * Validates the chains' properties.
- * Ensures that the chains are time-ordered (that the timestamps of the
- * credentials are monotonically increasing).
- *
- * @param creds - An array of credentials to validate.
- * @returns `true` if the chain properties are valid, otherwise `false`.
- * @throws Will throw an error if not all entries were processed.
- */
-export const validateChainProperties = (creds: ValidCred[]): boolean => {
-  const done: boolean[] = creds.map(() => false);
-  const extended = addNext(creds);
-
-  for (let i = 0; i < extended.length; i++) {
-    if (done[i]) continue;
-
-    let t = undefined;
-    let curr = i;
-    while (curr !== -1) {
-      if (t === undefined || t < extended[curr].timestamp) {
-        // chain is thusfar time-ordered
-        t = extended[curr].timestamp;
-      } else {
-        // chain is not time-ordered
-        return false;
-      }
-
-      done[curr] = true;
-      curr = extended[curr].next;
-    }
-  }
-
-  if (done.includes(false))
-    throw new Error("[validateChainProperties] Not all entries were processed");
-  return true;
+  // update mapping
+  mapping[cred.id] = [url, chainIdx > -1 ? chainIdx : 0];
 };
 
 /*******************************************************************************
  * Keypairs
  *
  * type KeypairCred = BaseCred & {
- *   encrypted: Encrypted;
  *   type: "keypair";
- *   privateKey: ArmoredKey;
- *   publicKey: ArmoredKey;
+ *   privateKey: string;
+ *   publicKey: string;
  * };
  ******************************************************************************/
-export const createKeypairCred = async (
-  cryptoKey: CryptoKey,
-  {
-    keyId,
-    privateKey,
-    publicKey,
-  }: {
-    keyId: string;
-    privateKey: ArmoredKey;
-    publicKey: ArmoredKey;
-  },
-  curr: number,
-  prev: number
-): Promise<KeypairCred> => {
-  const timestamp = new Date().toISOString();
-  const keyObj = {
-    type: "keypair",
-    p: `${privateKey.body}${privateKey.crc}`,
-    curr,
-    prev,
-    timestamp,
-  };
+export const createKeypairCred = async ({
+  keyId,
+  privateKey,
+  publicKey,
+}: {
+  keyId: string;
+  privateKey: string;
+  publicKey: string;
+}): Promise<KeypairCred> => {
+  const timestamp = Date.now();
 
-  const encrypted = await encrypt(cryptoKey, keyObj);
   return {
-    isValid: true,
-    id: keyId,
-    type: "keypair",
-    encrypted,
+    id: parseInt(keyId, 16),
+    version: CURRENT_VERSION,
+    type: KEYPAIR_TYPE,
     timestamp,
-    prev,
-    curr,
     privateKey,
     publicKey,
   } as KeypairCred;

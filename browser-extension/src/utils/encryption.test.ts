@@ -1,40 +1,13 @@
-import {
-  convertToPasswordCred,
-  createBarePasswordCred,
-  isPasswordCred,
-} from "@/utils/credentials";
-import { decrypt, generateKey } from "@/utils/encryption";
-
-const cred = createBarePasswordCred({
-  url: "https://example.com",
-  username: "example",
-  password: "password",
-  description: "example",
-  curr: 10,
-  prev: 3,
-});
+import { decrypt, encrypt, generateKey } from "@/utils/encryption";
 
 describe("Encryption", () => {
-  it("decryption of ciphertext should return original plaintext", async () => {
+  it("decryption of ciphertext should return original object", async () => {
     const key = await generateKey();
-    const passwordCred = await convertToPasswordCred(key, cred);
-    const unencrypted = JSON.parse(await decrypt(key, passwordCred.encrypted));
+    const x = [{ name: "john doe", age: 3 }];
+    const secret = await encrypt(key, x);
+    expect(secret.iv.length).toBe(16);
 
-    // console.log("passwordCred: ", passwordCred);
-    // console.log("isPasswordCred(passwordCred): ", isPasswordCred(passwordCred));
-    // console.log("unencrypted: ", unencrypted);
-
-    expect(isPasswordCred(passwordCred)).toBeTruthy();
-    expect(unencrypted).toEqual(cred);
-  });
-
-  it("iv should be length 16", async () => {
-    const key = await generateKey();
-
-    for (let i = 0; i < 100; i++) {
-      const passwordCred = await convertToPasswordCred(key, cred);
-
-      expect(passwordCred.encrypted.iv.length).toBe(16);
-    }
+    const plainObj = await decrypt(key, secret);
+    expect(plainObj).toEqual(x);
   });
 });

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { CREDENTIALS, ENCRYPTEDS, PUBKEY } from "@/constants/hookVariables";
-import { LOCALHOST } from "@/constants/networks";
 import { WELCOME } from "@/constants/steps";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
@@ -19,16 +18,16 @@ const download = (data: Record<string, any>, filename: string) => {
 
 const logOut = async () => {
   await chrome.storage.local.set({
-    step: WELCOME,
-
-    network: LOCALHOST,
-
+    step: WELCOME.toString(),
     // Reset all the creds-related data
     pubkey: "",
     jwk: null,
-    credentials: [],
-    encrypteds: [],
-    numEntries: -1,
+    numEntries: "0",
+    encrypteds: "[]",
+    pendingCreds: "[]",
+    keypairs: "[]",
+    credsByUrl: "{}",
+    tabIds: "[]",
   });
 };
 

@@ -1,7 +1,7 @@
 #/bin/bash
 
 # Get the address of the locally deployed keyvault contract and save it to a file
-address=$(pnpm hardhat ignition status localhost-london | grep -oP '0x[a-fA-F0-9]{40}')
+address=$(bun run hardhat ignition status localhost-london | grep -oP '0x[a-fA-F0-9]{40}')
 echo "import { Hex } from \"viem\";" > localKeyvaultAddress.ts
 echo "" >> localKeyvaultAddress.ts
 echo "export const localKeyvaultAddress =" >> localKeyvaultAddress.ts

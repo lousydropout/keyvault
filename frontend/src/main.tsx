@@ -7,11 +7,16 @@ import { Header } from "./components/header.tsx";
 import "./index.css";
 import { Web3ModalProvider } from "./provider.tsx";
 import { TermsAndConditions } from "./terms.tsx";
+import UpdatePublicKey from "./UpdatePublicKey.tsx";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+  },
+  {
+    path: "/updatePublicKey",
+    element: <UpdatePublicKey />,
   },
   {
     path: "/terms",

@@ -1,5 +1,5 @@
 // taken from https://github.com/paritytech/banana_split/blob/master/tests/unit/crypto.spec.ts
-import { share, parse, reconstruct } from "@/utils/shamir";
+import { parse, reconstruct, share } from "@/utils/shamir";
 
 test("encodes-decodes empty values", () => {
   const shards = share({

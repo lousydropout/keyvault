@@ -1,4 +1,6 @@
 export const CREDENTIALS = "credentials" as const;
+export const PENDING_CREDS = "pendingCreds" as const;
+export const CREDS_BY_URL = "credsByUrl" as const;
 export const CRED_TO_BE_EDITED = "credToBeEdited" as const;
 export const ENCRYPTEDS = "encrypteds" as const;
 export const MODIFIED = "modified" as const;
@@ -9,3 +11,5 @@ export const PUBLIC_KEY = "public_key" as const;
 export const PRIVATE_KEY = "private_key" as const;
 export const STEP = "step" as const;
 export const VIEW = "view" as const;
+export const KEYPAIRS = "keypairs" as const;
+export const SECRET_SHARES = "secretShares" as const;

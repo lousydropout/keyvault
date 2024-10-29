@@ -4,18 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader } from "@/components/ui/card";
 import {
   CRED_TO_BE_EDITED,
-  ENCRYPTEDS,
-  MODIFIED_ENCRYPTEDS,
+  CREDS_BY_URL,
+  PENDING_CREDS,
   VIEW,
 } from "@/constants/hookVariables";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
-import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import {
   basePasswordCred,
+  Cred,
+  CredsByUrl,
   deletePasswordCred,
+  updateOrAddPasswordCred,
   type PasswordAdditionCred,
 } from "@/utils/credentials";
-import { encrypt, Encrypted } from "@/utils/encryption";
 import { useState } from "react";
 
 const defaultPassword = "********";
@@ -80,15 +81,14 @@ const CredentialCard = ({
   const [_view, setView] = useBrowserStore<View>(VIEW, "Current Page");
   const [_credToBeEdited, setCredToBeEdited] =
     useBrowserStore<PasswordAdditionCred>(CRED_TO_BE_EDITED, basePasswordCred);
-  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
-    ENCRYPTEDS,
+  const [credsByUrl, setCredsByUrl] = useBrowserStoreLocal<CredsByUrl>(
+    CREDS_BY_URL,
+    {}
+  );
+  const [_pendingCreds, setPendingCreds] = useBrowserStoreLocal<Cred[]>(
+    PENDING_CREDS,
     []
   );
-  const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
-
-  const getNonces = () => encrypteds.map(({ iv }: Encrypted) => iv);
 
   return (
     <div className="flex w-full sm:w-96 mx-auto gap-2 items-center justify-end">
@@ -130,16 +130,10 @@ const CredentialCard = ({
           variant="link"
           className="text-red-500 text-md px-2 text-left"
           onClick={async () => {
-            const deletedCred = deletePasswordCred(cred, encrypteds.length);
-            // Ensure that the nonce (IV) is unique
-            const nonces = getNonces();
-            let encrypted: Encrypted;
-            while (true) {
-              encrypted = await encrypt(cryptoKey as CryptoKey, deletedCred);
-              if (!nonces.includes(encrypted.iv)) break;
-            }
-            setEncrypteds((values) => [...values, encrypted]);
-            setModifiedEncrypteds(true);
+            const deletedCred = deletePasswordCred(cred);
+            const record = updateOrAddPasswordCred(deletedCred, credsByUrl);
+            setPendingCreds((prev) => [...prev, deletedCred]);
+            setCredsByUrl(record);
           }}
         >
           DELETE

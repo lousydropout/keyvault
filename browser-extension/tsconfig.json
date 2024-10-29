@@ -8,7 +8,7 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "types": ["chrome", "jest", "node"],
+    "types": ["chrome", "bun", "jest"],
     "module": "ESNext",
     "skipLibCheck": true,
 
@@ -27,8 +27,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }],
-  "devDependencies": {
-    "jest": "^29.7.0"
-  }
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

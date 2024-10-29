@@ -4,14 +4,14 @@ Note: All commands below are meant to be run inside this directory. If, we consi
 
 ## Installation
 
-For whatever reason, `Viem` did not work well with the `Hardhat` localnet (at least for `keyvault`). However, `Viem` seems to have no issues with `Foundry`'s `Anvil`.
+For whatever reason, `Viem` did not work well with the `Hardhat` localnet (at least for `keyvault`). However, `Viem` seems to have no issues with `Foundry`'s `Anvil`. Luckily, `Hardhat` appears to be fully compitable with `Foundry's Anvil` as far as our needs are concerned.
 
 So, `Foundry` is currently a prerequisite for local testing. To install `Foundry`, please follow the instructions located at [https://book.getfoundry.sh/getting-started/installation](https://book.getfoundry.sh/getting-started/installation).
 
 Beyond which, please run
 
 ```bash
-pnpm install
+$ bun install
 ```
 
 ## Running locally
@@ -21,13 +21,36 @@ The commands have already been added to `package.json` as scripts for dev conven
 1. Run local hardhat network ("localhost")
 
    ```bash
-   pnpm local:node
+   $ bun run local:node
    ```
 
 2. Deploy to localhost in a new terminal
 
    ```bash
-   pnpm local:deploy
+   $ bun run local:deploy
+   ```
+
+## Deploying to Sibuya or Astar
+
+This project is already on the `Astar` network, but you can also deploy your own contract instance by following the instructions in this section if you prefer.
+
+To deploy, first you'll need to provide `Hardhat` the private key of whatever account you want to deploy from. This is to be provided locally via the `Hardhat` cli. This way, you won't accidentally commit and push your private key to GitHub or the likes.
+
+1. store your private key as a `hardhat variable`:
+   ```bash
+   $ bunx hardhat var set PRIVATE_KEY
+   ```
+   and paste your private key when prompted.
+2. deploy using `Hardhat` by
+   ```bash
+   $ bunx hardhat \
+      ignition deploy ignition/modules/Keyvault.ts \
+      --network <shibuya or astar> \
+      --deployment-id <some-id>
+   ```
+3. delete the record of your private key from `Hardhat`:
+   ```bash
+   $ bunx hardhat var delete PRIVATE_KEY
    ```
 
 ## Debugging locally
@@ -60,14 +83,14 @@ After deploying `keyvault` to the anvil localnet, you can also interact with the
 To do so, simply run
 
 ```bash
-pnpm hardhat console
+$ bun run hardhat console
 ```
 
 To then grab and interact with the deployed `Keyvault` smart contract, run
 
 ```typescript
-> Keyvault = await ethers.getContractFactory("Keyvault")
-> keyvault = Keyvault.attach("0x5FbDB2315678afecb367f032d93F642f64180aa3")  # grabs the specific `Keyvault` contract at provided address
+$ Keyvault = await ethers.getContractFactory("Keyvault")
+$ keyvault = Keyvault.attach("0x5FbDB2315678afecb367f032d93F642f64180aa3")  # grabs the specific `Keyvault` contract at provided address
 ```
 
 You can then interact with the smart contract as you wish.
@@ -75,5 +98,8 @@ You can then interact with the smart contract as you wish.
 For example, to check the number of entries associated with a given pubkey,
 
 ```typescript
-> numEntries = await keyvault.numEntries("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")  # replace with the pubkey you're using
+// replace with the pubkey you're using
+numEntries = await keyvault.numEntries(
+  "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+);
 ```

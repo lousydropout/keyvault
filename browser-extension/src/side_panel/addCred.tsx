@@ -9,15 +9,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ENCRYPTEDS,
+  CREDS_BY_URL,
   MODIFIED_ENCRYPTEDS,
+  PENDING_CREDS,
   VIEW,
 } from "@/constants/hookVariables";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
-import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
-import { createBarePasswordCred } from "@/utils/credentials";
-import { encrypt, type Encrypted } from "@/utils/encryption";
+import {
+  createNewPasswordCred,
+  Cred,
+  CredsByUrl,
+  updateOrAddPasswordCred,
+} from "@/utils/credentials";
 import generator from "generate-password-ts";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
@@ -41,10 +45,13 @@ const generatePassword = (
 };
 
 export const AddCred = () => {
-  const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
-    ENCRYPTEDS,
+  const [_pendingCreds, setPendingCreds] = useBrowserStoreLocal<Cred[]>(
+    PENDING_CREDS,
     []
+  );
+  const [credsByUrl, setCredsByUrl] = useBrowserStoreLocal<CredsByUrl>(
+    CREDS_BY_URL,
+    {}
   );
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
     useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
@@ -86,28 +93,19 @@ export const AddCred = () => {
     setTimeout(() => setShowTooltip(false), 1000);
   };
 
-  const getNonces = () => encrypteds.map(({ iv }: Encrypted) => iv);
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const bareCred = createBarePasswordCred({
+    const bareCred = createNewPasswordCred({
       url,
       username,
       password,
       description,
-      prev: -1,
-      curr: encrypteds.length,
     });
 
-    // Ensure that the nonce (IV) is unique
-    const nonces = getNonces();
-    let encrypted: Encrypted;
-    while (true) {
-      encrypted = await encrypt(cryptoKey as CryptoKey, bareCred);
-      if (!nonces.includes(encrypted.iv)) break;
-    }
-    setEncrypteds((values) => [...values, encrypted]);
-    setModifiedEncrypteds(true);
+    setPendingCreds((prev) => [...prev, bareCred]);
+    const record = updateOrAddPasswordCred(bareCred, credsByUrl);
+    setCredsByUrl(record);
+
     setView("Current Page");
   };
 

@@ -56,10 +56,7 @@ describe("PGP Module Unit Tests", () => {
   test("should be able to import an ASCII armored private key", async () => {
     const armoredPrivateKey = reformatKey(privateKey_1.armor());
 
-    const importedPrivateKey = await importPrivateKey({
-      body: armoredPrivateKey.body,
-      crc: armoredPrivateKey.crc,
-    });
+    const importedPrivateKey = await importPrivateKey(armoredPrivateKey);
 
     expect(importedPrivateKey.armor()).toEqual(privateKey_1.armor());
   });

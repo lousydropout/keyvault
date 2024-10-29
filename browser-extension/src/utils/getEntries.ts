@@ -1,10 +1,18 @@
 import { contract } from "@/config";
-import { merge } from "@/utils/credentials";
 import { Encrypted, parseEncryptedText } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
 import { Dispatch, SetStateAction } from "react";
 import { Hex } from "viem";
 
+/**
+ * Retrieves a list of encrypted entries from the contract.
+ *
+ * @param pubkey - The public key in hexadecimal format.
+ * @param startFrom - The starting index for fetching entries.
+ * @param limit - The maximum number of entries to fetch.
+ * @returns A promise that resolves to an array of encrypted entries.
+ * @throws Will throw an error if the contract read operation fails.
+ */
 export const getEntries = async (
   pubkey: Hex,
   startFrom: number,
@@ -22,7 +30,7 @@ export const getEntries = async (
         if (result) {
           return parseEncryptedText(result.toString());
         } else {
-          return { iv: "", ciphertext: "", onChain: true };
+          return { iv: "", ciphertext: "" };
         }
       })
     );
@@ -32,8 +40,18 @@ export const getEntries = async (
   }
 };
 
+/**
+ * Updates the encrypted entries by fetching new entries from the chain and updating the state.
+ *
+ * @param pubkey - The public key used to fetch the entries.
+ * @param encrypteds - The current list of encrypted entries.
+ * @param setNumEntries - A state setter function to update the number of entries.
+ * @param setEncrypteds - A state setter function to update the list of encrypted entries.
+ * @returns A promise that resolves when the update is complete.
+ *
+ * @throws Will throw an error if the number of on-chain entries does not match the expected count.
+ */
 export const updateEncrypteds = async (
-  cryptoKey: CryptoKey,
   pubkey: Hex,
   encrypteds: Encrypted[],
   setNumEntries: Dispatch<SetStateAction<number>>,
@@ -41,12 +59,12 @@ export const updateEncrypteds = async (
 ): Promise<void> => {
   const numOnChain = (await getNumEntries(pubkey)) ?? 0;
   setNumEntries(numOnChain);
-  const onChainEntries = encrypteds.filter((e) => e.onChain);
-  const offset = onChainEntries.length;
+  const _encrypteds: Encrypted[] = [];
+  const offset = encrypteds.length;
 
   if (numOnChain === offset) return;
 
-  const batchLength = 100;
+  const batchLength = 10;
   const numIterations = Math.ceil((numOnChain - offset) / batchLength);
 
   for (let i = 0; i < numIterations; i++) {
@@ -55,14 +73,14 @@ export const updateEncrypteds = async (
       i * batchLength + offset,
       batchLength
     );
-    onChainEntries.push(...newEntries);
+    _encrypteds.push(...newEntries);
   }
 
-  if (onChainEntries.length !== numOnChain) {
+  if (encrypteds.length + _encrypteds.length !== numOnChain) {
     console.log("[updateEncrypteds] Number of on-chain entries does not match");
     console.log("data: ", {
-      currEncrtypeds: encrypteds,
-      onChainEntries: onChainEntries,
+      encrypteds: encrypteds,
+      newEncrypteds: _encrypteds,
       numOnChain,
       batchLength,
       numIterations,
@@ -73,9 +91,7 @@ export const updateEncrypteds = async (
     );
   }
 
-  const merged = await merge(cryptoKey, onChainEntries, encrypteds);
-  console.log("[updateEncrypteds] merged: ", merged);
-  setEncrypteds(merged);
+  setEncrypteds((prev) => [...prev, ..._encrypteds]);
 
   return;
 };

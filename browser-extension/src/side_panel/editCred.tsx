@@ -10,18 +10,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   CRED_TO_BE_EDITED,
-  ENCRYPTEDS,
-  MODIFIED_ENCRYPTEDS,
+  CREDS_BY_URL,
+  PENDING_CREDS,
   VIEW,
 } from "@/constants/hookVariables";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
-import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import {
   basePasswordCred,
+  Cred,
+  CredsByUrl,
+  updateOrAddPasswordCred,
   updatePasswordCred,
   type PasswordAdditionCred,
 } from "@/utils/credentials";
-import { encrypt, type Encrypted } from "@/utils/encryption";
 import generator from "generate-password-ts";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
@@ -50,13 +51,15 @@ export const EditCred = () => {
     basePasswordCred
   );
   const [_view, setView] = useBrowserStore<View>(VIEW, "Current Page");
-  const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
-    ENCRYPTEDS,
+  const [_pendingCreds, setPendingCreds] = useBrowserStoreLocal<Cred[]>(
+    PENDING_CREDS,
     []
   );
-  const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
+  const [credsByUrl, setCredsByUrl] = useBrowserStoreLocal<CredsByUrl>(
+    CREDS_BY_URL,
+    {}
+  );
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState<string>(cred.username);
@@ -89,27 +92,18 @@ export const EditCred = () => {
     setTimeout(() => setShowTooltip(false), 1000);
   };
 
-  const getNonces = () => encrypteds.map(({ iv }: Encrypted) => iv);
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const newCred = updatePasswordCred(cred, {
+    const updatedCred = updatePasswordCred(cred, {
       url,
       username,
       password,
       description,
-      curr: encrypteds.length,
     });
 
-    // Ensure that the nonce (IV) is unique
-    const nonces = getNonces();
-    let encrypted: Encrypted;
-    while (true) {
-      encrypted = await encrypt(cryptoKey as CryptoKey, newCred);
-      if (!nonces.includes(encrypted.iv)) break;
-    }
-    setEncrypteds((values) => [...values, encrypted]);
-    setModifiedEncrypteds(true);
+    setPendingCreds((prev) => [...prev, updatedCred]);
+    const record = updateOrAddPasswordCred(updatedCred, credsByUrl);
+    setCredsByUrl(record);
     setView("Current Page");
   };
 
@@ -133,7 +127,7 @@ export const EditCred = () => {
     inputRef.current?.focus();
   };
 
-  if (cred.id === "base")
+  if (cred.id === -1)
     return <h1 className="text-2xl text-center mt-12">Loading...</h1>;
 
   return (

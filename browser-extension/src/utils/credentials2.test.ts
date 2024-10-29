@@ -1,155 +1,148 @@
 import {
-  addNext,
-  createBarePasswordCred,
-  Cred,
-  decryptEntries,
-  deleteK,
-  deleteMulti,
-  isValidCred,
-  markForDeletion,
-  merge,
-  ValidCred,
+  CredsByUrl,
+  CredsMapping,
+  getCredsByUrl,
+  getMappingFromCredsByUrl,
+  PASSWORD_TYPE,
+  PasswordCred,
+  updateWithNewPasswordCred,
+  updateWithNewPasswordCredInPlace,
 } from "@/utils/credentials";
-import { encrypt, Encrypted, generateKey } from "@/utils/encryption";
 
-const key = await generateKey();
+const generateCred = ({
+  id,
+  url,
+  username,
+  password,
+  description,
+  deleted,
+  timestamp,
+}: {
+  id: number;
+  url?: string;
+  username?: string;
+  password?: string;
+  description?: string;
+  deleted?: boolean;
+  timestamp: number;
+}): PasswordCred => {
+  if (deleted)
+    return {
+      version: 1,
+      id,
+      type: PASSWORD_TYPE,
+      url: url || "test-url",
+      timestamp,
+      isDeleted: true,
+    };
+  return {
+    version: 1,
+    id,
+    type: PASSWORD_TYPE,
+    timestamp,
 
-let idx = 0;
-const createPassword = async (
-  prev: number,
-  onChain: boolean,
-  timestamp: string
-): Promise<Encrypted> => {
-  const baseCred = createBarePasswordCred({
-    url: "https://example.com",
-    username: "user",
-    password: "password",
-    description: "example",
-    curr: idx++,
-    prev,
-  });
-  baseCred.timestamp = timestamp;
-
-  return encrypt(key, baseCred, onChain);
+    url: url || "test-url",
+    username: username || "test-username",
+    password: password || "test-password",
+    description: description || "test-description",
+    isDeleted: false,
+  };
 };
 
-// Test data for testing merging
-const onChainEncrypteds = [
-  await createPassword(-1, true, "1"),
-  await createPassword(-1, true, "2"),
-  await createPassword(0, true, "3"),
-  await createPassword(2, true, "6"),
-];
-
-const currEncrypteds = [
-  onChainEncrypteds[0],
-  onChainEncrypteds[1],
-  await createPassword(1, false, "4"),
-  await createPassword(0, false, "5"),
-  await createPassword(3, false, "7"),
-  await createPassword(2, false, "8"),
-];
-
-const expected = [
-  await createPassword(-1, true, "1"), // 0
-  await createPassword(-1, true, "2"), // 1
-  await createPassword(0, true, "3"), // 2
-  await createPassword(2, true, "6"), // 3
-  await createPassword(1, false, "4"), // 4
-  await createPassword(3, false, "7"), // 5
-  await createPassword(4, false, "8"), // 6
-];
-
-const expectedWithOoo = [
-  await createPassword(-1, true, "1"), // 0
-  await createPassword(-1, true, "2"), // 1
-  await createPassword(0, true, "3"), // 2
-  await createPassword(2, true, "6"), // 3
-  await createPassword(1, false, "4"), // 4
-  await createPassword(3, false, "5"), // 5
-  await createPassword(5, false, "7"), // 6
-  await createPassword(4, false, "8"), // 7
-];
-
-// Test data for testing deletion
-idx = 0;
-const encrypteds = [
-  await createPassword(-1, false, "0"),
-  await createPassword(0, false, "1"),
-  await createPassword(1, false, "2"),
-  await createPassword(-1, false, "3"),
-  await createPassword(2, false, "4"),
-  await createPassword(3, false, "5"),
-  await createPassword(4, false, "6"),
-];
-const creds = await decryptEntries(key, encrypteds);
-
-const getFields = (cred: Cred) => {
-  return isValidCred(cred)
-    ? {
-        prev: cred.prev,
-        onChain: cred.encrypted.onChain,
-        timestamp: cred.timestamp,
-      }
-    : {};
-};
-
-describe("Deleting creds", () => {
-  it("should be the same if via deleteMulti and repeated deleteK", async () => {
-    for (let i = 0; i < 2 ** creds.length - 1; i++) {
-      const toBeDeleted = i
-        .toString(2)
-        .padStart(creds.length, "0")
-        .split("")
-        .map((c) => c === "1");
-      const toBeDeleteds = toBeDeleted
-        .map((b, i) => (b ? i : -1))
-        .filter((i) => i !== -1);
-      let expected = structuredClone(creds) as ValidCred[];
-      toBeDeleteds.reverse().forEach((k) => {
-        expected = deleteK(expected, k);
-      });
-
-      const output = deleteMulti(creds as ValidCred[], toBeDeleted);
-
-      expect(expected.map(getFields)).toEqual(output.map(getFields));
-    }
+describe("updateWithNewPasswordCred", () => {
+  const x = generateCred({ id: 1, timestamp: 1 });
+  const x2 = generateCred({
+    id: 1,
+    timestamp: 2,
+    username: "test-username-2",
   });
-});
-
-describe("Merging", () => {
-  it("should be able to merge mixed onchain and offchain encrypteds if out-of-order creds are okay", async () => {
-    const mergedEncrypteds = await merge(
-      key,
-      onChainEncrypteds,
-      currEncrypteds,
-      false // don't delete out-of-order creds
-    );
-    const mergedCreds = await decryptEntries(key, mergedEncrypteds);
-
-    const expectedCreds = await decryptEntries(key, expectedWithOoo);
-
-    expect(expectedCreds.map(getFields)).toEqual(mergedCreds.map(getFields));
-
-    // Cred 5 is out of order, so it should be marked for deletion
-    const expectedMarkForDeletion = mergedCreds.map((_, i) => i === 5);
-
-    expect(expectedMarkForDeletion).toEqual(
-      markForDeletion(addNext(mergedCreds as ValidCred[]))
-    );
+  const x3 = generateCred({
+    id: 1,
+    timestamp: 3,
+    password: "test-password-3",
+  });
+  const x4 = generateCred({
+    id: 1,
+    timestamp: 4,
+    url: "test-url-2",
+  });
+  const y = generateCred({
+    id: 2,
+    timestamp: 4,
+    url: "test-url-2",
   });
 
-  it("should be able to merge mixed onchain and offchain encrypteds", async () => {
-    const mergedEncrypteds = await merge(
-      key,
-      onChainEncrypteds,
-      currEncrypteds,
-      true // do delete out-of-order creds
-    );
-    const mergedCreds = await decryptEntries(key, mergedEncrypteds);
+  it("should add cred to empty record", () => {
+    let record: CredsByUrl = {};
+    let mapping: CredsMapping = {};
 
-    const expectedCreds = await decryptEntries(key, expected);
+    ({ mapping, record } = updateWithNewPasswordCred(x, record, mapping));
+    expect(mapping[1]).toEqual(["test-url", 0]);
+    expect(record["test-url"]).toEqual([[x]]);
+  });
 
-    expect(expectedCreds.map(getFields)).toEqual(mergedCreds.map(getFields));
+  it("should add cred as chain to new url if !(url in record)", () => {
+    let record: CredsByUrl = {};
+    let mapping: CredsMapping = {};
+
+    ({ mapping, record } = updateWithNewPasswordCred(x, record, mapping));
+    expect(mapping[1]).toEqual(["test-url", 0]);
+    expect(record["test-url"]).toEqual([[x]]);
+
+    ({ mapping, record } = updateWithNewPasswordCred(x2, record, mapping));
+    expect(mapping[1]).toEqual(["test-url", 0]);
+    expect(record["test-url"]).toEqual([[x, x2]]);
+
+    ({ mapping, record } = updateWithNewPasswordCred(x3, record, mapping));
+    expect(mapping[1]).toEqual(["test-url", 0]);
+    expect(record["test-url"]).toEqual([[x, x2, x3]]);
+  });
+
+  it("should add multiple url to chain okay", () => {
+    let record: CredsByUrl = {};
+    let mapping: CredsMapping = {};
+
+    ({ mapping, record } = updateWithNewPasswordCred(x, record, mapping));
+    ({ mapping, record } = updateWithNewPasswordCred(x2, record, mapping));
+    ({ mapping, record } = updateWithNewPasswordCred(x3, record, mapping));
+    ({ mapping, record } = updateWithNewPasswordCred(y, record, mapping));
+
+    expect(mapping[1]).toEqual(["test-url", 0]);
+    expect(record["test-url"]).toEqual([[x, x2, x3]]);
+    expect(mapping[2]).toEqual(["test-url-2", 0]);
+    expect(record["test-url-2"]).toEqual([[y]]);
+  });
+
+  it("should be able to move chain when `url` changes", () => {
+    const record: CredsByUrl = {};
+    const mapping: CredsMapping = {};
+
+    updateWithNewPasswordCredInPlace(x, record, mapping);
+    updateWithNewPasswordCredInPlace(x2, record, mapping);
+    updateWithNewPasswordCredInPlace(x3, record, mapping);
+    updateWithNewPasswordCredInPlace(x4, record, mapping);
+
+    expect(mapping[1]).toEqual(["test-url-2", 0]);
+    expect(record["test-url-2"]).toEqual([[x, x2, x3, x4]]);
+  });
+
+  describe("Comparing `updateWithNewPasswordCred` and `getCredsByUrl`", () => {
+    it("1", () => {
+      const record: CredsByUrl = {};
+      const mapping: CredsMapping = {};
+
+      updateWithNewPasswordCredInPlace(x, record, mapping);
+      updateWithNewPasswordCredInPlace(x2, record, mapping);
+      updateWithNewPasswordCredInPlace(x3, record, mapping);
+
+      expect(mapping[1]).toEqual(["test-url", 0]);
+      expect(record["test-url"]).toEqual([[x, x2, x3]]);
+
+      const credsByUrl = getCredsByUrl([x, x2, x3]);
+      const _mapping = getMappingFromCredsByUrl(credsByUrl);
+
+      expect(mapping).toEqual(_mapping);
+      expect(record).toEqual(credsByUrl);
+    });
   });
 });

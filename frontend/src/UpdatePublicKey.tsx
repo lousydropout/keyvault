@@ -3,27 +3,26 @@ import { ToastAction } from "@/components/ui/toast";
 import { Toaster } from "@/components/ui/toaster";
 import { abi, address, client } from "@/config";
 import { useToast } from "@/hooks/use-toast";
-import { useMessage } from "@/hooks/useMessage";
+import { usePubkeyMessage } from "@/hooks/usePubkeyMessage";
 import { useEffect, useState } from "react";
 import { useAccount, useChainId, useWriteContract } from "wagmi";
 
-export default function App() {
-  const message = useMessage();
+export default function UpdatePublicKey() {
+  const message = usePubkeyMessage();
   const account = useAccount();
   const chainId = useChainId();
   const { toast } = useToast();
   const [isOkay, setIsOkay] = useState<boolean>(false);
-  const [ciphertext, setCiphertext] = useState<string>("");
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   const [submitted, setSubmitted] = useState<boolean>(false);
 
-  const submit = async (ciphertext: string) => {
+  const submit = async (pubkey: string) => {
     if (!account?.address) return;
     writeContract({
       abi,
       address,
-      functionName: "storeEntry",
-      args: [ciphertext],
+      functionName: "storePubkey",
+      args: [pubkey],
       nonce: await client?.getTransactionCount({ address: account?.address }),
     });
     setSubmitted(true);
@@ -40,7 +39,12 @@ export default function App() {
         title: error?.name,
         description: "Would you like to retry?",
         action: (
-          <ToastAction altText="Try again" onClick={() => submit(ciphertext)}>
+          <ToastAction
+            altText="Try again"
+            onClick={() => {
+              if (message?.pubkey) submit(message?.pubkey);
+            }}
+          >
             Resubmit
           </ToastAction>
         ),
@@ -50,6 +54,7 @@ export default function App() {
   }, [error]);
 
   useEffect(() => {
+    console.log("[UpdatePublicKey] message: ", message, account);
     if (account && message) {
       toast({ description: "Received data." });
 
@@ -59,18 +64,10 @@ export default function App() {
     }
   }, [message, account]);
 
-  useEffect(() => {
-    if (!isOkay) return;
-
-    const encrypted = message?.encrypted;
-    if (!encrypted) return;
-    setCiphertext(encrypted.iv + encrypted.ciphertext);
-  }, [isOkay]);
-
   return (
     <div className="flex flex-1 flex-col items-center mt-16 gap-16">
       <h1 className="text-slate-200 text-center text-4xl">
-        Let's update your on-chain data!
+        Let's publish your public key for others to see!
       </h1>
 
       {((!submitted && message) || error) && (
@@ -79,16 +76,13 @@ export default function App() {
 
           {isOkay ? (
             <>
-              <p className="text-slate-300 text-lg text-left">
-                Looks like you have an update to push on-chain.
-              </p>
               <Button
                 variant="outline"
-                disabled={isPending || ciphertext === ""}
+                disabled={isPending || message?.pubkey === undefined}
                 onClick={async () => {
-                  console.log("submitting: ", ciphertext);
+                  console.log("submitting: ", message?.pubkey);
                   console.log("submitting to: ", address);
-                  await submit(ciphertext);
+                  if (message?.pubkey) await submit(message?.pubkey);
                 }}
               >
                 Push data

@@ -1,10 +1,12 @@
 import { Header, View } from "@/components/header";
 import {
-  CREDENTIALS,
+  CREDS_BY_URL,
   ENCRYPTEDS,
-  MODIFIED_ENCRYPTEDS,
+  KEYPAIRS,
   NUM_ENTRIES,
+  PENDING_CREDS,
   PUBKEY,
+  SECRET_SHARES,
   STEP,
   VIEW,
 } from "@/constants/hookVariables";
@@ -19,7 +21,13 @@ import { EditCred } from "@/side_panel/editCred";
 import { EncryptionKeySetup } from "@/side_panel/encryptionKeySetup";
 import { Settings } from "@/side_panel/settings";
 import { Sync } from "@/side_panel/sync";
-import { Cred, decryptEntries } from "@/utils/credentials";
+import {
+  Cred,
+  CredsByUrl,
+  decryptAndCategorizeEntries,
+  KeypairCred,
+  SecretShareCred,
+} from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
 import { getEntries } from "@/utils/getEntries";
 import { useEffect } from "react";
@@ -38,47 +46,58 @@ export const Root = () => {
     ENCRYPTEDS,
     []
   );
-  const [modifiedEncrypteds, setModifiedEncrypteds] =
-    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
-  const [_creds, setCreds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
+  const [_credsByUrl, setCredsByUrl] = useBrowserStoreLocal<CredsByUrl>(
+    CREDS_BY_URL,
+    {}
+  );
+  const [pendingCreds, setPendingCreds] = useBrowserStoreLocal<Cred[]>(
+    PENDING_CREDS,
+    []
+  );
+  const [_keypairs, setKeypairs] = useBrowserStoreLocal<KeypairCred[]>(
+    KEYPAIRS,
+    []
+  );
+  const [_secretShares, setSecretShares] = useBrowserStoreLocal<
+    SecretShareCred[]
+  >(SECRET_SHARES, []);
 
   // query and convert on-chain entries to creds automatically
   useEffect(() => {
     if (!cryptoKey || step !== DASHBOARD) return;
 
-    if (numOnChain > encrypteds.filter((e) => e.onChain).length) {
+    console.log(
+      "[Main] numOnChain, encrypteds.length: ",
+      numOnChain,
+      encrypteds.length
+    );
+    if (numOnChain > encrypteds.length) {
       // query entries on chain
       const limit = numOnChain - encrypteds.length;
       const updatedEncrypteds = structuredClone(encrypteds);
 
       getEntries(pubkey as Hex, encrypteds.length, limit).then((newEntries) => {
+        console.log("[Main] getEntries: ", JSON.stringify(newEntries));
         updatedEncrypteds.push(...newEntries);
         setEncrypteds(updatedEncrypteds);
 
-        decryptEntries(cryptoKey as CryptoKey, updatedEncrypteds).then(
-          (decryptedCreds) => {
-            console.log("[Root] decryptedCreds: ", decryptedCreds);
-            setCreds(decryptedCreds);
-          }
-        );
+        decryptAndCategorizeEntries(
+          cryptoKey as CryptoKey,
+          updatedEncrypteds,
+          pendingCreds
+        ).then((decrypted) => {
+          console.log(
+            "[Main] decryptAndCategorizeEntries: ",
+            JSON.stringify(decrypted)
+          );
+          setCredsByUrl(decrypted.passwords);
+          setKeypairs(decrypted.keypairs);
+          setSecretShares(decrypted.secretShares);
+          setPendingCreds(decrypted.pendings);
+        });
       });
     }
   }, [numOnChain, cryptoKey, step]);
-
-  useEffect(() => {
-    if (!(modifiedEncrypteds && cryptoKey && step === DASHBOARD)) return;
-
-    decryptEntries(cryptoKey as CryptoKey, encrypteds).then(
-      (decryptedCreds) => {
-        console.log(
-          "[Root modifiedEncrypteds] decryptedCreds: ",
-          decryptedCreds
-        );
-        setCreds(decryptedCreds);
-        setModifiedEncrypteds(false);
-      }
-    );
-  }, [encrypteds, cryptoKey, modifiedEncrypteds, step]);
 
   return (
     <>

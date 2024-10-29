@@ -169,12 +169,12 @@ export const Header = () => {
           >
             Encrypt / Decrypt
           </DropdownMenuItem>
-          <DropdownMenuItem
+          {/* <DropdownMenuItem
             className="text-lg cursor-pointer p-2"
             onClick={() => setView("Encrypt message")}
           >
             Generate encryption key shares
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

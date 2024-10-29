@@ -1,48 +1,145 @@
 import { View } from "@/components/header";
 import { Button } from "@/components/ui/button";
+import { chain, dappUrl } from "@/config";
 import {
-  CREDENTIALS,
-  ENCRYPTEDS,
-  MODIFIED_ENCRYPTEDS,
-  PRIVATE_KEY,
-  PUBLIC_KEY,
+  KEYPAIRS,
+  PENDING_CREDS,
+  PUBKEY,
   VIEW,
 } from "@/constants/hookVariables";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
-import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
-import { createKeypairCred, Cred, isKeypairCred } from "@/utils/credentials";
-import { Encrypted } from "@/utils/encryption";
+import { createKeypairCred, Cred, KeypairCred } from "@/utils/credentials";
+import { getPublicKey } from "@/utils/getPublicKey";
 import { genKey } from "@/utils/openpgp";
 import { useEffect, useState } from "react";
+import { Hex } from "viem";
+
+const shorten = (s: string) => {
+  return s.slice(0, 6) + "..." + s.slice(s.length - 6);
+};
 
 export const GenerateKeypair = () => {
-  const [_jwk, _setJwk, cryptoKey] = useCryptoKeyManager();
-  const [encrypteds, setEncrypteds] = useBrowserStoreLocal<Encrypted[]>(
-    ENCRYPTEDS,
+  const [_pendingCreds, setPendingCreds] = useBrowserStoreLocal<Cred[]>(
+    PENDING_CREDS,
     []
   );
-  const [creds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
-  const [publicKey, setPublicKey] = useBrowserStoreLocal<string>(
-    PUBLIC_KEY,
-    ""
+  const [keypairs, setKeypairs] = useBrowserStoreLocal<KeypairCred[]>(
+    KEYPAIRS,
+    []
   );
-  const [privateKey, setPrivateKey] = useBrowserStoreLocal<string>(
-    PRIVATE_KEY,
-    ""
-  );
-  const [_modifiedEncrypteds, setModifiedEncrypteds] =
-    useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
+  const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
   const [_view, setView] = useBrowserStore<View>(VIEW, "New Credential");
-  const [keypairExists, setKeypairExists] = useState<boolean>(false);
+  const [publicKey, setPublicKey] = useState<string>("");
+  const [matches, setMatches] = useState<boolean>(false);
+  const [tabIds, setTabIds] = useState<number[]>([]);
+  const [sent, setSent] = useState<boolean>(false);
 
   useEffect(() => {
-    for (const cred of creds) {
-      if (isKeypairCred(cred)) {
-        setKeypairExists(true);
-        break;
+    if (!pubkey) return;
+    getPublicKey(pubkey as Hex).then((key) => {
+      if (key) setPublicKey(key);
+    });
+  }, [pubkey]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (sent) {
+        getPublicKey(pubkey as Hex).then((key) => {
+          if (key) setPublicKey(key);
+        });
       }
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [sent]);
+
+  useEffect(() => {
+    if (!keypairs || !publicKey) return;
+
+    if (keypairs.map((u) => u.publicKey).includes(publicKey)) {
+      setMatches(true);
     }
-  }, [creds]);
+  }, [keypairs, publicKey]);
+
+  const keypairExists = keypairs.length > 0;
+
+  if (matches) {
+    return (
+      <div className="flex flex-col gap-4 px-4 py-4">
+        <div className="flex flex-col items-center">
+          <h1 className="text-4xl mb-4">Generate Keypair</h1>
+          <div className="relative w-full flex items-center justify-center">
+            <div className="mt-2 flex flex-col items-center justify-center space-x-2 cursor-pointer">
+              <p className="text-xl border-red-700 p-4 my-4 border rounded-md">
+                Pubkey associated with your account: {shorten(publicKey)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const sendData = () => {
+    console.log("[sendData]: ", {
+      pubkey,
+      publicKeys: keypairs.map((u) => u.publicKey),
+    });
+    // message does not contain any unencrypted or sensitive data
+    const data = {
+      pubkey: keypairs[keypairs.length - 1].publicKey,
+      address: pubkey,
+      chainId: chain.id,
+    };
+
+    for (const tabId of tabIds) {
+      console.log(`Forwarding the following data to tabId: ${tabId}`, data);
+      chrome.tabs.sendMessage(tabId, { type: "FROM_EXTENSION", data });
+    }
+  };
+
+  const openTab = async () => {
+    const tab = await chrome.tabs.create({ url: `${dappUrl}/updatePublicKey` });
+    if (tab.id) setTabIds([...tabIds, tab.id]);
+  };
+
+  if (keypairExists) {
+    return (
+      <div className="flex flex-col gap-4 px-4 py-4">
+        <div className="flex flex-col items-center">
+          <h1 className="text-4xl mb-4">Generate Keypair</h1>
+          <div className="relative w-full flex items-center justify-center">
+            <div className="mt-2 flex flex-col items-center justify-center space-x-2 cursor-pointer">
+              <p className="text-xl border-red-700 p-4 my-4 border rounded-md">
+                Warning: Although you have generated a keypair (for encrypting
+                and decrypting messages), your public key is not yet available
+                for others to see. To make your public key available, you must
+                first send it to the blockchain.
+              </p>
+              <Button
+                variant="outline"
+                className="px-4 py-2 bg-slate-600 hover:bg-slate-600 hover:opacity-80 active:opacity-60"
+                onClick={openTab}
+              >
+                Open UpdatePublicKey page in dApp again
+              </Button>
+              <Button
+                variant="outline"
+                className="px-4 py-2 bg-slate-600 hover:bg-slate-600 hover:opacity-80 active:opacity-60"
+                onClick={() => {
+                  sendData();
+                  setSent(true);
+                }}
+                disabled={sent}
+              >
+                Send Data
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
@@ -50,30 +147,15 @@ export const GenerateKeypair = () => {
         <h1 className="text-4xl mb-4">Generate Keypair</h1>
         <div className="relative w-full flex items-center justify-center">
           <div className="mt-2 flex flex-col items-center justify-center space-x-2 cursor-pointer">
-            {keypairExists && (
-              <p className="text-xl border-red-700 p-4 my-4 border rounded-md">
-                Warning: Keyvault currently only allows 1 keypair at a time.
-                Accordingly, generating a new keypair will make the previous
-                keypair inaccessible.
-              </p>
-            )}
             <Button
               variant="outline"
               className="px-4 py-2 bg-slate-600 hover:bg-slate-600 hover:opacity-80 active:opacity-60"
               onClick={async () => {
-                const { keyId, publicKey, privateKey } = await genKey();
-                console.log({ keyId, publicKey, privateKey });
+                const key = await genKey();
+                const keyPairCred = await createKeypairCred(key);
 
-                const keyPairCred = await createKeypairCred(
-                  cryptoKey as CryptoKey,
-                  { keyId, privateKey, publicKey },
-                  encrypteds.length,
-                  -1
-                );
-
-                setEncrypteds((values) => [...values, keyPairCred.encrypted]);
-                setModifiedEncrypteds(true);
-
+                setPendingCreds((prev) => [...prev, keyPairCred]);
+                setKeypairs((prev) => [...prev, keyPairCred]);
                 setView("All Credentials");
               }}
             >

@@ -1,7 +1,10 @@
 import "@nomicfoundation/hardhat-toolbox";
 import { HardhatUserConfig, vars } from "hardhat/config";
 
-const PRIVATE_KEY = vars.get("PRIVATE_KEY", "Need to set PRIVATE_KEY");
+const PRIVATE_KEY = vars.get(
+  "PRIVATE_KEY",
+  "0x0000000000000000000000000000000000000000000000000000000000000000"
+);
 
 // This `LOCAL_PRIVATE_KEY` is for the Hardhat account #0 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 const LOCAL_PRIVATE_KEY =
