@@ -4,14 +4,16 @@
   "version": "0.1",
   "description": "A blockchain-based password manager.",
   "permissions": ["storage", "activeTab", "sidePanel", "tabs"],
+  "host_permissions": [
+    "http://localhost:5173/*",
+    "https://dev.blockchainkeyvault.com/*",
+    "https://dapp.blockchainkeyvault.com/*"
+  ],
   "externally_connectable": {
     "matches": [
       "http://localhost:5173/*",
-      "https://dapp.blockchainkeyvault.com/*",
       "https://dev.blockchainkeyvault.com/*",
-      "http://localhost:5173/UpdatePublicKey",
-      "https://dapp.blockchainkeyvault.com/UpdatePublicKey",
-      "https://dev.blockchainkeyvault.com/UpdatePublicKey"
+      "https://dapp.blockchainkeyvault.com/*"
     ]
   },
   "action": {
@@ -21,7 +23,6 @@
       "192": "icons/icon192.png"
     }
   },
-
   "side_panel": { "default_path": "side_panel/index.html" },
   "background": {
     "service_worker": "background.js"

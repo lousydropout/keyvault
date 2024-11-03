@@ -67,6 +67,7 @@ export default function App() {
     setCiphertext(encrypted.iv + encrypted.ciphertext);
   }, [isOkay]);
 
+  console.log("VITE_NETWORK: ", import.meta.env.VITE_NETWORK);
   return (
     <div className="flex flex-1 flex-col items-center mt-16 gap-16">
       <h1 className="text-slate-200 text-center text-4xl">
