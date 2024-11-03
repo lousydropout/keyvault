@@ -109,19 +109,23 @@ export const GenerateKeypair = () => {
         <div className="flex flex-col items-center">
           <h1 className="text-4xl mb-4">Generate Keypair</h1>
           <div className="relative w-full flex items-center justify-center">
-            <div className="mt-2 flex flex-col items-center justify-center space-x-2 cursor-pointer">
-              <p className="text-xl border-red-700 p-4 my-4 border rounded-md">
+            <div className="mt-2 flex flex-col gap-2 items-center justify-center space-x-2 cursor-pointer">
+              <p className="text-xl p-4 my-4">
+                Next, please publish your public key to the blockchain by
+                clicking on the buttons below.
+              </p>
+              {/* <p className="text-xl border-red-700 p-4 my-4 border rounded-md">
                 Warning: Although you have generated a keypair (for encrypting
                 and decrypting messages), your public key is not yet available
                 for others to see. To make your public key available, you must
                 first send it to the blockchain.
-              </p>
+              </p> */}
               <Button
                 variant="outline"
                 className="px-4 py-2 bg-slate-600 hover:bg-slate-600 hover:opacity-80 active:opacity-60"
                 onClick={openTab}
               >
-                Open UpdatePublicKey page in dApp again
+                Open UpdatePublicKey page in dApp
               </Button>
               <Button
                 variant="outline"
@@ -156,7 +160,6 @@ export const GenerateKeypair = () => {
 
                 setPendingCreds((prev) => [...prev, keyPairCred]);
                 setKeypairs((prev) => [...prev, keyPairCred]);
-                setView("All Credentials");
               }}
             >
               Generate

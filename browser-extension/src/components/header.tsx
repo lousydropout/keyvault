@@ -1,4 +1,3 @@
-import { AddCredIcon } from "@/components/icons/addCredIcon";
 import { CredsIcon } from "@/components/icons/credsIcon";
 import { SettingsIcon } from "@/components/icons/settingsIcon";
 import { SyncIcon } from "@/components/icons/syncIcon";
@@ -12,6 +11,7 @@ import { dappUrl } from "@/config";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { useState } from "react";
+import { MoreIcon } from "./icons/moreIcon";
 
 const isOpen = async (tabId: number) => {
   try {
@@ -147,7 +147,7 @@ export const Header = () => {
       <DropdownMenu>
         <DropdownMenuTrigger>
           <Icon view={view} label="Actions" onClick={() => {}}>
-            <AddCredIcon className="w-6 h-6" />
+            <MoreIcon className="w-6 h-6" />
           </Icon>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="flex flex-col gap-4 bg-slate-600 text-white border-slate-500 mr-8 p-4 z-50">

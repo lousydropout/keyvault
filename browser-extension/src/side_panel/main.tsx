@@ -33,7 +33,7 @@ import { getEntries } from "@/utils/getEntries";
 import { useEffect } from "react";
 import ReactDOM from "react-dom";
 import { Hex } from "viem";
-import { EncryptMessage } from "./encryptMessage";
+import { EncryptDecrypt } from "./encryptDecrypt";
 import { GenerateKeypair } from "./generateKeypair";
 
 export const Root = () => {
@@ -120,7 +120,7 @@ export const Root = () => {
           {view === "New Credential" && <AddCred />}
           {view === "Edit Credential" && <EditCred />}
           {view === "Generate Keypair" && <GenerateKeypair />}
-          {view === "Encrypt message" && <EncryptMessage />}
+          {view === "Encrypt message" && <EncryptDecrypt />}
         </>
       )}
     </>

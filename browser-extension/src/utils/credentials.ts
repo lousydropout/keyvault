@@ -9,6 +9,7 @@ export const CURRENT_VERSION: number = 1;
 export const PASSWORD_TYPE = 0;
 export const KEYPAIR_TYPE = 1;
 export const SECRET_SHARE_TYPE = 2;
+export const CONTACT_TYPE = 3;
 
 const baseIndex = ["version", "type", "id", "timestamp"];
 export const passwordIndex = [
@@ -27,10 +28,18 @@ export const secretShareIndex = [
   "secretTitle",
   "additionalInfo",
 ];
+export const contactIndex = [
+  ...baseIndex,
+  "name",
+  "address",
+  "method",
+  "additionalInfo",
+];
 
 const shortPw = createKeyShortener(passwordIndex);
 const shortKeypair = createKeyShortener(keypairIndex);
 const shortSecretShare = createKeyShortener(secretShareIndex);
+const shortContact = createKeyShortener(contactIndex);
 
 export type CredsByUrl = Record<string, PasswordCred[][]>;
 export type CredsMapping = Record<string, [string, number]>;
@@ -43,14 +52,13 @@ export type CredsMapping = Record<string, [string, number]>;
  */
 export type BaseCred = {
   version: number;
-  id: string | number; // number if PasswordCred else string
+  id: number;
   type: number;
   timestamp: number;
 };
 
 export type PasswordBaseCred = BaseCred & {
   type: 0; // PASSWORD_TYPE;
-  id: number;
   isDeleted: boolean;
 };
 
@@ -71,20 +79,25 @@ export type PasswordCred = PasswordAdditionCred | PasswordDeletionCred;
 
 export type KeypairCred = BaseCred & {
   type: 1; // KEYPAIR_TYPE;
-  id: number;
   publicKey: string;
   privateKey: string;
 };
 export type SecretShareCred = BaseCred & {
   type: 2; // SECRET_SHARE_TYPE;
-  id: string;
   share: string;
   for: string;
   secretTitle: string;
   additionalInfo: string;
 };
+export type ContactCred = BaseCred & {
+  type: 3; // CONTACT_TYPE;
+  name: string;
+  address: string;
+  method: string;
+  additionalInfo: string;
+};
 
-export type Cred = PasswordCred | KeypairCred | SecretShareCred;
+export type Cred = PasswordCred | KeypairCred | SecretShareCred | ContactCred;
 
 export type Unencrypted = {
   passwords: PasswordCred[];
@@ -153,6 +166,26 @@ export const basePasswordCred: PasswordAdditionCred = {
   isDeleted: false,
   id: -1,
   timestamp: Date.now(),
+};
+
+export const isContactCred = (obj: any): obj is ContactCred => {
+  if (!isBaseCred(obj)) return false;
+
+  return (
+    obj.type === CONTACT_TYPE &&
+    "name" in obj &&
+    typeof obj.name === "string" &&
+    obj.name !== null &&
+    "address" in obj &&
+    typeof obj.address === "string" &&
+    obj.address !== null &&
+    "method" in obj &&
+    typeof obj.method === "string" &&
+    obj.method !== null &&
+    "additionalInfo" in obj &&
+    typeof obj.additionalInfo === "string" &&
+    obj.additionalInfo !== null
+  );
 };
 
 /**
@@ -304,6 +337,7 @@ export const encryptEntries = async (
     if (u.type === PASSWORD_TYPE) return shortPw.shorten(u);
     if (u.type === KEYPAIR_TYPE) return shortKeypair.shorten(u);
     if (u.type === SECRET_SHARE_TYPE) return shortSecretShare.shorten(u);
+    if (u.type === CONTACT_TYPE) return shortContact.shorten(u);
     throw new Error(`Unrecognized type: '${JSON.stringify(u)}'`);
   });
   return encrypt(cryptoKey, shortened as object[]);
@@ -326,6 +360,7 @@ export const decryptEntry = async (
     if (u[1] === PASSWORD_TYPE) return shortPw.recover(u);
     if (u[1] === KEYPAIR_TYPE) return shortKeypair.recover(u);
     if (u[1] === SECRET_SHARE_TYPE) return shortSecretShare.recover(u);
+    if (u[1] === CONTACT_TYPE) return shortContact.recover(u);
   }) as Cred[];
 
   return decrypteds.filter((decrypted) => isValidCred(decrypted));
@@ -381,14 +416,22 @@ export const decryptAndCategorizeEntries = async (
   passwords: CredsByUrl;
   keypairs: KeypairCred[];
   secretShares: SecretShareCred[];
+  contacts: ContactCred[];
   pendings: Cred[];
 }> => {
   const result: {
     passwords: CredsByUrl;
     keypairs: KeypairCred[];
     secretShares: SecretShareCred[];
+    contacts: ContactCred[];
     pendings: Cred[];
-  } = { passwords: {}, keypairs: [], secretShares: [], pendings: [] };
+  } = {
+    passwords: {},
+    keypairs: [],
+    secretShares: [],
+    contacts: [],
+    pendings: [],
+  };
 
   const _creds = await decryptEntries(cryptoKey, encrypteds);
   _creds.push(...pendings);
@@ -405,6 +448,8 @@ export const decryptAndCategorizeEntries = async (
       result.keypairs.push(cred);
     } else if (isSecretShareCred(cred)) {
       result.secretShares.push(cred);
+    } else if (isContactCred(cred)) {
+      result.contacts.push(cred);
     } else {
       console.log(
         `[decryptAndCategorizeEntries] Invalid/unrecognized cred: ${cred}`
@@ -415,6 +460,7 @@ export const decryptAndCategorizeEntries = async (
   result.passwords = getCredsByUrl(passwords);
   result.keypairs = result.keypairs.sort(byTimestamp);
   result.secretShares = result.secretShares.sort(byTimestamp);
+  result.contacts = result.contacts.sort(byTimestamp);
   result.pendings = prunePendingCreds(_creds, pendings);
 
   return result;
