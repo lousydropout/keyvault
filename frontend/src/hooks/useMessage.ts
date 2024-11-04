@@ -51,6 +51,7 @@ export function isContext(obj: any): obj is Context {
 
 export const useMessage = (): Context | null => {
   const [context, setContext] = useState<Context | null>(null);
+  console.log("[useMessage] context: ", JSON.stringify(context));
 
   useEffect(() => {
     // handler for messages from chrome extension via contentScript

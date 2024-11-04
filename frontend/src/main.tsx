@@ -1,13 +1,13 @@
+import { Footer } from "@/components/footer.tsx";
+import { Header } from "@/components/header.tsx";
+import "@/index.css";
+import { Web3ModalProvider } from "@/provider.tsx";
+import { TermsAndConditions } from "@/terms.tsx";
+import UpdatePublicKey from "@/UpdatePublicKey.tsx";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App.tsx";
-import { Footer } from "./components/footer.tsx";
-import { Header } from "./components/header.tsx";
-import "./index.css";
-import { Web3ModalProvider } from "./provider.tsx";
-import { TermsAndConditions } from "./terms.tsx";
-import UpdatePublicKey from "./UpdatePublicKey.tsx";
 
 const router = createBrowserRouter([
   {
