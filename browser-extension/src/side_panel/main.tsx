@@ -18,7 +18,9 @@ import { PubkeyRequest } from "@/side_panel/PubkeyRequest";
 import { AddCred } from "@/side_panel/addCred";
 import { Credentials } from "@/side_panel/credentials";
 import { EditCred } from "@/side_panel/editCred";
+import { EncryptDecrypt } from "@/side_panel/encryptDecrypt";
 import { EncryptionKeySetup } from "@/side_panel/encryptionKeySetup";
+import { GenerateKeypair } from "@/side_panel/generateKeypair";
 import { Settings } from "@/side_panel/settings";
 import { Sync } from "@/side_panel/sync";
 import {
@@ -33,8 +35,6 @@ import { getEntries } from "@/utils/getEntries";
 import { useEffect } from "react";
 import ReactDOM from "react-dom";
 import { Hex } from "viem";
-import { EncryptDecrypt } from "./encryptDecrypt";
-import { GenerateKeypair } from "./generateKeypair";
 
 export const Root = () => {
   const [step, setStep] = useBrowserStoreLocal<number>(STEP, WELCOME);

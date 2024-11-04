@@ -40,10 +40,8 @@ function handleMessage(msg) {
   if (message.type !== "FROM_EXTENSION") return;
 
   if (message.action === "fillCredentials") {
-    console.log("[contentScript] handlefillCredential: ", message);
     handlefillCredential(message);
   } else if ("data" in message) {
-    console.log("[contentScript] postMessage: ", message);
     window.postMessage(message);
   }
 }

@@ -6,9 +6,9 @@ import { KeypairCred } from "@/utils/credentials";
 import { importPrivateKey } from "@/utils/openpgp";
 import { PrivateKey } from "openpgp";
 
+import { DecryptMessage } from "@/side_panel/decrypt";
+import { EncryptMessage } from "@/side_panel/encrypt";
 import { useEffect, useState } from "react";
-import { DecryptMessage } from "./decrypt";
-import { EncryptMessage } from "./encrypt";
 
 export const EncryptDecrypt = () => {
   const [creds] = useBrowserStoreLocal<KeypairCred[]>(KEYPAIRS, []);

@@ -7,7 +7,7 @@ import {
   PasswordCred,
   passwordIndex,
 } from "@/utils/credentials";
-import { createKeyShortener } from "./utility";
+import { createKeyShortener } from "@/utils/utility";
 
 const w: PasswordCred = {
   version: CURRENT_VERSION,

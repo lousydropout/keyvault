@@ -1,4 +1,5 @@
 import { CredsIcon } from "@/components/icons/credsIcon";
+import { MoreIcon } from "@/components/icons/moreIcon";
 import { SettingsIcon } from "@/components/icons/settingsIcon";
 import { SyncIcon } from "@/components/icons/syncIcon";
 import {
@@ -11,7 +12,6 @@ import { dappUrl } from "@/config";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { useState } from "react";
-import { MoreIcon } from "./icons/moreIcon";
 
 const isOpen = async (tabId: number) => {
   try {
