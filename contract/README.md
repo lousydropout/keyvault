@@ -103,3 +103,31 @@ numEntries = await keyvault.numEntries(
   "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 );
 ```
+
+## Credential Storage
+
+The `Keyvault.sol` smart contract is designed to store encrypted blobs of data for each user, identified by their Ethereum address. This data represents a user's credentials, but not in a straightforward way. Here's a breakdown of how credential chains are processed and stored:
+
+### Credential Chains
+
+A **credential chain** is the history of a single credential. It starts with the creation of a credential (e.g., a password for a website), which is assigned a unique `id`. Any subsequent updates (e.g., changing the password) or deletion creates a new record that shares the same `id` but has a new `timestamp`. This forms a "chain" of credential records, allowing for a complete history of changes.
+
+### Compression and Encryption
+
+Before being stored on the smart contract, credentials go through several steps:
+
+1.  **Compression (Shortening):** To save space and reduce transaction costs, each credential object is converted into a compact array format using the `createKeyShortener` utility. This "shortening" process removes keys and trims trailing `null` or `undefined` values.
+
+2.  **Bundling:** Multiple shortened credentials are bundled together into an array.
+
+3.  **Serialization and Encryption:** The bundle of credentials is then serialized using `msgpack` and encrypted locally on the client-side using `AES-GCM`.
+
+The final output is an encrypted blob containing multiple credential records from various chains.
+
+### On-Chain Storage
+
+Each of these encrypted blobs is stored as a single string in the `entries` mapping in the smart contract. The contract maintains an array of these strings for each user (`mapping(address => string[]) private entries;`).
+
+The `numEntries` mapping tracks the number of encrypted blobs a user has stored. When new credentials are to be added, they are encrypted and appended to this array via the `storeEntry` function.
+
+The `resetEntries` function allows a user to set their `numEntries` count back to zero. This doesn't clear the stored data but allows the user to start overwriting their existing encrypted entries from the beginning, providing a mechanism for a fresh start.
