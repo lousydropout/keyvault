@@ -54,7 +54,7 @@ export default function App() {
       toast({ description: "Received data." });
 
       setIsOkay(
-        account?.address === message?.address && chainId === message?.chainId
+        account?.address?.toLowerCase() === message?.address?.toLowerCase() && chainId === message?.chainId
       );
     }
   }, [message, account]);
@@ -98,7 +98,7 @@ export default function App() {
             </>
           ) : (
             <p className="text-slate-300 text-lg text-left">
-              {account?.address !== message?.address ? (
+              {account?.address?.toLowerCase() !== message?.address?.toLowerCase() ? (
                 <p className="text-red-300">
                   Error: The data you sent is for a different account:{" "}
                   {message?.address}
