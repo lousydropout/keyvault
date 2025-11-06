@@ -223,10 +223,30 @@ export const encrypt = async (
  * Parses an encrypted text string into its initialization vector (IV) and ciphertext components.
  *
  * @param encryptedText - The encrypted text string to be parsed. The first 16 characters are assumed to be the IV, and the rest is the ciphertext.
- * @returns An object containing the IV, ciphertext, and a flag indicating the data is on-chain.
+ * @returns An object containing the IV and ciphertext.
+ * @throws {Error} If the encrypted text is empty, too short, or has an invalid IV length.
  */
 export const parseEncryptedText = (encryptedText: string): Encrypted => {
+  // Validate non-empty input
+  if (!encryptedText || encryptedText.length === 0) {
+    throw new Error("Encrypted text cannot be empty");
+  }
+
+  // Validate minimum length (must be at least 16 characters for IV)
+  if (encryptedText.length < 16) {
+    throw new Error(
+      `Encrypted text is too short (must be at least 16 characters for IV, got ${encryptedText.length})`
+    );
+  }
+
+  // Extract IV (first 16 characters) and validate length
   const iv = encryptedText.slice(0, 16);
+  if (iv.length !== 16) {
+    throw new Error(
+      `Invalid IV length (expected 16 base64 characters, got ${iv.length})`
+    );
+  }
+
   const ciphertext = encryptedText.slice(16);
   return { iv, ciphertext };
 };

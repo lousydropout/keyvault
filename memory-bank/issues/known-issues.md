@@ -17,17 +17,20 @@
 - Implement proper array clearing, OR
 - Add events to track resets
 
-### 2. IV Parsing Vulnerability
-**Location**: `browser-extension/src/utils/encryption.ts:228-232`
+### 2. IV Parsing Vulnerability ✅ RESOLVED
+**Location**: `browser-extension/src/utils/encryption.ts:228-252`
 
 **Issue**: Hardcoded 16-character slice for IV assumes fixed base64 length without validation.
 
 **Impact**: High - Could cause decryption failures with malformed data
 
-**Recommendation**:
-- Validate IV length
-- Add error handling for malformed encrypted text
-- Consider storing IV length or using delimiter
+**Status**: ✅ **RESOLVED** - Fixed with validation and error handling
+
+**Resolution**:
+- ✅ Added validation for IV length (exactly 16 base64 characters)
+- ✅ Added error handling for malformed encrypted text
+- ✅ Added descriptive error messages for all failure cases
+- ✅ Added comprehensive unit tests (9 new tests, all passing)
 
 ### 3. Error Handling in Decryption
 **Location**: `browser-extension/src/utils/credentials.ts:353-367`
@@ -187,7 +190,7 @@
 
 | Priority | Count | Status |
 |----------|-------|--------|
-| Critical | 3 | Needs attention |
+| Critical | 2 | 1 resolved, 2 remaining |
 | High | 3 | Should address soon |
 | Medium | 4 | Plan for future |
 | Low | 3 | Nice to have |
