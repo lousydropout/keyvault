@@ -72,11 +72,12 @@ Users may **lose credentials without knowing** if decryption fails silently. Cur
 
 ---
 
-## Task 2: Add React Error Boundaries (HIGH - Production Readiness)
+## Task 2: Add React Error Boundaries (HIGH - Production Readiness) ✅ COMPLETED
 
 **Priority**: 🟠 High  
 **Estimated Effort**: 2-3 hours  
-**Files**: `frontend/src/` (new error boundary components)
+**Status**: ✅ **COMPLETED**  
+**Files**: `frontend/src/components/ErrorBoundary.tsx`, `frontend/src/main.tsx`, `frontend/src/App.tsx`, `frontend/src/UpdatePublicKey.tsx`, `frontend/src/Connect.tsx`
 
 ### Why This Task?
 
@@ -87,19 +88,51 @@ Currently, **any error in the React app crashes the entire UI**, providing a poo
 - **Allow partial app functionality** even if one component fails
 - **Improve production stability**
 
-### What Needs to Be Done
+### What Was Done
 
-1. Create error boundary component(s)
-2. Wrap major sections (App, wallet connection, transaction submission)
-3. Add error logging/reporting
-4. Provide recovery options (retry, reload, contact support)
-5. Test error scenarios
+1. ✅ Created `ErrorBoundary` class component with error catching, state management, and fallback UI
+2. ✅ Wrapped major sections (App, UpdatePublicKey, Connect, RouterProvider, Web3ModalProvider)
+3. ✅ Added error logging via `console.error` with component stack traces
+4. ✅ Provided recovery options (Retry button, Reload button)
+5. ✅ Added DEV mode stack trace display in collapsible `<details>` element
+6. ✅ Created `withErrorBoundary` helper function for convenience
+7. ✅ Added global `unhandledrejection` handler for async error logging
+8. ✅ Created comprehensive test suite (10 tests, all passing)
+
+### Implementation Details
+
+- **ErrorBoundary Component** (`frontend/src/components/ErrorBoundary.tsx`):
+
+  - Class component with `getDerivedStateFromError` and `componentDidCatch`
+  - State: `{ hasError: boolean; error?: Error }`
+  - Fallback UI with Retry/Reload buttons
+  - DEV mode shows stack trace, PROD hides it
+  - Custom fallback prop support
+
+- **Integration Points**:
+
+  - `main.tsx`: Wrapped RouterProvider and Web3ModalProvider
+  - `App.tsx`: Wrapped main transaction flow
+  - `UpdatePublicKey.tsx`: Wrapped public key update UI
+  - `Connect.tsx`: Wrapped wallet connection dialog
+
+- **Global Async Error Handler**:
+
+  - Added `window.addEventListener("unhandledrejection", ...)` in `main.tsx`
+  - Logs unhandled promise rejections (async/network/wallet errors)
+
+- **Testing**:
+  - Test suite: `frontend/src/components/ErrorBoundary.test.tsx`
+  - 10 tests covering all functionality
+  - Uses Vitest with React Testing Library and jsdom
+  - All tests passing ✅
 
 ### Impact
 
 - **High**: Significantly improves production stability
 - **User-facing**: Better error experience instead of blank crashes
 - **Production**: Essential for production deployment
+- **Testing**: Comprehensive test coverage ensures reliability
 
 ---
 
@@ -272,21 +305,21 @@ Autofill is a **core feature** of a password manager, and the current implementa
 | Task                         | Priority | Effort | Impact      | Type                 | Status       |
 | ---------------------------- | -------- | ------ | ----------- | -------------------- | ------------ |
 | 1. IV Parsing Fix            | Critical | 2-4h   | High        | Security/Reliability | ✅ COMPLETED |
-| 2. Error Boundaries          | High     | 2-3h   | High        | Production Readiness |              |
+| 2. Error Boundaries          | High     | 2-3h   | High        | Production Readiness | ✅ COMPLETED |
 | 3. Decryption Error Handling | High     | 3-5h   | High        | User Experience      |              |
 | 4. Autofill Refactor         | High     | 6-8h   | High        | Core Feature         |              |
 | 5. Console Logging           | Medium   | 2-3h   | Medium      | Production Readiness |              |
 | 6. Test Coverage             | Medium   | 8-12h  | Medium-High | Code Quality         |              |
 
 **Total Estimated Effort**: 23-35 hours  
-**Completed**: 1 task (2-4h)
+**Completed**: 2 tasks (4-7h)
 
 ## Recommended Order
 
 ### Phase 1: Critical Fixes (Security & Stability)
 
 1. ✅ **Task 1** (IV Parsing) - Quick security fix (2-4h) - **COMPLETED**
-2. **Task 2** (Error Boundaries) - Quick production improvement (2-3h)
+2. ✅ **Task 2** (Error Boundaries) - Quick production improvement (2-3h) - **COMPLETED**
 3. **Task 3** (Decryption Errors) - Important user experience (3-5h)
 
 ### Phase 2: Core Features

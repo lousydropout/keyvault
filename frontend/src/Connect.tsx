@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { formatAddress } from "@/lib/utils";
 import { WalletConnector } from "@/WalletConnector";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
@@ -36,31 +37,33 @@ export const Connect = () => {
         <Button className="border-slate-500">Connect</Button>
       </DialogTrigger>
       <DialogContent className="rounded-lg">
-        <DialogHeader>
-          <DialogTitle className="text-center">Connect</DialogTitle>
-          <DialogDescription className="flex flex-col gap-4 pt-4 w-1/2 mx-auto">
-            {connectors
-              .filter((connector) => allowedWallets.has(connector.id))
-              .map((connector) => (
-                <WalletConnector
-                  key={connector.uid}
-                  connector={connector}
-                  onClick={() => {
-                    walletConnect(
-                      { connector },
-                      {
-                        onSettled: () => {
-                          document
-                            .getElementById("connect-wallet-modal")
-                            ?.click();
-                        },
-                      }
-                    );
-                  }}
-                />
-              ))}
-          </DialogDescription>
-        </DialogHeader>
+        <ErrorBoundary>
+          <DialogHeader>
+            <DialogTitle className="text-center">Connect</DialogTitle>
+            <DialogDescription className="flex flex-col gap-4 pt-4 w-1/2 mx-auto">
+              {connectors
+                .filter((connector) => allowedWallets.has(connector.id))
+                .map((connector) => (
+                  <WalletConnector
+                    key={connector.uid}
+                    connector={connector}
+                    onClick={() => {
+                      walletConnect(
+                        { connector },
+                        {
+                          onSettled: () => {
+                            document
+                              .getElementById("connect-wallet-modal")
+                              ?.click();
+                          },
+                        }
+                      );
+                    }}
+                  />
+                ))}
+            </DialogDescription>
+          </DialogHeader>
+        </ErrorBoundary>
       </DialogContent>
     </Dialog>
   );

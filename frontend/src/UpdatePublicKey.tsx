@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastAction } from "@/components/ui/toast";
 import { Toaster } from "@/components/ui/toaster";
 import { abi, address, client } from "@/config";
@@ -65,68 +66,70 @@ export default function UpdatePublicKey() {
   }, [message, account]);
 
   return (
-    <div className="flex flex-1 flex-col items-center mt-16 gap-16">
-      <h1 className="text-slate-200 text-center text-4xl">
-        Let's publish your public key for others to see!
-      </h1>
+    <ErrorBoundary>
+      <div className="flex flex-1 flex-col items-center mt-16 gap-16">
+        <h1 className="text-slate-200 text-center text-4xl">
+          Let's publish your public key for others to see!
+        </h1>
 
-      {((!submitted && message) || error) && (
-        <>
-          <p className="text-slate-300 text-lg text-left">Received data</p>
+        {((!submitted && message) || error) && (
+          <>
+            <p className="text-slate-300 text-lg text-left">Received data</p>
 
-          {isOkay ? (
-            <>
-              <Button
-                variant="outline"
-                disabled={isPending || message?.pubkey === undefined}
-                onClick={async () => {
-                  console.log("submitting: ", message?.pubkey);
-                  console.log("submitting to: ", address);
-                  if (message?.pubkey) await submit(message?.pubkey);
-                }}
-              >
-                Push data
-              </Button>
-              {error ? <p className="text-red-400">{error.message}</p> : <></>}
-            </>
-          ) : (
-            <p className="text-slate-300 text-lg text-left">
-              {account?.address?.toLowerCase() !== message?.address?.toLowerCase() ? (
-                <p className="text-red-300">
-                  Error: The data you sent is for a different account:{" "}
-                  {message?.address}
-                </p>
-              ) : (
-                <></>
-              )}
-              {chainId !== message?.chainId ? (
-                <p className="text-red-300">
-                  Error: The data you sent is for a different chain:{" "}
-                  {message?.chainId}
-                </p>
-              ) : (
-                <></>
-              )}
-            </p>
-          )}
-        </>
-      )}
-      {!submitted && !message && (
-        <p className="text-slate-300 text-lg text-left">
-          Waiting for data. . .
-        </p>
-      )}
-      {submitted && isSuccess && (
-        <p className="text-slate-300 text-lg text-left">
-          Submitted, please close this tab.
-        </p>
-      )}
+            {isOkay ? (
+              <>
+                <Button
+                  variant="outline"
+                  disabled={isPending || message?.pubkey === undefined}
+                  onClick={async () => {
+                    console.log("submitting: ", message?.pubkey);
+                    console.log("submitting to: ", address);
+                    if (message?.pubkey) await submit(message?.pubkey);
+                  }}
+                >
+                  Push data
+                </Button>
+                {error ? <p className="text-red-400">{error.message}</p> : <></>}
+              </>
+            ) : (
+              <p className="text-slate-300 text-lg text-left">
+                {account?.address?.toLowerCase() !== message?.address?.toLowerCase() ? (
+                  <p className="text-red-300">
+                    Error: The data you sent is for a different account:{" "}
+                    {message?.address}
+                  </p>
+                ) : (
+                  <></>
+                )}
+                {chainId !== message?.chainId ? (
+                  <p className="text-red-300">
+                    Error: The data you sent is for a different chain:{" "}
+                    {message?.chainId}
+                  </p>
+                ) : (
+                  <></>
+                )}
+              </p>
+            )}
+          </>
+        )}
+        {!submitted && !message && (
+          <p className="text-slate-300 text-lg text-left">
+            Waiting for data. . .
+          </p>
+        )}
+        {submitted && isSuccess && (
+          <p className="text-slate-300 text-lg text-left">
+            Submitted, please close this tab.
+          </p>
+        )}
 
-      {/* <pre className="text-slate-200 text-lg">
-        {JSON.stringify(message, null, 2)}
-      </pre> */}
+        {/* <pre className="text-slate-200 text-lg">
+          {JSON.stringify(message, null, 2)}
+        </pre> */}
 
-      <Toaster />
-    </div>
+        <Toaster />
+      </div>
+    </ErrorBoundary>
   );
 }

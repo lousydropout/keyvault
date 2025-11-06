@@ -210,6 +210,28 @@ bun dev               # Build extension for both Firefox and Chromium
 bun test              # Run test suite
 ```
 
+### Testing
+
+**Important**: This monorepo uses different test runners for different components:
+
+- **Browser Extension**: Uses Bun's built-in test runner (unit tests)
+- **Frontend**: Uses Vitest with jsdom (React component tests)
+
+**Running Tests**:
+
+```bash
+# From root - runs all tests with appropriate runners
+bun run test
+
+# Or run tests individually:
+cd browser-extension && bun test        # Browser extension tests
+cd frontend && bun run test              # Frontend tests (uses vitest)
+
+# Note: Running `bun test` at root will discover all test files
+# but frontend tests will fail because they need jsdom.
+# Always use `bun run test` from root instead.
+```
+
 ## Troubleshooting
 
 ### Common Issues

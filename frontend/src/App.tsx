@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastAction } from "@/components/ui/toast";
 import { Toaster } from "@/components/ui/toaster";
 import { abi, address, client } from "@/config";
@@ -69,71 +70,73 @@ export default function App() {
 
   console.log("VITE_NETWORK: ", import.meta.env.VITE_NETWORK);
   return (
-    <div className="flex flex-1 flex-col items-center mt-16 gap-16">
-      <h1 className="text-slate-200 text-center text-4xl">
-        Let's update your on-chain data!
-      </h1>
+    <ErrorBoundary>
+      <div className="flex flex-1 flex-col items-center mt-16 gap-16">
+        <h1 className="text-slate-200 text-center text-4xl">
+          Let's update your on-chain data!
+        </h1>
 
-      {((!submitted && message) || error) && (
-        <>
-          <p className="text-slate-300 text-lg text-left">Received data</p>
+        {((!submitted && message) || error) && (
+          <>
+            <p className="text-slate-300 text-lg text-left">Received data</p>
 
-          {isOkay ? (
-            <>
+            {isOkay ? (
+              <>
+                <p className="text-slate-300 text-lg text-left">
+                  Looks like you have an update to push on-chain.
+                </p>
+                <Button
+                  variant="outline"
+                  disabled={isPending || ciphertext === ""}
+                  onClick={async () => {
+                    console.log("submitting: ", ciphertext);
+                    console.log("submitting to: ", address);
+                    await submit(ciphertext);
+                  }}
+                >
+                  Push data
+                </Button>
+                {error ? <p className="text-red-400">{error.message}</p> : <></>}
+              </>
+            ) : (
               <p className="text-slate-300 text-lg text-left">
-                Looks like you have an update to push on-chain.
+                {account?.address?.toLowerCase() !== message?.address?.toLowerCase() ? (
+                  <p className="text-red-300">
+                    Error: The data you sent is for a different account:{" "}
+                    {message?.address}
+                  </p>
+                ) : (
+                  <></>
+                )}
+                {chainId !== message?.chainId ? (
+                  <p className="text-red-300">
+                    Error: The data you sent is for a different chain:{" "}
+                    {message?.chainId}
+                  </p>
+                ) : (
+                  <></>
+                )}
               </p>
-              <Button
-                variant="outline"
-                disabled={isPending || ciphertext === ""}
-                onClick={async () => {
-                  console.log("submitting: ", ciphertext);
-                  console.log("submitting to: ", address);
-                  await submit(ciphertext);
-                }}
-              >
-                Push data
-              </Button>
-              {error ? <p className="text-red-400">{error.message}</p> : <></>}
-            </>
-          ) : (
-            <p className="text-slate-300 text-lg text-left">
-              {account?.address?.toLowerCase() !== message?.address?.toLowerCase() ? (
-                <p className="text-red-300">
-                  Error: The data you sent is for a different account:{" "}
-                  {message?.address}
-                </p>
-              ) : (
-                <></>
-              )}
-              {chainId !== message?.chainId ? (
-                <p className="text-red-300">
-                  Error: The data you sent is for a different chain:{" "}
-                  {message?.chainId}
-                </p>
-              ) : (
-                <></>
-              )}
-            </p>
-          )}
-        </>
-      )}
-      {!submitted && !message && (
-        <p className="text-slate-300 text-lg text-left">
-          Waiting for data. . .
-        </p>
-      )}
-      {submitted && isSuccess && (
-        <p className="text-slate-300 text-lg text-left">
-          Submitted, please close this tab.
-        </p>
-      )}
+            )}
+          </>
+        )}
+        {!submitted && !message && (
+          <p className="text-slate-300 text-lg text-left">
+            Waiting for data. . .
+          </p>
+        )}
+        {submitted && isSuccess && (
+          <p className="text-slate-300 text-lg text-left">
+            Submitted, please close this tab.
+          </p>
+        )}
 
-      {/* <pre className="text-slate-200 text-lg">
-        {JSON.stringify(message, null, 2)}
-      </pre> */}
+        {/* <pre className="text-slate-200 text-lg">
+          {JSON.stringify(message, null, 2)}
+        </pre> */}
 
-      <Toaster />
-    </div>
+        <Toaster />
+      </div>
+    </ErrorBoundary>
   );
 }
