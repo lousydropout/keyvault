@@ -1,0 +1,89 @@
+# Keyvault Priority Task List
+
+## Task List (Priority Order)
+
+### Task 1: Fix IV Parsing Vulnerability
+- **Priority**: 🔴 Critical
+- **Effort**: 2-4 hours
+- **Type**: Security/Reliability
+- **Files**: `browser-extension/src/utils/encryption.ts`
+
+### Task 2: Add React Error Boundaries
+- **Priority**: 🟠 High
+- **Effort**: 2-3 hours
+- **Type**: Production Readiness
+- **Files**: `frontend/src/` (new error boundary components)
+
+### Task 3: Improve Error Handling in Decryption
+- **Priority**: 🟠 High
+- **Effort**: 3-5 hours
+- **Type**: User Experience
+- **Files**: `browser-extension/src/utils/credentials.ts`, related UI components
+
+### Task 4: Refactor Autofill Logic (Explicit User Fill Flow)
+- **Priority**: 🟠 High
+- **Effort**: 6-8 hours
+- **Type**: Core Feature
+- **Files**: 
+  - `browser-extension/src/scripts/contentScript.chrome.js`
+  - `browser-extension/src/scripts/contentScript.firefox.js`
+  - `browser-extension/src/scripts/background.chrome.ts`
+  - `browser-extension/src/scripts/background.firefox.ts`
+  - `browser-extension/src/side_panel/currentPage.tsx`
+
+### Task 5: Remove/Guard Console Logging in Production
+- **Priority**: 🟡 Medium
+- **Effort**: 2-3 hours
+- **Type**: Production Readiness
+- **Files**: Multiple files in `browser-extension/src/utils/`
+
+### Task 6: Expand Test Coverage
+- **Priority**: 🟡 Medium
+- **Effort**: 8-12 hours (can be done incrementally)
+- **Type**: Code Quality
+
+---
+
+## Execution Phases
+
+### Phase 1: Critical Fixes (Security & Stability)
+1. Task 1 - IV Parsing Fix (2-4h)
+2. Task 2 - Error Boundaries (2-3h)
+3. Task 3 - Decryption Error Handling (3-5h)
+
+**Phase 1 Total**: 7-12 hours
+
+### Phase 2: Core Features
+4. Task 4 - Autofill Refactor (6-8h)
+
+**Phase 2 Total**: 6-8 hours
+
+### Phase 3: Production Polish
+5. Task 5 - Console Logging (2-3h)
+6. Task 6 - Test Coverage (8-12h)
+
+**Phase 3 Total**: 10-15 hours
+
+---
+
+## Quick Reference
+
+| # | Task | Priority | Effort | Impact |
+|---|------|----------|--------|--------|
+| 1 | IV Parsing Fix | Critical | 2-4h | High |
+| 2 | Error Boundaries | High | 2-3h | High |
+| 3 | Decryption Error Handling | High | 3-5h | High |
+| 4 | Autofill Refactor | High | 6-8h | High |
+| 5 | Console Logging | Medium | 2-3h | Medium |
+| 6 | Test Coverage | Medium | 8-12h | Medium-High |
+
+**Total Estimated Effort**: 23-35 hours
+
+---
+
+## Quick Wins
+
+Tasks 1, 2, and 5 are relatively quick (2-4 hours each) and provide immediate value.
+
+For detailed information about each task, see [PRIORITY-TASKS.md](./PRIORITY-TASKS.md).
+
