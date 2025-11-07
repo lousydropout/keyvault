@@ -109,6 +109,58 @@ Background scripts and content scripts:
 - **Production**: `bun build` (Chrome) or `bun build-firefox`
 - **Manifests**: Separate manifests for Chrome and Firefox in `/manifests/`
 
+### Chrome Extension Build Requirements
+
+Chrome extensions have specific requirements that differ from standard web applications:
+
+#### 1. Asset Path Configuration
+- **Issue**: Chrome extensions require relative paths for assets, not absolute paths
+- **Solution**: Set `base: "./"` in `vite.config.ts` to generate relative paths
+- **Impact**: Without this, the side panel HTML will fail to load assets (CSS, JS) with 404 errors
+
+#### 2. Service Worker ES Module Limitations
+- **Issue**: Chrome service workers (background.js) cannot use ES module `import` statements
+- **Error**: "Cannot use import statement outside a module"
+- **Solution**: Custom Vite plugin (`inlineImportsInBackground`) that:
+  - Detects ES module imports in `background.js` after build
+  - Inlines imported modules by reading the imported files
+  - Wraps inlined code in an IIFE (Immediately Invoked Function Expression) to prevent variable name conflicts
+  - Extracts only the needed exports via destructuring
+- **Implementation**: Located in `vite.config.ts` - processes `dist/background.js` in the `writeBundle` hook
+
+#### 3. Variable Name Conflicts
+- **Issue**: When inlining modules, minified variable names can conflict (e.g., both logger and background script using `n`)
+- **Solution**: IIFE wrapper scopes the inlined module's variables, preventing conflicts with the main script
+- **Pattern**: 
+  ```javascript
+  const {exportedName: localName} = (function(){
+    // inlined module code
+    return {exportedName: internalVar};
+  })();
+  ```
+
+#### 4. Build Output Format
+- **Format**: ES modules for side panel (loaded in HTML context)
+- **Format**: Inlined/bundled code for background.js and contentScript.js (no imports)
+- **Note**: Cannot use `inlineDynamicImports: true` with multiple entry points in Rollup
+
+### Build Process Flow
+
+1. **TypeScript Compilation**: `tsc -p tsconfig.prod.json`
+2. **Vite Build**: Bundles all entry points (side_panel, background, contentScript)
+3. **Manifest Copy**: Copies appropriate manifest (Chrome/Firefox) to `dist/`
+4. **Post-Processing** (Chrome only): `inlineImportsInBackground` plugin processes `background.js`
+   - Finds ES module imports
+   - Reads and inlines imported modules
+   - Wraps in IIFE to prevent conflicts
+   - Removes import statements
+
+### Troubleshooting Build Issues
+
+- **Service worker errors**: Check that `background.js` has no `import` statements
+- **Asset loading errors**: Verify `base: "./"` is set in Vite config
+- **Variable conflicts**: Ensure IIFE wrapping is working correctly in the plugin
+
 ## Browser Compatibility
 
 - Chrome/Chromium-based browsers
