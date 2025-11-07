@@ -59,7 +59,14 @@ export const createKeyShortener = (keyIndex: readonly string[]) => {
   return {
     shorten: (obj: object): any[] => {
       const result = objToArray(obj, keyIndex);
-      const k = result.findLastIndex((u) => u !== null);
+      // Find last index where value is not null (manual implementation for compatibility)
+      let k = -1;
+      for (let i = result.length - 1; i >= 0; i--) {
+        if (result[i] !== null) {
+          k = i;
+          break;
+        }
+      }
       return result.slice(0, k + 1);
     },
     recover: (obj: any[]): object => arrayToObj(obj, keyIndex),

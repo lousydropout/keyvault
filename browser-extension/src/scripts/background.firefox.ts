@@ -19,15 +19,12 @@ type Message = {
   password?: string;
 };
 
-// Type for the listener function
-type MessageListener = (
+// Listener for messages from content scripts or popups
+const messageListener = (
   message: unknown,
   sender: Runtime.MessageSender,
   sendResponse: (response: unknown) => void
-) => Promise<unknown> | true | undefined;
-
-// Listener for messages from content scripts or popups
-const messageListener: MessageListener = (message, sender, sendResponse) => {
+) => {
   console.log("[background] Message received: ", message);
 
   // Type assertion to extract the actual message
@@ -40,7 +37,7 @@ const messageListener: MessageListener = (message, sender, sendResponse) => {
     msg.source === "react-devtools-content-script" ||
     msg.source === "react-devtools-bridge"
   ) {
-    return undefined; // Do not respond to these messages
+    return true; // Indicate message was handled but no response needed
   }
 
   console.debug("[background] Message received: ", msg);
@@ -67,9 +64,17 @@ const messageListener: MessageListener = (message, sender, sendResponse) => {
       if (message.action === "fillCredentials") {
         const { username, password } = message;
 
-        // Send the selected credentials to the content script
+        // Send the selected credentials to the content script with complete message structure
         if (sender.tab?.id !== undefined) {
-          browser.tabs.sendMessage(sender.tab.id, { username, password });
+          browser.tabs.sendMessage(sender.tab.id, {
+            type: "FROM_EXTENSION",
+            action: "fillCredentials",
+            username,
+            password,
+          }).catch((error) => {
+            // Handle cases where tab is closed or content script not loaded
+            console.debug("[background] Failed to send fillCredentials message:", error);
+          });
         }
       }
       break;
@@ -78,13 +83,13 @@ const messageListener: MessageListener = (message, sender, sendResponse) => {
       break;
   }
 
-  // Explicit return of a promise or undefined when using `sendResponse` with `browser.*`
+  // Return true to indicate we'll respond asynchronously via sendResponse
   sendResponse({ acknowledged: true }); // Responds with acknowledgment
-  return Promise.resolve(); // Ensures a promise is returned
+  return true; // Indicate async response handling
 };
 
 // Adding the message listener
-browser.runtime.onMessage.addListener(messageListener);
+browser.runtime.onMessage.addListener(messageListener as any);
 
 // Allows users to open the sidebar (Firefox)
 browser.sidebarAction

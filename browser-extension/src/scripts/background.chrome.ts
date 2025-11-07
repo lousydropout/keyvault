@@ -56,8 +56,19 @@ chrome.runtime.onMessage.addListener(
         if (message.action === "fillCredentials") {
           const { username, password } = message;
 
-          // Send the selected credentials to the content script
-          chrome.tabs.sendMessage(sender.tab?.id ?? -1, { username, password });
+          // Send the selected credentials to the content script with complete message structure
+          const tabId = sender.tab?.id ?? -1;
+          if (tabId !== -1) {
+            chrome.tabs.sendMessage(tabId, {
+              type: "FROM_EXTENSION",
+              action: "fillCredentials",
+              username,
+              password,
+            }).catch((error) => {
+              // Handle cases where tab is closed or content script not loaded
+              console.debug("[background] Failed to send fillCredentials message:", error);
+            });
+          }
         }
         break;
 

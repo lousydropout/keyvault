@@ -78,7 +78,13 @@ function encrypt(
   salt: Uint8Array,
   passphrase: string
 ): EncryptedData {
-  const key = scrypt(passphrase, Buffer.from(salt), 1 << 15, 8, 1, 32);
+  // Ensure salt buffer is a proper ArrayBuffer for Buffer.from
+  const saltArray = salt.buffer instanceof ArrayBuffer
+    ? salt
+    : new Uint8Array(salt);
+  const keyBuffer = scrypt(passphrase, Buffer.from(saltArray), 1 << 15, 8, 1, 32);
+  // Convert Buffer to Uint8Array for tweetnacl
+  const key = new Uint8Array(keyBuffer);
   const nonce = crypto.randomBytes(24);
   return {
     nonce,
@@ -93,7 +99,13 @@ function decrypt(
   passphrase: string,
   nonce: Uint8Array
 ): Uint8Array | null {
-  const key = scrypt(passphrase, Buffer.from(salt.buffer), 1 << 15, 8, 1, 32);
+  // Ensure salt buffer is a proper ArrayBuffer for Buffer.from
+  const saltArray = salt.buffer instanceof ArrayBuffer
+    ? salt
+    : new Uint8Array(salt);
+  const keyBuffer = scrypt(passphrase, Buffer.from(saltArray), 1 << 15, 8, 1, 32);
+  // Convert Buffer to Uint8Array for tweetnacl
+  const key = new Uint8Array(keyBuffer);
   // This is a false positive, `secretbox.open` is unrelated to `fs.open`
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   return crypto.secretbox.open(data, nonce, key);

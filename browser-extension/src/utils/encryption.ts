@@ -57,10 +57,15 @@ export const deriveKeyFromPassword = async (
     ["deriveBits", "deriveKey"]
   );
 
+  // Ensure salt is a proper ArrayBuffer (not SharedArrayBuffer)
+  const saltBuffer = salt.buffer instanceof ArrayBuffer 
+    ? salt.buffer 
+    : new Uint8Array(salt).buffer;
+
   return crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt: salt,
+      salt: saltBuffer,
       iterations: 1_000_000,
       hash: { name: "SHA-512" },
     },
@@ -202,15 +207,27 @@ export const encrypt = async (
   let iv: Uint8Array = new Uint8Array();
   let ivB64 = "";
   while (ivB64 === "" || ivB64 in ivs) {
-    iv = crypto.getRandomValues(new Uint8Array(12));
-    ivB64 = bufferToBase64(iv.buffer as ArrayBuffer);
+    const ivTemp = crypto.getRandomValues(new Uint8Array(12));
+    // Ensure iv has a proper ArrayBuffer (not SharedArrayBuffer)
+    const ivBuffer = new ArrayBuffer(12);
+    const ivArray = new Uint8Array(ivBuffer);
+    ivArray.set(ivTemp);
+    iv = ivArray;
+    ivB64 = bufferToBase64(ivBuffer);
   }
 
   const secret = msgpackEncode(plainObj);
+  // Ensure secret has a proper ArrayBuffer (not SharedArrayBuffer)
+  // Create a new ArrayBuffer and copy the data to ensure proper type
+  const secretBuffer = new ArrayBuffer(secret.length);
+  const secretArray = new Uint8Array(secretBuffer);
+  secretArray.set(secret);
+  
+  // Type assertions needed due to TypeScript's strict ArrayBufferLike checking
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv, tagLength: 128 },
+    { name: "AES-GCM", iv: iv as unknown as BufferSource, tagLength: 128 },
     key,
-    secret
+    secretBuffer
   );
 
   return {
