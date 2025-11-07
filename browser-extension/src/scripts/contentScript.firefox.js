@@ -183,6 +183,12 @@ function handleMessage(msg, sender, sendResponse) {
 chrome.runtime.onMessage.addListener(handleMessage);
 
 // Remove the listener when the page is unloaded
-window.addEventListener("unload", () => {
-  chrome.runtime.onMessage.removeListener(handleMessage);
-});
+// Use pagehide instead of unload for better compatibility (unload can be blocked by Permissions Policy)
+try {
+  window.addEventListener("pagehide", () => {
+    chrome.runtime.onMessage.removeListener(handleMessage);
+  }, { once: true });
+} catch (error) {
+  // Silently fail if event listener is blocked by Permissions Policy
+  // Browser will automatically clean up listeners when the page unloads anyway
+}

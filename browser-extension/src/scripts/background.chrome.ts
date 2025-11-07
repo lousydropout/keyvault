@@ -66,8 +66,18 @@ chrome.runtime.onMessage.addListener(
               username,
               password,
             }).catch((error) => {
-              // Handle cases where tab is closed or content script not loaded
-              logger.debug("[background] Failed to send fillCredentials message:", error);
+              // Handle cases where tab is closed, content script not loaded, or page doesn't support messaging
+              // This is expected behavior for certain pages (chrome://, extension pages, etc.)
+              // and pages without form fields, so we silently ignore it
+              const errorMessage = error?.message || String(error);
+              if (errorMessage.includes("Receiving end does not exist") || 
+                  errorMessage.includes("Could not establish connection")) {
+                // Expected case - content script not available on this page
+                logger.debug("[background] Content script not available on this page (expected for some pages)");
+              } else {
+                // Unexpected error - log for debugging
+                logger.debug("[background] Failed to send fillCredentials message:", error);
+              }
             });
           }
         }

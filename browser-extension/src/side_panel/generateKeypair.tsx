@@ -95,7 +95,23 @@ export const GenerateKeypair = () => {
 
     for (const tabId of tabIds) {
       logger.debug(`Forwarding the following data to tabId: ${tabId}`, data);
-      chrome.tabs.sendMessage(tabId, { type: "FROM_EXTENSION", data });
+      chrome.tabs
+        .sendMessage(tabId, { type: "FROM_EXTENSION", data })
+        .catch((error) => {
+          // Handle cases where content script is not available
+          // This is expected for pages without form fields or restricted pages
+          const errorMessage = error?.message || String(error);
+          if (
+            errorMessage.includes("Receiving end does not exist") ||
+            errorMessage.includes("Could not establish connection")
+          ) {
+            // Expected case - log at debug level
+            logger.debug("[generateKeypair] Content script not available on this page (expected for some pages)");
+          } else {
+            // Unexpected error - log for debugging
+            logger.debug("[generateKeypair] Failed to send message:", error);
+          }
+        });
     }
   };
 

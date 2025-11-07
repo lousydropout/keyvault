@@ -98,12 +98,27 @@ const CredentialCard = ({
             <div
               className="self-end col-span-3 cursor-pointer"
               onClick={() => {
-                chrome.tabs.sendMessage(tab?.id || chrome.tabs.TAB_ID_NONE, {
-                  type: "FROM_EXTENSION",
-                  action: "fillCredentials",
-                  username: cred.username,
-                  password: cred.password,
-                });
+                chrome.tabs
+                  .sendMessage(tab?.id || chrome.tabs.TAB_ID_NONE, {
+                    type: "FROM_EXTENSION",
+                    action: "fillCredentials",
+                    username: cred.username,
+                    password: cred.password,
+                  })
+                  .catch((error) => {
+                    // Handle cases where content script is not available
+                    // This is expected for pages without form fields or restricted pages
+                    const errorMessage = error?.message || String(error);
+                    if (
+                      errorMessage.includes("Receiving end does not exist") ||
+                      errorMessage.includes("Could not establish connection")
+                    ) {
+                      // Expected case - silently ignore
+                      return;
+                    }
+                    // Unexpected error - log for debugging
+                    console.debug("[credentialCard] Failed to send fillCredentials:", error);
+                  });
               }}
             >
               <Left className="w-12 text-purple-400 hover:text-purple-500 active:text-purple-600" />
