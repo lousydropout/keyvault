@@ -19,7 +19,7 @@ describe("generation, encryption, and decryption of keypairs", async () => {
   const incorrectKey = await generateKey();
 
   const encrypted = await encryptEntries(encryptionKey, [cred]);
-  const decrypted = await decryptEntry(encryptionKey, encrypted);
+  const decryptedResult = await decryptEntry(encryptionKey, encrypted);
 
   test("generated keypair cred should be recognized as a valid keypair cred", async () => {
     expect(isBaseCred(cred)).toBeTruthy();
@@ -28,12 +28,16 @@ describe("generation, encryption, and decryption of keypairs", async () => {
   });
 
   test("generated keypair cred should be recoverable from decryption", async () => {
-    expect(isKeypairCred(decrypted[0])).toBeTruthy();
-    expect(decrypted).toEqual([cred]);
+    expect(decryptedResult.success).toBe(true);
+    if (decryptedResult.success) {
+      expect(isKeypairCred(decryptedResult.creds[0])).toBeTruthy();
+      expect(decryptedResult.creds).toEqual([cred]);
+    }
   });
 
   test("generated keypair cred should NOT be recoverable using a different key", async () => {
-    await expect(decryptEntry(incorrectKey, encrypted)).rejects.toThrow();
+    const result = await decryptEntry(incorrectKey, encrypted);
+    expect(result.success).toBe(false);
   });
 
   describe("generation, encryption, and decryption of creds", async () => {
@@ -55,16 +59,20 @@ describe("generation, encryption, and decryption of keypairs", async () => {
     const incorrectKey = await generateKey();
 
     const encrypted = await encryptEntries(encryptionKey, [cred, x]);
-    const decrypted = await decryptEntry(encryptionKey, encrypted);
+    const decryptedResult = await decryptEntry(encryptionKey, encrypted);
 
     test("generated keypair & password cred array should be recoverable from decryption", async () => {
-      expect(isKeypairCred(decrypted[0])).toBeTruthy();
-      expect(isPasswordCred(decrypted[1])).toBeTruthy();
-      expect(decrypted).toEqual([cred, x]);
+      expect(decryptedResult.success).toBe(true);
+      if (decryptedResult.success) {
+        expect(isKeypairCred(decryptedResult.creds[0])).toBeTruthy();
+        expect(isPasswordCred(decryptedResult.creds[1])).toBeTruthy();
+        expect(decryptedResult.creds).toEqual([cred, x]);
+      }
     });
 
     test("generated keypair & password cred array should be not recoverable using an invalid key", async () => {
-      await expect(decryptEntry(incorrectKey, encrypted)).rejects.toThrow();
+      const result = await decryptEntry(incorrectKey, encrypted);
+      expect(result.success).toBe(false);
     });
   });
 });

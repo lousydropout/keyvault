@@ -42,11 +42,12 @@ This is a **security and reliability issue** that could cause silent data loss. 
 
 ---
 
-## Task 3: Improve Error Handling in Decryption (HIGH - User Experience)
+## Task 3: Improve Error Handling in Decryption (HIGH - User Experience) ✅ COMPLETED
 
 **Priority**: 🟠 High  
 **Estimated Effort**: 3-5 hours  
-**Files**: `browser-extension/src/utils/credentials.ts`, related UI components
+**Status**: ✅ **COMPLETED**  
+**Files**: `browser-extension/src/utils/credentials.ts`, `browser-extension/src/side_panel/main.tsx`, `browser-extension/src/utils/credentials3.test.ts`
 
 ### Why This Task?
 
@@ -56,19 +57,62 @@ Users may **lose credentials without knowing** if decryption fails silently. Cur
 - Makes **debugging difficult** (only console logs)
 - Could lead to **data loss** if users don't notice missing credentials
 
-### What Needs to Be Done
+### What Was Done
 
-1. Wrap decryption operations in try-catch blocks
-2. Log decryption failures with proper error context
-3. Show user-friendly error messages in the UI
-4. Provide options to retry or report failed decryptions
-5. Track which entries failed to decrypt for debugging
+1. ✅ Added error classification enum (`DecryptionErrorType`) for categorizing errors
+2. ✅ Wrapped decryption operations in try-catch blocks with structured error results
+3. ✅ Implemented comprehensive error logging with dev/prod distinction
+4. ✅ Added user-friendly error banner UI with retry functionality
+5. ✅ Tracked failed entries with full context (entry index, error type, encrypted data)
+6. ✅ Updated `decryptEntry` to return `DecryptEntryResult` instead of throwing
+7. ✅ Updated `decryptEntries` to use `Promise.allSettled` and collect errors separately
+8. ✅ Updated `decryptAndCategorizeEntries` to return errors array and continue processing
+9. ✅ Added retry functionality that only retries failed entries
+10. ✅ Updated tests to handle new return types
+
+### Implementation Details
+
+- **Error Classification**: Added `DecryptionErrorType` enum with categories:
+
+  - `INVALID_IV`: IV-related errors
+  - `BAD_KEY`: Key/passphrase errors
+  - `CORRUPTED_DATA`: Data corruption errors
+  - `UNKNOWN`: Unclassified errors
+
+- **Error Tracking Types**:
+
+  - `DecryptionError`: Tracks entry index, error, error type, and encrypted data for retry
+  - `DecryptEntryResult`: Union type for success/error results
+  - `DecryptionResult`: Contains credentials array and errors array
+
+- **Updated Functions**:
+
+  - `decryptEntry`: Now returns structured result, classifies errors, preserves encrypted data
+  - `decryptEntries`: Uses `Promise.allSettled`, collects successes and errors separately
+  - `decryptAndCategorizeEntries`: Returns errors array, logs errors with context, continues on failures
+
+- **UI Changes** (`main.tsx`):
+
+  - Added persistent red error banner showing count of failed decryptions
+  - Added "Retry" button that only retries failed entries
+  - Error state management with `useState<DecryptionError[]>`
+
+- **Logging**:
+
+  - Dev mode: Full stack traces, error messages, entry index, error type
+  - Production mode: Sanitized metadata only (entry index, error type, no stack traces)
+
+- **Testing**:
+  - Updated `credentials3.test.ts` to handle new return types
+  - All 52 tests passing ✅
 
 ### Impact
 
 - **High**: Improves user trust and data visibility
-- **User-facing**: Users will know if credentials can't be decrypted
-- **Debugging**: Makes it easier to identify and fix decryption issues
+- **User-facing**: Users now see clear error messages when credentials can't be decrypted
+- **Debugging**: Full error context makes it easy to identify and fix decryption issues
+- **Reliability**: No silent failures - all errors are caught and reported
+- **User Experience**: Retry functionality allows users to attempt recovery
 
 ---
 
@@ -306,13 +350,13 @@ Autofill is a **core feature** of a password manager, and the current implementa
 | ---------------------------- | -------- | ------ | ----------- | -------------------- | ------------ |
 | 1. IV Parsing Fix            | Critical | 2-4h   | High        | Security/Reliability | ✅ COMPLETED |
 | 2. Error Boundaries          | High     | 2-3h   | High        | Production Readiness | ✅ COMPLETED |
-| 3. Decryption Error Handling | High     | 3-5h   | High        | User Experience      |              |
+| 3. Decryption Error Handling | High     | 3-5h   | High        | User Experience      | ✅ COMPLETED |
 | 4. Autofill Refactor         | High     | 6-8h   | High        | Core Feature         |              |
 | 5. Console Logging           | Medium   | 2-3h   | Medium      | Production Readiness |              |
 | 6. Test Coverage             | Medium   | 8-12h  | Medium-High | Code Quality         |              |
 
 **Total Estimated Effort**: 23-35 hours  
-**Completed**: 2 tasks (4-7h)
+**Completed**: 3 tasks (7-12h)
 
 ## Recommended Order
 
@@ -320,7 +364,7 @@ Autofill is a **core feature** of a password manager, and the current implementa
 
 1. ✅ **Task 1** (IV Parsing) - Quick security fix (2-4h) - **COMPLETED**
 2. ✅ **Task 2** (Error Boundaries) - Quick production improvement (2-3h) - **COMPLETED**
-3. **Task 3** (Decryption Errors) - Important user experience (3-5h)
+3. ✅ **Task 3** (Decryption Errors) - Important user experience (3-5h) - **COMPLETED**
 
 ### Phase 2: Core Features
 

@@ -2,6 +2,16 @@ import { Encrypted, decrypt, encrypt } from "@/utils/encryption";
 import { createKeyShortener } from "@/utils/utility";
 
 /*******************************************************************************
+ * Error Classification
+ ******************************************************************************/
+export enum DecryptionErrorType {
+  INVALID_IV = "Invalid IV",
+  BAD_KEY = "Bad Key or Passphrase",
+  CORRUPTED_DATA = "Corrupted Data",
+  UNKNOWN = "Unknown Error",
+}
+
+/*******************************************************************************
  * Types
  ******************************************************************************/
 export const CURRENT_VERSION: number = 1;
@@ -43,6 +53,37 @@ const shortContact = createKeyShortener(contactIndex);
 
 export type CredsByUrl = Record<string, PasswordCred[][]>;
 export type CredsMapping = Record<string, [string, number]>;
+
+/**
+ * Represents a decryption error with context for debugging and retry.
+ */
+export type DecryptionError = {
+  entryIndex: number;
+  error: Error;
+  errorType: DecryptionErrorType;
+  encrypted?: Encrypted; // For retry functionality
+};
+
+/**
+ * Result of decrypting a single entry.
+ */
+export type DecryptEntryResult =
+  | { success: true; creds: Cred[] }
+  | {
+      success: false;
+      error: Error;
+      entryIndex: number;
+      errorType: DecryptionErrorType;
+      encrypted?: Encrypted;
+    };
+
+/**
+ * Result of decrypting multiple entries.
+ */
+export type DecryptionResult = {
+  credentials: Cred[];
+  errors: DecryptionError[];
+};
 
 /**
  * Represents a base credential.
@@ -344,26 +385,86 @@ export const encryptEntries = async (
 };
 
 /**
+ * Classifies a decryption error based on its message and content.
+ *
+ * @param error - The error to classify.
+ * @returns The classified error type.
+ */
+const classifyDecryptionError = (error: Error): DecryptionErrorType => {
+  const message = error.message.toLowerCase();
+  const stack = error.stack?.toLowerCase() || "";
+
+  // Check for IV-related errors
+  if (
+    message.includes("iv") ||
+    message.includes("initialization vector") ||
+    message.includes("invalid iv length") ||
+    message.includes("encrypted text is too short")
+  ) {
+    return DecryptionErrorType.INVALID_IV;
+  }
+
+  // Check for key/passphrase errors
+  if (
+    message.includes("key") ||
+    message.includes("passphrase") ||
+    message.includes("authentication") ||
+    message.includes("decrypt") ||
+    message.includes("bad key")
+  ) {
+    return DecryptionErrorType.BAD_KEY;
+  }
+
+  // Check for data corruption errors
+  if (
+    message.includes("corrupt") ||
+    message.includes("invalid") ||
+    message.includes("malformed") ||
+    message.includes("parse") ||
+    message.includes("unrecognized version")
+  ) {
+    return DecryptionErrorType.CORRUPTED_DATA;
+  }
+
+  return DecryptionErrorType.UNKNOWN;
+};
+
+/**
  * Decrypts an encrypted entry using the provided crypto key.
  *
  * @param {CryptoKey} cryptoKey - The crypto key used for decryption.
  * @param {Encrypted} encrypted - The encrypted data to be decrypted.
- * @returns {Promise<Cred[]>} A promise that resolves to a decrypted credential object.
+ * @param {number} entryIndex - The index of this entry in the array (for error tracking).
+ * @returns {Promise<DecryptEntryResult>} A promise that resolves to a result containing either credentials or error information.
  */
 export const decryptEntry = async (
   cryptoKey: CryptoKey,
-  encrypted: Encrypted
-): Promise<Cred[]> => {
-  const _decrypteds = (await decrypt(cryptoKey, encrypted)) as any[];
-  const decrypteds = _decrypteds.map((u) => {
-    if (u[0] !== 1) throw new Error(`unrecognized version '${u[0]}`);
-    if (u[1] === PASSWORD_TYPE) return shortPw.recover(u);
-    if (u[1] === KEYPAIR_TYPE) return shortKeypair.recover(u);
-    if (u[1] === SECRET_SHARE_TYPE) return shortSecretShare.recover(u);
-    if (u[1] === CONTACT_TYPE) return shortContact.recover(u);
-  }) as Cred[];
+  encrypted: Encrypted,
+  entryIndex: number = 0
+): Promise<DecryptEntryResult> => {
+  try {
+    const _decrypteds = (await decrypt(cryptoKey, encrypted)) as any[];
+    const decrypteds = _decrypteds.map((u) => {
+      if (u[0] !== 1) throw new Error(`unrecognized version '${u[0]}`);
+      if (u[1] === PASSWORD_TYPE) return shortPw.recover(u);
+      if (u[1] === KEYPAIR_TYPE) return shortKeypair.recover(u);
+      if (u[1] === SECRET_SHARE_TYPE) return shortSecretShare.recover(u);
+      if (u[1] === CONTACT_TYPE) return shortContact.recover(u);
+    }) as Cred[];
 
-  return decrypteds.filter((decrypted) => isValidCred(decrypted));
+    const validCreds = decrypteds.filter((decrypted) => isValidCred(decrypted));
+    return { success: true, creds: validCreds };
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    const errorType = classifyDecryptionError(err);
+    return {
+      success: false,
+      error: err,
+      entryIndex,
+      errorType,
+      encrypted,
+    };
+  }
 };
 
 /**
@@ -371,24 +472,100 @@ export const decryptEntry = async (
  *
  * @param cryptoKey - The crypto key used for decryption.
  * @param encrypteds - The array of encrypted entries to be decrypted.
- * @returns {Promise<Cred[]>} A promise that resolves to an array of credentials.
+ * @returns {Promise<DecryptionResult>} A promise that resolves to a result containing credentials and any errors.
  */
 export const decryptEntries = async (
   cryptoKey: CryptoKey,
   encrypteds: Encrypted[]
-): Promise<Cred[]> => {
-  const _creds = await Promise.all(
-    encrypteds.map((encrypted) => decryptEntry(cryptoKey, encrypted))
+): Promise<DecryptionResult> => {
+  const results = await Promise.allSettled(
+    encrypteds.map((encrypted, index) =>
+      decryptEntry(cryptoKey, encrypted, index)
+    )
   );
 
-  const results: Cred[] = [];
-  for (let creds of _creds) results.push(...creds);
-  return results;
+  const credentials: Cred[] = [];
+  const errors: DecryptionError[] = [];
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === "fulfilled") {
+      const entryResult = result.value;
+      if (entryResult.success) {
+        credentials.push(...entryResult.creds);
+      } else {
+        errors.push({
+          entryIndex: entryResult.entryIndex,
+          error: entryResult.error,
+          errorType: entryResult.errorType,
+          encrypted: entryResult.encrypted,
+        });
+      }
+    } else {
+      // Promise was rejected (shouldn't happen with our implementation, but handle it)
+      const error =
+        result.reason instanceof Error
+          ? result.reason
+          : new Error(String(result.reason));
+      errors.push({
+        entryIndex: i,
+        error,
+        errorType: classifyDecryptionError(error),
+        encrypted: encrypteds[i],
+      });
+    }
+  }
+
+  return { credentials, errors };
 };
 
 export const prunePendingCreds = (onChain: Cred[], pending: Cred[]): Cred[] => {
   const onChainIds = new Set(onChain.map((c) => c.id));
   return pending.filter((c) => !onChainIds.has(c.id));
+};
+
+/**
+ * Helper function to determine if we're in development mode.
+ */
+const isDevMode = (): boolean => {
+  try {
+    return import.meta.env.DEV || import.meta.env.MODE === "development";
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Logs a decryption error with appropriate detail level based on environment.
+ *
+ * @param error - The decryption error to log.
+ */
+const logDecryptionError = (error: DecryptionError): void => {
+  const devMode = isDevMode();
+  const { entryIndex, error: err, errorType } = error;
+
+  if (devMode) {
+    // Dev mode: Log full details including stack trace
+    console.error(
+      `[decryptAndCategorizeEntries] Decryption failed for entry ${entryIndex}:`,
+      {
+        entryIndex,
+        errorType,
+        errorMessage: err.message,
+        errorStack: err.stack,
+      }
+    );
+  } else {
+    // Production mode: Log only sanitized metadata
+    console.error(
+      `[decryptAndCategorizeEntries] Decryption failed for entry ${entryIndex}:`,
+      {
+        entryIndex,
+        errorType,
+        // Don't log error message or stack in production
+      }
+    );
+  }
 };
 
 /**
@@ -401,12 +578,16 @@ export const prunePendingCreds = (onChain: Cred[], pending: Cred[]): Cred[] => {
  *   passwords: CredsByUrl;
  *   keypairs: KeypairCred[];
  *   secretShares: SecretShareCred[];
+ *   contacts: ContactCred[];
  *   pendings: Cred[];
- * }>} A promise that resolves to an object containing categorized credentials:
+ *   errors: DecryptionError[];
+ * }>} A promise that resolves to an object containing categorized credentials and any errors:
  *   - `passwords`: An object mapping URLs to password credentials.
  *   - `keypairs`: An array of keypair credentials.
  *   - `secretShares`: An array of secret share credentials.
+ *   - `contacts`: An array of contact credentials.
  *   - `pendings`: An array of pending credentials.
+ *   - `errors`: An array of decryption errors.
  */
 export const decryptAndCategorizeEntries = async (
   cryptoKey: CryptoKey,
@@ -418,6 +599,7 @@ export const decryptAndCategorizeEntries = async (
   secretShares: SecretShareCred[];
   contacts: ContactCred[];
   pendings: Cred[];
+  errors: DecryptionError[];
 }> => {
   const result: {
     passwords: CredsByUrl;
@@ -425,15 +607,31 @@ export const decryptAndCategorizeEntries = async (
     secretShares: SecretShareCred[];
     contacts: ContactCred[];
     pendings: Cred[];
+    errors: DecryptionError[];
   } = {
     passwords: {},
     keypairs: [],
     secretShares: [],
     contacts: [],
     pendings: [],
+    errors: [],
   };
 
-  const _creds = await decryptEntries(cryptoKey, encrypteds);
+  // Decrypt entries and collect errors
+  const { credentials: _creds, errors } = await decryptEntries(
+    cryptoKey,
+    encrypteds
+  );
+
+  // Log all errors
+  for (const error of errors) {
+    logDecryptionError(error);
+  }
+
+  // Store errors in result
+  result.errors = errors;
+
+  // Continue processing successful decryptions
   _creds.push(...pendings);
   const seen = new Set();
 
