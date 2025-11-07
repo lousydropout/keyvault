@@ -1,4 +1,5 @@
 import { useCurrentTab } from "@/hooks/useCurrentTab";
+import { logger } from "@/utils/logger";
 import { CredentialChain } from "@/side_panel/credentialChain";
 import { CredsByUrl, PASSWORD_TYPE, PasswordCred } from "@/utils/credentials";
 
@@ -13,7 +14,7 @@ const allChainsEndInDeletion = (chains: PasswordCred[][]) => {
 export const CredentialsAll = ({ credsUrl }: { credsUrl: CredsByUrl }) => {
   const [tab] = useCurrentTab();
 
-  console.log("[CredentialsAll] credsUrl: ", credsUrl);
+  logger.debug("[CredentialsAll] credsUrl: ", credsUrl);
 
   return (
     <div className="flex flex-col gap-4 p-0 py-4">

@@ -1,3 +1,5 @@
+import { logger } from "@/utils/logger";
+
 // Inject CSS style for visual feedback (only once)
 let styleInjected = false;
 function injectVisualFeedbackStyle() {
@@ -27,7 +29,7 @@ function setFieldValue(field, value) {
     field.dispatchEvent(new Event("input", { bubbles: true }));
     field.dispatchEvent(new Event("change", { bubbles: true }));
   } catch (error) {
-    console.debug("[keyvault] Error setting field value:", error);
+    logger.debug("[keyvault] Error setting field value:", error);
     // Fallback to simple assignment
     field.value = value;
   }
@@ -115,7 +117,7 @@ async function fillCredentials(username, password) {
       // Silently fail - API only works on secure origins (https)
       // Not available on localhost or file:// URLs
       // Often requires user gesture - don't rely on it for critical persistence
-      console.debug("[keyvault] Credential Management API not available:", credError);
+      logger.debug("[keyvault] Credential Management API not available:", credError);
     }
 
     // Find and fill username field
@@ -136,19 +138,19 @@ async function fillCredentials(username, password) {
 
     // Log success (without credentials)
     if (usernameField || passwordField) {
-      console.debug("[keyvault] Credentials filled successfully");
+      logger.debug("[keyvault] Credentials filled successfully");
     } else {
-      console.debug("[keyvault] No matching form fields found");
+      logger.debug("[keyvault] No matching form fields found");
     }
   } catch (error) {
-    console.debug("[keyvault] Error filling credentials:", error);
+    logger.debug("[keyvault] Error filling credentials:", error);
   }
 }
 
 // Handle fill credentials message
 const handlefillCredential = (message) => {
   if (!message.username || !message.password) {
-    console.debug("[keyvault] Missing username or password in message");
+    logger.debug("[keyvault] Missing username or password in message");
     return;
   }
   

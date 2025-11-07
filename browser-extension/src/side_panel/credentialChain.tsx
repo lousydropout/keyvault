@@ -1,4 +1,5 @@
 import { CredentialCard } from "@/side_panel/credentialCard";
+import { logger } from "@/utils/logger";
 import { isPasswordAdditionCred, PasswordCred } from "@/utils/credentials";
 
 export const CredentialChain = ({
@@ -9,7 +10,7 @@ export const CredentialChain = ({
   tab: chrome.tabs.Tab | undefined;
 }) => {
   const cred = chain[chain.length - 1];
-  console.log("[CredentialChain] cred: ", cred);
+  logger.debug("[CredentialChain] cred: ", cred);
   if (!isPasswordAdditionCred(cred)) return <></>;
   return <CredentialCard key={cred.id} cred={cred} tab={tab} />;
 };

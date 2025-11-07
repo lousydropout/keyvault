@@ -6,6 +6,7 @@ import { NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
 import { DASHBOARD } from "@/constants/steps";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
+import { logger } from "@/utils/logger";
 import { importCryptoKey } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
 import { download } from "@/utils/utility";
@@ -79,7 +80,7 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
       null
     );
 
-    console.log("ExistingAccount");
+    logger.debug("ExistingAccount");
 
     const importJwk = async () => {
       setErrorMessage(null);
@@ -90,7 +91,7 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
         setJwk(tmpJwk);
         setStep(DASHBOARD);
       } catch (e) {
-        console.log("Error importing key: ", e);
+        logger.error("Error importing key: ", e);
         setErrorMessage("Invalid encryption key");
       }
     };
@@ -100,7 +101,7 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
     ) => {
       const file = event.target.files?.[0];
       if (!file) {
-        console.error("No file selected: ", { event });
+        logger.error("No file selected: ", { event });
         return;
       }
 
@@ -114,7 +115,7 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
           setStep(DASHBOARD);
         } catch (e) {
           setFileErrorMessage("Invalid JWK file");
-          console.error("Error parsing file:", e);
+          logger.error("Error parsing file:", e);
         }
       };
 

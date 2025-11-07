@@ -1,4 +1,5 @@
 import { Encrypted, decrypt, encrypt } from "@/utils/encryption";
+import { logger } from "@/utils/logger";
 import { createKeyShortener } from "@/utils/utility";
 
 /*******************************************************************************
@@ -527,45 +528,25 @@ export const prunePendingCreds = (onChain: Cred[], pending: Cred[]): Cred[] => {
 /**
  * Helper function to determine if we're in development mode.
  */
-const isDevMode = (): boolean => {
-  try {
-    return import.meta.env.DEV || import.meta.env.MODE === "development";
-  } catch {
-    return false;
-  }
-};
-
 /**
  * Logs a decryption error with appropriate detail level based on environment.
+ * The logger utility handles dev/prod distinction and sanitization automatically.
  *
  * @param error - The decryption error to log.
  */
 const logDecryptionError = (error: DecryptionError): void => {
-  const devMode = isDevMode();
   const { entryIndex, error: err, errorType } = error;
 
-  if (devMode) {
-    // Dev mode: Log full details including stack trace
-    console.error(
-      `[decryptAndCategorizeEntries] Decryption failed for entry ${entryIndex}:`,
-      {
-        entryIndex,
-        errorType,
-        errorMessage: err.message,
-        errorStack: err.stack,
-      }
-    );
-  } else {
-    // Production mode: Log only sanitized metadata
-    console.error(
-      `[decryptAndCategorizeEntries] Decryption failed for entry ${entryIndex}:`,
-      {
-        entryIndex,
-        errorType,
-        // Don't log error message or stack in production
-      }
-    );
-  }
+  // Logger automatically handles dev/prod distinction and sanitization
+  logger.error(
+    `[decryptAndCategorizeEntries] Decryption failed for entry ${entryIndex}:`,
+    {
+      entryIndex,
+      errorType,
+      errorMessage: err.message,
+      errorStack: err.stack,
+    }
+  );
 };
 
 /**
@@ -649,7 +630,7 @@ export const decryptAndCategorizeEntries = async (
     } else if (isContactCred(cred)) {
       result.contacts.push(cred);
     } else {
-      console.log(
+      logger.warn(
         `[decryptAndCategorizeEntries] Invalid/unrecognized cred: ${cred}`
       );
     }

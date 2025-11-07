@@ -17,6 +17,7 @@ import {
   type MaybeArray,
   type VerifyMessageResult,
 } from "openpgp";
+import { logger } from "@/utils/logger";
 
 const publicKeyHeader = "-----BEGIN PGP PUBLIC KEY BLOCK-----" as const;
 const publicKeyFooter = "-----END PGP PUBLIC KEY BLOCK-----" as const;
@@ -62,8 +63,8 @@ const armorKey = (
 
 const importPublicKey = (key: string): Promise<Key> => {
   if (key.includes("\n")) {
-    console.log("reformat key: ", reformatKey(key));
-    console.log("armored key: ", armorKey(reformatKey(key), "public"));
+    logger.debug("reformat key: ", reformatKey(key));
+    logger.debug("armored key: ", armorKey(reformatKey(key), "public"));
     return readKey({
       armoredKey: key.startsWith(publicKeyHeader)
         ? key

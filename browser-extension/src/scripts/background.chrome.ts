@@ -4,6 +4,7 @@ import {
   INITIALIZATION,
   TO_EXTENSION,
 } from "@/scripts/constants";
+import { logger } from "@/utils/logger";
 
 // Define the message structure
 type Message = {
@@ -31,7 +32,7 @@ chrome.runtime.onMessage.addListener(
       message.source === "react-devtools-bridge"
     )
       return false;
-    console.debug("[background] Message received: ", message);
+    logger.debug("[background] Message received: ", message);
 
     if (!message.type) message.type = null;
 
@@ -66,7 +67,7 @@ chrome.runtime.onMessage.addListener(
               password,
             }).catch((error) => {
               // Handle cases where tab is closed or content script not loaded
-              console.debug("[background] Failed to send fillCredentials message:", error);
+              logger.debug("[background] Failed to send fillCredentials message:", error);
             });
           }
         }
@@ -85,9 +86,9 @@ chrome.runtime.onMessage.addListener(
 // Allows users to open the side panel by clicking on the action toolbar icon
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true }) // set to `false` to allow regular popups
-  .catch((error) => console.error(error));
+  .catch((error) => logger.error(error));
 
 // Autofill tests
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Extension installed");
+  logger.info("Extension installed");
 });

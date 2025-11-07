@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { logger } from "@/utils/logger";
 import { getPublicKey } from "@/utils/getPublicKey";
 import { encryptMessage, importPublicKey } from "@/utils/openpgp";
 import { PrivateKey } from "openpgp";
@@ -15,7 +16,7 @@ export const EncryptMessage = ({ privateKey }: { privateKey: PrivateKey }) => {
   const [ciphertext, setCiphertext] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  console.log("[EncryptMessage] rendering");
+  logger.debug("[EncryptMessage] rendering");
   return (
     <>
       {error ? (
@@ -61,7 +62,7 @@ export const EncryptMessage = ({ privateKey }: { privateKey: PrivateKey }) => {
               setError("Failed to retrieve sender's pubkey");
               return;
             }
-            console.log("pubkey: ", _pubkey);
+            logger.debug("pubkey: ", _pubkey);
 
             try {
               // encrypt message
@@ -72,7 +73,7 @@ export const EncryptMessage = ({ privateKey }: { privateKey: PrivateKey }) => {
               });
               setCiphertext(encryptedMessage);
             } catch (e) {
-              console.log("Encrypt error: ", e);
+              logger.error("Encrypt error: ", e);
               setError((e as Error).message);
             }
           }}

@@ -5,6 +5,7 @@ import {
   TO_EXTENSION,
 } from "@/scripts/constants";
 import browser, { Runtime, windows } from "webextension-polyfill";
+import { logger } from "@/utils/logger";
 
 // Define the message structure
 type Message = {
@@ -25,7 +26,7 @@ const messageListener = (
   sender: Runtime.MessageSender,
   sendResponse: (response: unknown) => void
 ) => {
-  console.log("[background] Message received: ", message);
+  logger.debug("[background] Message received: ", message);
 
   // Type assertion to extract the actual message
   const msg = message as Message;
@@ -40,7 +41,7 @@ const messageListener = (
     return true; // Indicate message was handled but no response needed
   }
 
-  console.debug("[background] Message received: ", msg);
+  logger.debug("[background] Message received: ", msg);
 
   if (!msg.type) msg.type = null;
 
@@ -73,7 +74,7 @@ const messageListener = (
             password,
           }).catch((error) => {
             // Handle cases where tab is closed or content script not loaded
-            console.debug("[background] Failed to send fillCredentials message:", error);
+            logger.debug("[background] Failed to send fillCredentials message:", error);
           });
         }
       }
@@ -94,11 +95,11 @@ browser.runtime.onMessage.addListener(messageListener as any);
 // Allows users to open the sidebar (Firefox)
 browser.sidebarAction
   .setPanel({ panel: "side_panel/index.html" }) // Set your Firefox sidebar panel here
-  .catch((error) => console.error(error));
+  .catch((error) => logger.error(error));
 
 // Autofill tests
 browser.runtime.onInstalled.addListener(() => {
-  console.log("Extension installed");
+  logger.info("Extension installed");
 });
 
 // Listener for the extension icon click

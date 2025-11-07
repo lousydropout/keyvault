@@ -1,6 +1,7 @@
 import { contract } from "@/config";
 import { Encrypted, parseEncryptedText } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
+import { logger } from "@/utils/logger";
 import { Dispatch, SetStateAction } from "react";
 import { Hex } from "viem";
 
@@ -35,7 +36,7 @@ export const getEntries = async (
       })
     );
   } catch (error) {
-    console.log("[getEntries] ", error);
+    logger.error("[getEntries] ", error);
     throw error;
   }
 };
@@ -77,8 +78,8 @@ export const updateEncrypteds = async (
   }
 
   if (encrypteds.length + _encrypteds.length !== numOnChain) {
-    console.log("[updateEncrypteds] Number of on-chain entries does not match");
-    console.log("data: ", {
+    logger.warn("[updateEncrypteds] Number of on-chain entries does not match");
+    logger.debug("data: ", {
       encrypteds: encrypteds,
       newEncrypteds: _encrypteds,
       numOnChain,

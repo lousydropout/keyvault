@@ -8,6 +8,7 @@ import {
   VIEW,
 } from "@/constants/hookVariables";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
+import { logger } from "@/utils/logger";
 import { createKeypairCred, Cred, KeypairCred } from "@/utils/credentials";
 import { getPublicKey } from "@/utils/getPublicKey";
 import { genKey } from "@/utils/openpgp";
@@ -81,7 +82,7 @@ export const GenerateKeypair = () => {
   }
 
   const sendData = () => {
-    console.log("[sendData]: ", {
+    logger.debug("[sendData]: ", {
       pubkey,
       publicKeys: keypairs.map((u) => u.publicKey),
     });
@@ -93,7 +94,7 @@ export const GenerateKeypair = () => {
     };
 
     for (const tabId of tabIds) {
-      console.log(`Forwarding the following data to tabId: ${tabId}`, data);
+      logger.debug(`Forwarding the following data to tabId: ${tabId}`, data);
       chrome.tabs.sendMessage(tabId, { type: "FROM_EXTENSION", data });
     }
   };

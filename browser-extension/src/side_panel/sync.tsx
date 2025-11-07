@@ -4,6 +4,7 @@ import { NUM_ENTRIES, PENDING_CREDS, PUBKEY } from "@/constants/hookVariables";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
+import { logger } from "@/utils/logger";
 import { Cred, encryptEntries } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
@@ -42,7 +43,7 @@ export const Sync = () => {
   }, [cryptoKey, pendingCreds]);
 
   const sendData = async (tabId: number) => {
-    console.log("[sendData]: ", { pendingCreds, pubkey, numEntries });
+    logger.debug("[sendData]: ", { pendingCreds, pubkey, numEntries });
     // message does not contain any unencrypted or sensitive data
     if (cryptoKey === null) return;
 
@@ -54,7 +55,7 @@ export const Sync = () => {
       chainId: chain.id,
     };
 
-    console.log(`Forwarding the following data to tabId: ${tabId}`, data);
+    logger.debug(`Forwarding the following data to tabId: ${tabId}`, data);
     chrome.tabs.sendMessage(tabId, { type: "FROM_EXTENSION", data });
   };
 

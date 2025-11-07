@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import browser from "webextension-polyfill";
+import { logger } from "@/utils/logger";
 
 type StorageSet = {
   [key: string]: any;
@@ -26,7 +27,7 @@ export const useBrowserStore = <T>(
         try {
           setValue(JSON.parse(result[key]) as T);
         } catch (error) {
-          console.debug("[Warning] Error parsing value from storage:", error);
+          logger.warn("[Warning] Error parsing value from storage:", error);
           setValue(result[key] as unknown as T);
         }
       }

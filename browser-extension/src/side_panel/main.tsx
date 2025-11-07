@@ -13,6 +13,7 @@ import {
 import { DASHBOARD, SETUP_ENCRYPTION_KEY, WELCOME } from "@/constants/steps";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
+import { logger } from "@/utils/logger";
 import "@/index.css";
 import { PubkeyRequest } from "@/side_panel/PubkeyRequest";
 import { AddCred } from "@/side_panel/addCred";
@@ -109,7 +110,7 @@ export const Root = () => {
   useEffect(() => {
     if (!cryptoKey || step !== DASHBOARD) return;
 
-    console.log(
+    logger.debug(
       "[Main] numOnChain, encrypteds.length: ",
       numOnChain,
       encrypteds.length
@@ -121,7 +122,7 @@ export const Root = () => {
 
       getEntries(pubkey as Hex, encrypteds.length, limit)
         .then((newEntries) => {
-          console.log("[Main] getEntries: ", JSON.stringify(newEntries));
+          logger.debug("[Main] getEntries: ", JSON.stringify(newEntries));
           updatedEncrypteds.push(...newEntries);
           setEncrypteds(updatedEncrypteds);
 
@@ -132,7 +133,7 @@ export const Root = () => {
           );
         })
         .then((decrypted) => {
-          console.log(
+          logger.debug(
             "[Main] decryptAndCategorizeEntries: ",
             JSON.stringify(decrypted)
           );
@@ -143,7 +144,7 @@ export const Root = () => {
           setDecryptionErrors(decrypted.errors);
         })
         .catch((error) => {
-          console.error("[Main] Error in decryption flow:", error);
+          logger.error("[Main] Error in decryption flow:", error);
           // Don't set errors here as decryptAndCategorizeEntries handles its own errors
         });
     } else if (encrypteds.length > 0) {
@@ -161,7 +162,7 @@ export const Root = () => {
           setDecryptionErrors(decrypted.errors);
         })
         .catch((error) => {
-          console.error("[Main] Error in decryption flow:", error);
+          logger.error("[Main] Error in decryption flow:", error);
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

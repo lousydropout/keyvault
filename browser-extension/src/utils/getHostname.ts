@@ -1,3 +1,5 @@
+import { logger } from "@/utils/logger";
+
 export const getHostname = (
   currentTab: string | chrome.tabs.Tab | undefined
 ): string | null => {
@@ -13,7 +15,7 @@ export const getHostname = (
       }
       return hostname;
     } catch (e) {
-      console.debug("Unable to read current tab's url: ", e);
+      logger.debug("Unable to read current tab's url: ", e);
     }
   } else if (currentTab?.url) {
     try {
@@ -25,7 +27,7 @@ export const getHostname = (
       }
       return hostname;
     } catch (e) {
-      console.debug("Unable to read current tab's url: ", e);
+      logger.debug("Unable to read current tab's url: ", e);
     }
   }
   return null;

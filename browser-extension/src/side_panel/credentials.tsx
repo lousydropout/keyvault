@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { CREDS_BY_URL, NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
+import { logger } from "@/utils/logger";
 import { CredentialsAll } from "@/side_panel/credentialsAll";
 import { CurrentPage } from "@/side_panel/currentPage";
 import { CredsByUrl } from "@/utils/credentials";
@@ -58,7 +59,7 @@ export const Credentials = () => {
             onClick={() => {
               getNumEntries(pubkey as Hex).then((num) => {
                 if (num && num !== numEntries) setNumEntries(num || numEntries);
-                console.log("[Credentials] Refreshing... nums = ", {
+                logger.debug("[Credentials] Refreshing... nums = ", {
                   num,
                   numEntries,
                 });

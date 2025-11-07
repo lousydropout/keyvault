@@ -180,11 +180,12 @@ Currently, **any error in the React app crashes the entire UI**, providing a poo
 
 ---
 
-## Task 5: Remove/Guard Console Logging in Production (MEDIUM - Production Readiness)
+## Task 5: Remove/Guard Console Logging in Production (MEDIUM - Production Readiness) ✅ COMPLETED
 
 **Priority**: 🟡 Medium  
 **Estimated Effort**: 2-3 hours  
-**Files**: Multiple files in `browser-extension/src/utils/`
+**Status**: ✅ **COMPLETED**  
+**Files**: `browser-extension/src/utils/logger.ts`, multiple files in `browser-extension/src/`
 
 ### Why This Task?
 
@@ -195,19 +196,46 @@ Console logging in production can:
 - **Clutter browser console** for users
 - **Create security concerns** if sensitive data is logged
 
-### What Needs to Be Done
+### What Was Done
 
-1. Create a logging utility with log levels (debug, info, warn, error)
-2. Replace console.log with the logging utility
-3. Configure logging to be disabled in production builds
-4. Keep error/warn logs in production (but sanitize sensitive data)
-5. Use environment variables or build flags to control logging
+1. ✅ Created centralized logger utility (`browser-extension/src/utils/logger.ts`) with log levels (debug, info, warn, error)
+2. ✅ Replaced all 58+ console._ calls across the codebase with logger._
+3. ✅ Configured logging to be disabled in production builds (debug/info disabled, warn/error enabled)
+4. ✅ Implemented recursive sanitization function to redact sensitive data (password, username, encrypted, privateKey, passphrase)
+5. ✅ Used `import.meta.env.PROD` for environment detection
+6. ✅ Removed ad-hoc dev/prod checks in `credentials.ts` and standardized through logger
+7. ✅ Added optional `logger.time()` and `logger.timeEnd()` methods for performance measurements
+
+### Implementation Details
+
+- **Logger Utility** (`browser-extension/src/utils/logger.ts`):
+
+  - Named export `logger` with methods: `debug`, `info`, `warn`, `error`, `time`, `timeEnd`
+  - Uses `import.meta.env.PROD` for production detection
+  - Recursive sanitization function redacts sensitive fields in objects/arrays and JSON-like strings
+  - Production behavior: debug/info disabled, warn/error enabled (sanitized)
+  - Development behavior: all levels enabled (sanitized)
+
+- **Files Updated**:
+
+  - Background scripts: `background.chrome.ts`, `background.firefox.ts`
+  - Content scripts: `contentScript.chrome.js`, `contentScript.firefox.js`
+  - Utility files: `credentials.ts`, `openpgp.ts`, `getEntries.ts`, `getNumEntries.ts`, `getPublicKey.ts`, `getHostname.ts`
+  - Side panel components: `main.tsx`, `credentialsAll.tsx`, `sync.tsx`, `credentialChain.tsx`, `encrypt.tsx`, `decrypt.tsx`, `credentials.tsx`, `encryptionKeySetup.tsx`, `generateKeypair.tsx`
+  - Hooks: `useBrowserStore.ts`
+
+- **Sanitization**:
+  - Redacts fields matching: `password`, `username`, `encrypted`, `privateKey`, `passphrase` (case-insensitive)
+  - Handles strings with regex replacement for JSON-like patterns
+  - Recursively sanitizes nested objects and arrays
 
 ### Impact
 
 - **Medium**: Improves production security and performance
-- **Security**: Prevents accidental data leakage
-- **Performance**: Reduces overhead in production builds
+- **Security**: Prevents accidental data leakage through sanitization
+- **Performance**: Reduces overhead in production builds (debug/info disabled)
+- **Consistency**: Unified logging behavior across entire codebase
+- **Maintainability**: Centralized logging makes future telemetry integration easy
 
 ---
 
@@ -302,10 +330,12 @@ Autofill is a **core feature** of a password manager, and the current implementa
 ### Implementation Details
 
 - **Background Scripts** (`background.chrome.ts`, `background.firefox.ts`):
+
   - Fixed message structure to include `type` and `action` fields
   - Added error handling with `.catch()` for closed tabs or unavailable content scripts
 
 - **Content Scripts** (`contentScript.chrome.js`, `contentScript.firefox.js`):
+
   - Complete rewrite with enhanced field detection
   - Native value setter for React/Angular compatibility
   - Credential Management API integration
@@ -313,6 +343,7 @@ Autofill is a **core feature** of a password manager, and the current implementa
   - Comprehensive error handling
 
 - **Field Detection Priority**:
+
   1. Autocomplete attributes (most reliable)
   2. Type selectors
   3. Name patterns (fallback)
@@ -320,7 +351,8 @@ Autofill is a **core feature** of a password manager, and the current implementa
 - **Event Dispatching Pattern**:
   ```js
   const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-    window.HTMLInputElement.prototype, "value"
+    window.HTMLInputElement.prototype,
+    "value"
   ).set;
   nativeInputValueSetter.call(field, value);
   field.dispatchEvent(new Event("input", { bubbles: true }));
@@ -411,11 +443,11 @@ Autofill is a **core feature** of a password manager, and the current implementa
 | 2. Error Boundaries          | High     | 2-3h   | High        | Production Readiness | ✅ COMPLETED |
 | 3. Decryption Error Handling | High     | 3-5h   | High        | User Experience      | ✅ COMPLETED |
 | 4. Autofill Refactor         | High     | 6-8h   | High        | Core Feature         | ✅ COMPLETED |
-| 5. Console Logging           | Medium   | 2-3h   | Medium      | Production Readiness |              |
+| 5. Console Logging           | Medium   | 2-3h   | Medium      | Production Readiness | ✅ COMPLETED |
 | 6. Test Coverage             | Medium   | 8-12h  | Medium-High | Code Quality         |              |
 
 **Total Estimated Effort**: 23-35 hours  
-**Completed**: 4 tasks (13-20h)
+**Completed**: 5 tasks (15-23h)
 
 ## Recommended Order
 
@@ -431,7 +463,7 @@ Autofill is a **core feature** of a password manager, and the current implementa
 
 ### Phase 3: Production Polish
 
-5. **Task 5** (Console Logging) - Production polish (2-3h)
+5. ✅ **Task 5** (Console Logging) - Production polish (2-3h) - **COMPLETED**
 6. **Task 6** (Tests) - Can be done incrementally over time (8-12h)
 
 ## Quick Wins

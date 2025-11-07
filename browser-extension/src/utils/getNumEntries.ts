@@ -1,4 +1,5 @@
 import { contract } from "@/config";
+import { logger } from "@/utils/logger";
 import { Hex } from "viem";
 
 export const getNumEntries = async (
@@ -9,6 +10,6 @@ export const getNumEntries = async (
 
     return Number.parseInt(result?.toString() || "0");
   } catch (error) {
-    console.error("Error reading pure function:", error);
+    logger.error("Error reading pure function:", error);
   }
 };
