@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  CREDS_BY_URL,
   MODIFIED_ENCRYPTEDS,
   PENDING_CREDS,
   VIEW,
@@ -19,8 +18,6 @@ import { useCurrentTab } from "@/hooks/useCurrentTab";
 import {
   createNewPasswordCred,
   Cred,
-  CredsByUrl,
-  updateOrAddPasswordCred,
 } from "@/utils/credentials";
 import generator from "generate-password-ts";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -48,10 +45,6 @@ export const AddCred = () => {
   const [_pendingCreds, setPendingCreds] = useBrowserStoreLocal<Cred[]>(
     PENDING_CREDS,
     []
-  );
-  const [credsByUrl, setCredsByUrl] = useBrowserStoreLocal<CredsByUrl>(
-    CREDS_BY_URL,
-    {}
   );
   const [_modifiedEncrypteds, setModifiedEncrypteds] =
     useBrowserStoreLocal<boolean>(MODIFIED_ENCRYPTEDS, false);
@@ -103,8 +96,8 @@ export const AddCred = () => {
     });
 
     setPendingCreds((prev) => [...prev, bareCred]);
-    const record = updateOrAddPasswordCred(bareCred, credsByUrl);
-    setCredsByUrl(record);
+    // Note: We don't add to credsByUrl here because unsynced creds should only be in pendingCreds.
+    // They will be merged with credsByUrl (synced) at display time in credentials.tsx.
 
     setView("Current Page");
   };

@@ -1,14 +1,24 @@
 import { Icon } from "@/components/icon";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { CREDS_BY_URL, NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
+import {
+    CREDS_BY_URL,
+    NUM_ENTRIES,
+    PENDING_CREDS,
+    PUBKEY,
+} from "@/constants/hookVariables";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
-import { logger } from "@/utils/logger";
 import { CredentialsAll } from "@/side_panel/credentialsAll";
 import { CurrentPage } from "@/side_panel/currentPage";
-import { CredsByUrl } from "@/utils/credentials";
+import {
+    Cred,
+    CredsByUrl,
+    getCredsByUrl,
+    mergeCredsByUrl,
+} from "@/utils/credentials";
 import { getNumEntries } from "@/utils/getNumEntries";
-import { useState } from "react";
+import { logger } from "@/utils/logger";
+import { useMemo, useState } from "react";
 import { Hex } from "viem";
 
 const Refresh = ({ className }: { className: string }) => (
@@ -30,14 +40,21 @@ const Refresh = ({ className }: { className: string }) => (
 
 export const Credentials = () => {
   const [credsUrl] = useBrowserStoreLocal<CredsByUrl>(CREDS_BY_URL, {});
+  const [pendingCreds] = useBrowserStoreLocal<Cred[]>(PENDING_CREDS, []);
   const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
   const [numEntries, setNumEntries] = useBrowserStoreLocal<number>(
     NUM_ENTRIES,
     -1
   );
 
+  // Merge synced credentials (credsUrl) with unsynced credentials (pendingCreds)
+  const mergedCredsUrl = useMemo(() => {
+    const unsyncedCredsByUrl = getCredsByUrl(pendingCreds);
+    return mergeCredsByUrl(credsUrl, unsyncedCredsByUrl);
+  }, [credsUrl, pendingCreds]);
+
   const [seeAll, setSeeAll] = useState<boolean>(true);
-  const toggleSeeAll = () => setSeeAll((prev) => !prev);
+  const toggleSeeAll = () => setSeeAll((prev: boolean) => !prev);
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
@@ -71,9 +88,9 @@ export const Credentials = () => {
         </div>
       </div>
       {seeAll ? (
-        <CredentialsAll credsUrl={credsUrl} />
+        <CredentialsAll credsUrl={mergedCredsUrl} />
       ) : (
-        <CurrentPage credsUrl={credsUrl} />
+        <CurrentPage credsUrl={mergedCredsUrl} />
       )}
     </div>
   );

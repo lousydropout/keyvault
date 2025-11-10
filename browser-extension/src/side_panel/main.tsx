@@ -13,7 +13,6 @@ import {
 import { DASHBOARD, SETUP_ENCRYPTION_KEY, WELCOME } from "@/constants/steps";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
-import { logger } from "@/utils/logger";
 import "@/index.css";
 import { PubkeyRequest } from "@/side_panel/PubkeyRequest";
 import { AddCred } from "@/side_panel/addCred";
@@ -27,15 +26,17 @@ import { Sync } from "@/side_panel/sync";
 import {
   Cred,
   CredsByUrl,
-  DecryptionError,
   decryptAndCategorizeEntries,
   decryptEntries,
+  DecryptionError,
+  getCredsByUrl,
+  isPasswordCred,
   KeypairCred,
-  mergeCredsByUrl,
   SecretShareCred,
 } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
 import { getEntries } from "@/utils/getEntries";
+import { logger } from "@/utils/logger";
 import { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
 import { Hex } from "viem";
@@ -54,10 +55,8 @@ export const Root = () => {
     CREDS_BY_URL,
     {}
   );
-  const [pendingCreds, setPendingCreds] = useBrowserStoreLocal<Cred[]>(
-    PENDING_CREDS,
-    []
-  );
+  const [pendingCreds, setPendingCreds, pendingCredsLoaded] =
+    useBrowserStoreLocal<Cred[]>(PENDING_CREDS, []);
   const [_keypairs, setKeypairs] = useBrowserStoreLocal<KeypairCred[]>(
     KEYPAIRS,
     []
@@ -90,17 +89,30 @@ export const Root = () => {
       // All retries succeeded, clear errors
       setDecryptionErrors([]);
       // Re-run full decryption to update all credentials
-      decryptAndCategorizeEntries(
-        cryptoKey as CryptoKey,
-        encrypteds,
-        pendingCreds
-      ).then((decrypted) => {
-        setCredsByUrl((prev) => mergeCredsByUrl(prev, decrypted.passwords));
-        setKeypairs(decrypted.keypairs);
-        setSecretShares(decrypted.secretShares);
-        setPendingCreds(decrypted.pendings);
-        setDecryptionErrors(decrypted.errors);
-      });
+      // First, decrypt only on-chain entries to get synced credentials
+      decryptEntries(cryptoKey as CryptoKey, encrypteds)
+        .then((onChainResult) => {
+          // Extract only on-chain password credentials for credsByUrl
+          const onChainPasswords = onChainResult.credentials.filter(
+            isPasswordCred
+          );
+          const syncedCredsByUrl = getCredsByUrl(onChainPasswords);
+          setCredsByUrl(syncedCredsByUrl);
+
+          // Now decrypt with pendingCreds to prune them
+          return decryptAndCategorizeEntries(
+            cryptoKey as CryptoKey,
+            encrypteds,
+            pendingCreds
+          );
+        })
+        .then((decrypted) => {
+          // credsByUrl already set above with only synced creds
+          setKeypairs(decrypted.keypairs);
+          setSecretShares(decrypted.secretShares);
+          setPendingCreds(decrypted.pendings);
+          setDecryptionErrors(decrypted.errors);
+        });
     } else {
       // Some retries still failed, update error state
       setDecryptionErrors(result.errors);
@@ -110,6 +122,9 @@ export const Root = () => {
   // query and convert on-chain entries to creds automatically
   useEffect(() => {
     if (!cryptoKey || step !== DASHBOARD) return;
+    // Wait for pendingCreds to load from storage before running
+    // to avoid overwriting stored values with empty array
+    if (!pendingCredsLoaded) return;
 
     logger.debug(
       "[Main] numOnChain, encrypteds.length: ",
@@ -127,6 +142,18 @@ export const Root = () => {
           updatedEncrypteds.push(...newEntries);
           setEncrypteds(updatedEncrypteds);
 
+          // Decrypt only on-chain entries to get synced credentials
+          return decryptEntries(cryptoKey as CryptoKey, updatedEncrypteds);
+        })
+        .then((onChainResult) => {
+          // Extract only on-chain password credentials for credsByUrl
+          const onChainPasswords = onChainResult.credentials.filter(
+            isPasswordCred
+          );
+          const syncedCredsByUrl = getCredsByUrl(onChainPasswords);
+          setCredsByUrl(syncedCredsByUrl);
+
+          // Now decrypt with pendingCreds to prune them
           return decryptAndCategorizeEntries(
             cryptoKey as CryptoKey,
             updatedEncrypteds,
@@ -138,7 +165,7 @@ export const Root = () => {
             "[Main] decryptAndCategorizeEntries: ",
             JSON.stringify(decrypted)
           );
-          setCredsByUrl((prev) => mergeCredsByUrl(prev, decrypted.passwords));
+          // credsByUrl already set above with only synced creds
           setKeypairs(decrypted.keypairs);
           setSecretShares(decrypted.secretShares);
           setPendingCreds(decrypted.pendings);
@@ -149,25 +176,29 @@ export const Root = () => {
           // Don't set errors here as decryptAndCategorizeEntries handles its own errors
         });
     } else if (encrypteds.length > 0) {
-      // Decrypt existing entries to check for errors (only if we have entries)
-      decryptAndCategorizeEntries(
-        cryptoKey as CryptoKey,
-        encrypteds,
-        pendingCreds
-      )
-        .then((decrypted) => {
-          setCredsByUrl((prev) => mergeCredsByUrl(prev, decrypted.passwords));
-          setKeypairs(decrypted.keypairs);
-          setSecretShares(decrypted.secretShares);
-          setPendingCreds(decrypted.pendings);
-          setDecryptionErrors(decrypted.errors);
+      // Decrypt existing entries to get synced credentials
+      // Don't prune pendingCreds here - only prune when new entries are added
+      // This prevents overwriting pendingCreds when sidebar reopens
+      decryptEntries(cryptoKey as CryptoKey, encrypteds)
+        .then((onChainResult) => {
+          // Extract only on-chain password credentials for credsByUrl
+          const onChainPasswords = onChainResult.credentials.filter(
+            isPasswordCred
+          );
+          const syncedCredsByUrl = getCredsByUrl(onChainPasswords);
+          setCredsByUrl(syncedCredsByUrl);
+          
+          // Don't call decryptAndCategorizeEntries here - it would prune pendingCreds
+          // Pruning only happens when new entries are detected (in the if branch above)
+          // Just set the errors if any
+          setDecryptionErrors(onChainResult.errors);
         })
         .catch((error) => {
           logger.error("[Main] Error in decryption flow:", error);
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [numOnChain, cryptoKey, step]);
+  }, [numOnChain, cryptoKey, step, pendingCredsLoaded]);
 
   return (
     <>

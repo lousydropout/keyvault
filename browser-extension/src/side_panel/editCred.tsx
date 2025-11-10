@@ -101,9 +101,21 @@ export const EditCred = () => {
       description,
     });
 
-    setPendingCreds((prev) => [...prev, updatedCred]);
-    const record = updateOrAddPasswordCred(updatedCred, credsByUrl);
-    setCredsByUrl(record);
+    // Check if this credential is unsynced (in pendingCreds) or synced (in credsByUrl)
+    const isUnsynced = _pendingCreds.some((c) => c.id === cred.id);
+    
+    if (isUnsynced) {
+      // Update unsynced credential: replace in pendingCreds
+      setPendingCreds((prev) =>
+        prev.map((c) => (c.id === cred.id ? updatedCred : c))
+      );
+    } else {
+      // Update synced credential: update credsByUrl and add to pendingCreds for sync
+      const record = updateOrAddPasswordCred(updatedCred, credsByUrl);
+      setCredsByUrl(record);
+      setPendingCreds((prev) => [...prev, updatedCred]);
+    }
+    
     setView("Current Page");
   };
 

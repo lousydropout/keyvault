@@ -146,9 +146,20 @@ const CredentialCard = ({
           className="text-red-500 text-md px-2 text-left"
           onClick={async () => {
             const deletedCred = deletePasswordCred(cred);
-            const record = updateOrAddPasswordCred(deletedCred, credsByUrl);
-            setPendingCreds((prev) => [...prev, deletedCred]);
-            setCredsByUrl(record);
+            
+            // Check if this credential is unsynced (in pendingCreds) or synced (in credsByUrl)
+            const isUnsynced = _pendingCreds.some((c) => c.id === cred.id);
+            
+            if (isUnsynced) {
+              // Remove from unsynced credentials
+              setPendingCreds((prev) => prev.filter((c) => c.id !== cred.id));
+            } else {
+              // For synced credentials, add deletion record to pendingCreds for sync
+              // and update credsByUrl to reflect the deletion
+              const record = updateOrAddPasswordCred(deletedCred, credsByUrl);
+              setPendingCreds((prev) => [...prev, deletedCred]);
+              setCredsByUrl(record);
+            }
           }}
         >
           DELETE
