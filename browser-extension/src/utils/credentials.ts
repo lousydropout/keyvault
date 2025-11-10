@@ -688,6 +688,90 @@ export const getCredsByUrl = (creds: Cred[]): CredsByUrl => {
 };
 
 /**
+ * Merges two CredsByUrl objects, combining credential chains for the same URLs
+ * and deduplicating by credential ID and timestamp.
+ *
+ * @param existing - The existing CredsByUrl object to merge into
+ * @param newCreds - The new CredsByUrl object to merge from
+ * @returns A merged CredsByUrl object
+ */
+export const mergeCredsByUrl = (
+  existing: CredsByUrl,
+  newCreds: CredsByUrl
+): CredsByUrl => {
+  const merged: CredsByUrl = structuredClone(existing);
+
+  // For each URL in newCreds
+  for (const url in newCreds) {
+    const newChains = newCreds[url];
+
+    // If URL doesn't exist in existing, add all chains
+    if (!(url in merged)) {
+      merged[url] = structuredClone(newChains);
+      continue;
+    }
+
+    // URL exists, merge chains
+    const existingChains = merged[url];
+    const chainMap = new Map<string, PasswordCred[]>();
+
+    // Index existing chains by credential ID
+    for (const chain of existingChains) {
+      if (chain.length > 0) {
+        const chainId = chain[0].id.toString(16);
+        chainMap.set(chainId, structuredClone(chain));
+      }
+    }
+
+    // Merge new chains
+    for (const newChain of newChains) {
+      if (newChain.length === 0) continue;
+
+      const chainId = newChain[0].id.toString(16);
+      const existingChain = chainMap.get(chainId);
+
+      if (existingChain) {
+        // Chain with same ID exists, merge credential arrays
+        const seen = new Set<string>();
+        const mergedCreds: PasswordCred[] = [];
+
+        // Add all credentials from existing chain
+        for (const cred of existingChain) {
+          const key = `${cred.id}${cred.timestamp}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            mergedCreds.push(cred);
+          }
+        }
+
+        // Add all credentials from new chain
+        for (const cred of newChain) {
+          const key = `${cred.id}${cred.timestamp}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            mergedCreds.push(cred);
+          }
+        }
+
+        // Sort by timestamp and update the chain
+        mergedCreds.sort(byTimestamp);
+        chainMap.set(chainId, mergedCreds);
+      } else {
+        // New chain with different ID, add it
+        chainMap.set(chainId, structuredClone(newChain));
+      }
+    }
+
+    // Convert map back to array and sort chains by latest timestamp
+    merged[url] = Array.from(chainMap.values()).sort(
+      (a, b) => b[b.length - 1].timestamp - a[a.length - 1].timestamp
+    );
+  }
+
+  return merged;
+};
+
+/**
  * Generates a mapping from credentials by URL.
  *
  * This function takes an object where the keys are URLs and the values are arrays of credential chains.

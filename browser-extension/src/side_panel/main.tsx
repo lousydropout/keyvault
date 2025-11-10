@@ -31,6 +31,7 @@ import {
   decryptAndCategorizeEntries,
   decryptEntries,
   KeypairCred,
+  mergeCredsByUrl,
   SecretShareCred,
 } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
@@ -94,7 +95,7 @@ export const Root = () => {
         encrypteds,
         pendingCreds
       ).then((decrypted) => {
-        setCredsByUrl(decrypted.passwords);
+        setCredsByUrl((prev) => mergeCredsByUrl(prev, decrypted.passwords));
         setKeypairs(decrypted.keypairs);
         setSecretShares(decrypted.secretShares);
         setPendingCreds(decrypted.pendings);
@@ -137,7 +138,7 @@ export const Root = () => {
             "[Main] decryptAndCategorizeEntries: ",
             JSON.stringify(decrypted)
           );
-          setCredsByUrl(decrypted.passwords);
+          setCredsByUrl((prev) => mergeCredsByUrl(prev, decrypted.passwords));
           setKeypairs(decrypted.keypairs);
           setSecretShares(decrypted.secretShares);
           setPendingCreds(decrypted.pendings);
@@ -155,7 +156,7 @@ export const Root = () => {
         pendingCreds
       )
         .then((decrypted) => {
-          setCredsByUrl(decrypted.passwords);
+          setCredsByUrl((prev) => mergeCredsByUrl(prev, decrypted.passwords));
           setKeypairs(decrypted.keypairs);
           setSecretShares(decrypted.secretShares);
           setPendingCreds(decrypted.pendings);
