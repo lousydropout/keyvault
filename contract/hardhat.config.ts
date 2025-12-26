@@ -32,11 +32,37 @@ const config: HardhatUserConfig = {
       chainId: 592,
       accounts: [PRIVATE_KEY],
     },
+    base: {
+      url: process.env.BASE_RPC_URL || "https://mainnet.base.org",
+      chainId: 8453,
+      accounts: [PRIVATE_KEY],
+    },
+    baseSepolia: {
+      url: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
+      chainId: 84532,
+      accounts: [PRIVATE_KEY],
+    },
     localhost: {
       url: "http://localhost:8545",
       chainId: 31337,
       accounts: [LOCAL_PRIVATE_KEY],
     },
+  },
+  etherscan: {
+    apiKey: {
+      base: process.env.BASESCAN_API_KEY || "",
+      baseSepolia: process.env.BASESCAN_API_KEY || "",
+    },
+    customChains: [
+      {
+        network: "base",
+        chainId: 8453,
+        urls: {
+          apiURL: "https://api.basescan.org/api",
+          browserURL: "https://basescan.org",
+        },
+      },
+    ],
   },
   defaultNetwork: "localhost",
 };
