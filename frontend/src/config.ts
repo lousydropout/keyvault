@@ -1,12 +1,15 @@
 import { keyvaultAbi as abi } from "@/keyvault.abi";
 import { localKeyvaultAddress } from "@/localKeyvaultAddress.ts";
+import { CHAIN_CONFIGS } from "@/chainConfig";
 import { createPublicClient, Hex } from "viem";
 import { createConfig, http } from "wagmi";
-import { astar, hardhat } from "wagmi/chains";
+import { astar, base, hardhat } from "wagmi/chains";
 
-// Modify the NETWORK constant to the desired chain here
-export const NETWORK: "localhost" | "astar" =
-  import.meta.env.VITE_NETWORK === "astar" ? "astar" : "localhost";
+// Build-time network selection
+export const NETWORK: "localhost" | "astar" | "base" =
+  import.meta.env.VITE_NETWORK === "astar" ? "astar" :
+  import.meta.env.VITE_NETWORK === "base" ? "base" : "localhost";
+
 /**
  * Sets the chain configuration based on the provided network.
  *
@@ -15,7 +18,7 @@ export const NETWORK: "localhost" | "astar" =
  * @throws {Error} If the provided network is invalid.
  */
 const setChainConfig = (network: string) => {
-  const allowedNetworks = new Set(["localhost", "astar"]);
+  const allowedNetworks = new Set(["localhost", "astar", "base"]);
 
   if (!allowedNetworks.has(network)) throw new Error("Invalid chain");
 
@@ -23,13 +26,18 @@ const setChainConfig = (network: string) => {
   switch (network) {
     case "astar":
       chain = astar;
-      address = "0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B" as Hex;
-      apiUrl = "https://evm.astar.network"; // TODO: Get non-public RPC Node
+      address = CHAIN_CONFIGS[astar.id].address;
+      apiUrl = CHAIN_CONFIGS[astar.id].apiUrl;
+      break;
+    case "base":
+      chain = base;
+      address = CHAIN_CONFIGS[base.id].address;
+      apiUrl = CHAIN_CONFIGS[base.id].apiUrl;
       break;
     case "localhost":
       chain = hardhat;
       address = localKeyvaultAddress;
-      apiUrl = "http://localhost:8545";
+      apiUrl = CHAIN_CONFIGS[hardhat.id].apiUrl;
       break;
     default:
       throw new Error("Invalid chain");
@@ -40,11 +48,13 @@ const setChainConfig = (network: string) => {
 export { abi };
 export const { chain, address, apiUrl } = setChainConfig(NETWORK);
 
+// Wagmi config with all supported chains
 export const config = createConfig({
-  chains: [hardhat, astar],
+  chains: [hardhat, astar, base],
   transports: {
     [hardhat.id]: http(),
     [astar.id]: http(),
+    [base.id]: http(),
   },
 });
 

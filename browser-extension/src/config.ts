@@ -1,23 +1,43 @@
-import { ASTAR, LOCALHOST } from "@/constants/networks";
+import { ASTAR, BASE, LOCALHOST } from "@/constants/networks";
+import { CHAIN_CONFIGS, ChainConfig, getChainConfig } from "@/constants/chains";
 import { keyvaultAbi as abi } from "@/keyvault.abi";
 import { localKeyvaultAddress } from "@/utils/localKeyvaultAddress.ts";
-import { createPublicClient, getContract, Hex, http } from "viem";
-import { astar, hardhat } from "viem/chains";
+import { createPublicClient, getContract, Hex, http, PublicClient } from "viem";
+import { astar, base, hardhat } from "viem/chains";
 
-// Modify the NETWORK constant to the desired chain here
+export { abi };
 
-export const NETWORK: typeof LOCALHOST | typeof ASTAR =
-  import.meta.env.VITE_NETWORK === ASTAR ? ASTAR : LOCALHOST;
+// Build-time default (used for initial load before storage is read)
+export const NETWORK: typeof LOCALHOST | typeof ASTAR | typeof BASE =
+  import.meta.env.VITE_NETWORK === ASTAR ? ASTAR :
+  import.meta.env.VITE_NETWORK === BASE ? BASE : LOCALHOST;
+
+// Create client for a specific chain
+export const createChainClient = (chainId: number): PublicClient => {
+  const config = getChainConfig(chainId);
+  return createPublicClient({
+    chain: config.chain,
+    transport: http(config.apiUrl),
+  });
+};
+
+// Create contract instance for a specific chain
+export const createChainContract = (chainId: number) => {
+  const config = getChainConfig(chainId);
+  const client = createChainClient(chainId);
+  return getContract({
+    abi,
+    address: config.address,
+    client,
+  });
+};
 
 /**
- * Sets the chain configuration based on the provided network.
- *
- * @param network - The network to set the chain configuration for.
- * @returns An object containing the chain and address.
- * @throws {Error} If the provided network is invalid.
+ * Legacy: Sets the chain configuration based on the provided network.
+ * Kept for backward compatibility during migration.
  */
 const setChainConfig = (network: string) => {
-  const allowedNetworks = new Set([LOCALHOST, ASTAR]);
+  const allowedNetworks = new Set([LOCALHOST, ASTAR, BASE]);
 
   if (!allowedNetworks.has(network)) throw new Error("Invalid chain");
 
@@ -26,7 +46,13 @@ const setChainConfig = (network: string) => {
     case ASTAR:
       chain = astar;
       address = "0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B" as Hex;
-      apiUrl = "https://evm.astar.network"; // TODO: Get non-public RPC Node
+      apiUrl = "https://evm.astar.network";
+      dappUrl = "https://dapp.blockchainkeyvault.com";
+      break;
+    case BASE:
+      chain = base;
+      address = CHAIN_CONFIGS[base.id].address;
+      apiUrl = "https://mainnet.base.org";
       dappUrl = "https://dapp.blockchainkeyvault.com";
       break;
     case LOCALHOST:
@@ -41,6 +67,7 @@ const setChainConfig = (network: string) => {
   return { chain, address, apiUrl, dappUrl };
 };
 
+// Legacy exports for backward compatibility during migration
 export const { chain, address, apiUrl, dappUrl } = setChainConfig(NETWORK);
 export const client = createPublicClient({ chain, transport: http() });
 export const contract = getContract({ abi, address, client });

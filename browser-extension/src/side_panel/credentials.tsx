@@ -8,6 +8,7 @@ import {
     PUBKEY,
 } from "@/constants/hookVariables";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
+import { useChain } from "@/side_panel/chain";
 import { CredentialsAll } from "@/side_panel/credentialsAll";
 import { CurrentPage } from "@/side_panel/currentPage";
 import {
@@ -46,6 +47,7 @@ export const Credentials = () => {
     NUM_ENTRIES,
     -1
   );
+  const { chainId } = useChain();
 
   // Merge synced credentials (credsUrl) with unsynced credentials (pendingCreds)
   const mergedCredsUrl = useMemo(() => {
@@ -74,7 +76,7 @@ export const Credentials = () => {
           </div>
           <Icon
             onClick={() => {
-              getNumEntries(pubkey as Hex).then((num) => {
+              getNumEntries(pubkey as Hex, chainId).then((num) => {
                 if (num && num !== numEntries) setNumEntries(num || numEntries);
                 logger.debug("[Credentials] Refreshing... nums = ", {
                   num,

@@ -3,15 +3,23 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastAction } from "@/components/ui/toast";
 import { Toaster } from "@/components/ui/toaster";
 import { abi, address, client } from "@/config";
+import { CHAIN_CONFIGS, isValidChainId } from "@/chainConfig";
 import { useToast } from "@/hooks/use-toast";
 import { useMessage } from "@/hooks/useMessage";
 import { useEffect, useState } from "react";
-import { useAccount, useChainId, useWriteContract } from "wagmi";
+import { useAccount, useChainId, useSwitchChain, useWriteContract } from "wagmi";
+
+// Helper to get chain name from chainId
+const getChainName = (id: number | undefined) => {
+  if (id === undefined) return "Unknown";
+  return CHAIN_CONFIGS[id]?.name || `Chain ${id}`;
+};
 
 export default function App() {
   const message = useMessage();
   const account = useAccount();
   const chainId = useChainId();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
   const { toast } = useToast();
   const [isOkay, setIsOkay] = useState<boolean>(false);
   const [ciphertext, setCiphertext] = useState<string>("");
@@ -109,10 +117,21 @@ export default function App() {
                   <></>
                 )}
                 {chainId !== message?.chainId ? (
-                  <p className="text-red-300">
-                    Error: The data you sent is for a different chain:{" "}
-                    {message?.chainId}
-                  </p>
+                  <div className="text-red-300 flex flex-col gap-4 items-center">
+                    <p>
+                      Error: Chain mismatch. You're connected to {getChainName(chainId)},
+                      but the data is for {getChainName(message?.chainId)}.
+                    </p>
+                    {message?.chainId && isValidChainId(message.chainId) && (
+                      <Button
+                        variant="outline"
+                        disabled={isSwitching}
+                        onClick={() => switchChain({ chainId: message.chainId })}
+                      >
+                        {isSwitching ? "Switching..." : `Switch to ${getChainName(message.chainId)}`}
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <></>
                 )}

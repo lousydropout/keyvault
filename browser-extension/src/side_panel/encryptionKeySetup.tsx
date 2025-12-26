@@ -6,6 +6,7 @@ import { NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
 import { DASHBOARD } from "@/constants/steps";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
+import { useChain } from "@/side_panel/chain";
 import { logger } from "@/utils/logger";
 import { importCryptoKey } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
@@ -23,14 +24,15 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
     NUM_ENTRIES,
     -1
   );
+  const { chainId } = useChain();
 
   useEffect(() => {
     if (!pubkey) return;
 
-    getNumEntries(pubkey as Hex).then((num) => {
+    getNumEntries(pubkey as Hex, chainId).then((num) => {
       if (num !== undefined) setNumOnChain(num);
     });
-  }, [pubkey]);
+  }, [pubkey, chainId]);
 
   useEffect(() => {
     if (numOnChain === 0 && !jwk) generateKeyHandler();

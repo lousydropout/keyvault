@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { CREDENTIALS, ENCRYPTEDS, PUBKEY } from "@/constants/hookVariables";
 import { WELCOME } from "@/constants/steps";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
@@ -36,12 +38,28 @@ export const Settings = () => {
   const [jwk] = useCryptoKeyManager();
   const [encrypteds] = useBrowserStoreLocal<Encrypted[]>(ENCRYPTEDS, []);
   const [creds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
+  const [devMode, setDevMode] = useBrowserStoreLocal<boolean>("devMode", false);
 
   return (
     <div className="flex flex-col gap-4 justify-end">
       <h3 className="mt-8 mb-4 text-center text-lg">
         Wallet address: {pubkey || "N/A"}
       </h3>
+
+      {/* Developer Mode */}
+      <div className="flex items-center justify-between py-2 px-4">
+        <div>
+          <Label htmlFor="dev-mode" className="text-white">Developer Mode</Label>
+          <p className="text-xs text-slate-400 mt-1">
+            Enables localhost network for development testing
+          </p>
+        </div>
+        <Switch
+          id="dev-mode"
+          checked={devMode}
+          onCheckedChange={setDevMode}
+        />
+      </div>
 
       {/* encryption key */}
       <h3 className="mt-8 mb-4 text-center text-lg">Encryption key</h3>

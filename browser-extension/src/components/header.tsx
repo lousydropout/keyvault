@@ -1,3 +1,4 @@
+import { ChainSelector } from "@/components/ChainSelector";
 import { CredsIcon } from "@/components/icons/credsIcon";
 import { MoreIcon } from "@/components/icons/moreIcon";
 import { SettingsIcon } from "@/components/icons/settingsIcon";
@@ -111,6 +112,9 @@ export const Header = () => {
       <Icon view={view} label="Creds" onClick={() => setView("Current Page")}>
         <CredsIcon className="w-6 h-6" />
       </Icon>
+
+      {/* Chain Selector */}
+      <ChainSelector />
 
       {/* Sync */}
       <Icon

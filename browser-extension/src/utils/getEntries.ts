@@ -1,4 +1,4 @@
-import { contract } from "@/config";
+import { createChainContract } from "@/config";
 import { Encrypted, parseEncryptedText } from "@/utils/encryption";
 import { getNumEntries } from "@/utils/getNumEntries";
 import { logger } from "@/utils/logger";
@@ -11,15 +11,18 @@ import { Hex } from "viem";
  * @param pubkey - The public key in hexadecimal format.
  * @param startFrom - The starting index for fetching entries.
  * @param limit - The maximum number of entries to fetch.
+ * @param chainId - The chain ID to read from.
  * @returns A promise that resolves to an array of encrypted entries.
  * @throws Will throw an error if the contract read operation fails.
  */
 export const getEntries = async (
   pubkey: Hex,
   startFrom: number,
-  limit: number
+  limit: number,
+  chainId: number
 ): Promise<Encrypted[]> => {
   try {
+    const contract = createChainContract(chainId);
     const results = (await contract.read.getEntries([
       pubkey,
       BigInt(startFrom),
@@ -48,6 +51,7 @@ export const getEntries = async (
  * @param encrypteds - The current list of encrypted entries.
  * @param setNumEntries - A state setter function to update the number of entries.
  * @param setEncrypteds - A state setter function to update the list of encrypted entries.
+ * @param chainId - The chain ID to read from.
  * @returns A promise that resolves when the update is complete.
  *
  * @throws Will throw an error if the number of on-chain entries does not match the expected count.
@@ -56,9 +60,10 @@ export const updateEncrypteds = async (
   pubkey: Hex,
   encrypteds: Encrypted[],
   setNumEntries: Dispatch<SetStateAction<number>>,
-  setEncrypteds: Dispatch<SetStateAction<Encrypted[]>>
+  setEncrypteds: Dispatch<SetStateAction<Encrypted[]>>,
+  chainId: number
 ): Promise<void> => {
-  const numOnChain = (await getNumEntries(pubkey)) ?? 0;
+  const numOnChain = (await getNumEntries(pubkey, chainId)) ?? 0;
   setNumEntries(numOnChain);
   const _encrypteds: Encrypted[] = [];
   const offset = encrypteds.length;
@@ -72,7 +77,8 @@ export const updateEncrypteds = async (
     const newEntries = await getEntries(
       pubkey,
       i * batchLength + offset,
-      batchLength
+      batchLength,
+      chainId
     );
     _encrypteds.push(...newEntries);
   }

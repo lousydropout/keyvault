@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { chain } from "@/config";
 import { NUM_ENTRIES, PENDING_CREDS, PUBKEY } from "@/constants/hookVariables";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
+import { useChain } from "@/side_panel/chain";
 import { logger } from "@/utils/logger";
 import { Cred, encryptEntries } from "@/utils/credentials";
 import { Encrypted } from "@/utils/encryption";
@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Hex } from "viem";
 
 export const Sync = () => {
+  const { chainId } = useChain();
   const [tab] = useCurrentTab();
   const tabId = tab?.id || chrome.tabs.TAB_ID_NONE;
   const [pendingCreds] = useBrowserStoreLocal<Cred[]>(PENDING_CREDS, []);
@@ -52,7 +53,7 @@ export const Sync = () => {
       address: pubkey,
       numEntries,
       overwrite: true,
-      chainId: chain.id,
+      chainId: chainId, // Use dynamic chainId from hook
     };
 
     logger.debug(`Forwarding the following data to tabId: ${tabId}`, data);
@@ -79,7 +80,7 @@ export const Sync = () => {
   //   starting when the user clicks the "Send data to dApp" button
   //   and stopping when numEntries is updated
   const updateNumEntries = async () => {
-    getNumEntries(pubkey as Hex).then((num) => {
+    getNumEntries(pubkey as Hex, chainId).then((num) => {
       if (num && num !== numEntries) {
         setNumEntries(num);
         setSent(false);
@@ -93,7 +94,7 @@ export const Sync = () => {
     }, 10000);
 
     return () => clearInterval(intervalId);
-  }, [sent]);
+  }, [sent, chainId]); // Re-run when chainId changes
 
   return (
     <div className="flex flex-col items-center justify-start gap-2 p-4">
