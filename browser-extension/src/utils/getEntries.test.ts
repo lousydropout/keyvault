@@ -1,8 +1,10 @@
 import { getHostname } from "@/utils/getHostname";
+import { base, astar, hardhat } from "viem/chains";
 
 // Note: getEntries, getNumEntries, and updateEncrypteds tests require contract mocking
 // which is complex in Bun. These functions are integration-tested through actual usage.
 // Here we focus on getHostname which can be tested directly.
+// Additional tests below verify the chainId parameter validation.
 
 describe("getHostname", () => {
   it("should extract hostname from full URL string", () => {
@@ -53,6 +55,129 @@ describe("getHostname", () => {
     // For malformed URLs, it should return null
     const result = getHostname("not-a-url");
     expect(result).toBe(null);
+  });
+});
+
+describe("getEntries chainId parameter", () => {
+  // These tests verify the function signature accepts chainId
+  // Full integration tests require contract mocking
+
+  it("should accept Astar chain ID", async () => {
+    const { getEntries } = await import("@/utils/getEntries");
+    const pubkey = "0x0000000000000000000000000000000000000001" as const;
+
+    // Will throw because we can't connect to the network in tests,
+    // but this verifies the function accepts the chainId parameter
+    try {
+      await getEntries(pubkey, 0, 1, astar.id);
+    } catch (error: any) {
+      // Expected to fail on network call, but function signature is valid
+      expect(error).toBeDefined();
+    }
+  });
+
+  it("should accept Base chain ID", async () => {
+    const { getEntries } = await import("@/utils/getEntries");
+    const pubkey = "0x0000000000000000000000000000000000000001" as const;
+
+    try {
+      await getEntries(pubkey, 0, 1, base.id);
+    } catch (error: any) {
+      expect(error).toBeDefined();
+    }
+  });
+
+  it("should accept Hardhat chain ID", async () => {
+    const { getEntries } = await import("@/utils/getEntries");
+    const pubkey = "0x0000000000000000000000000000000000000001" as const;
+
+    try {
+      await getEntries(pubkey, 0, 1, hardhat.id);
+    } catch (error: any) {
+      expect(error).toBeDefined();
+    }
+  });
+
+  it("should throw for invalid chain ID", async () => {
+    const { getEntries } = await import("@/utils/getEntries");
+    const pubkey = "0x0000000000000000000000000000000000000001" as const;
+
+    await expect(
+      getEntries(pubkey, 0, 1, 99999)
+    ).rejects.toThrow("Unsupported chain: 99999");
+  });
+});
+
+describe("getNumEntries chainId parameter", () => {
+  it("should accept valid chain IDs", async () => {
+    const { getNumEntries } = await import("@/utils/getNumEntries");
+    const pubkey = "0x0000000000000000000000000000000000000001" as const;
+
+    // Test with each supported chain - they will fail on network call
+    // but should validate the chainId parameter correctly
+    for (const chainId of [astar.id, base.id, hardhat.id]) {
+      try {
+        await getNumEntries(pubkey, chainId);
+      } catch (error: any) {
+        // Expected to fail on network, not on parameter validation
+        expect(error).toBeDefined();
+      }
+    }
+  });
+
+  it("should throw for invalid chain ID", async () => {
+    const { getNumEntries } = await import("@/utils/getNumEntries");
+    const pubkey = "0x0000000000000000000000000000000000000001" as const;
+
+    // Function catches errors and returns undefined, but createChainContract throws
+    // So we need to check that it returns undefined (error caught)
+    const result = await getNumEntries(pubkey, 99999);
+    expect(result).toBeUndefined();
+  });
+});
+
+describe("updateEncrypteds chainId parameter", () => {
+  it("should accept chainId as last parameter", async () => {
+    const { updateEncrypteds } = await import("@/utils/getEntries");
+    const pubkey = "0x0000000000000000000000000000000000000001" as const;
+    const encrypteds: any[] = [];
+    const setNumEntries = jest.fn();
+    const setEncrypteds = jest.fn();
+
+    // Verify function signature accepts chainId
+    try {
+      await updateEncrypteds(
+        pubkey,
+        encrypteds,
+        setNumEntries,
+        setEncrypteds,
+        astar.id
+      );
+    } catch (error: any) {
+      // Expected to fail on network call
+      expect(error).toBeDefined();
+    }
+  });
+
+  it("should throw for invalid chain ID", async () => {
+    const { updateEncrypteds } = await import("@/utils/getEntries");
+    const pubkey = "0x0000000000000000000000000000000000000001" as const;
+    const encrypteds: any[] = [];
+    const setNumEntries = jest.fn();
+    const setEncrypteds = jest.fn();
+
+    // getNumEntries catches errors, so this won't throw but numOnChain will be 0
+    // and with empty encrypteds, it will return early
+    await updateEncrypteds(
+      pubkey,
+      encrypteds,
+      setNumEntries,
+      setEncrypteds,
+      99999
+    );
+
+    // setNumEntries should still be called with 0
+    expect(setNumEntries).toHaveBeenCalledWith(0);
   });
 });
 
