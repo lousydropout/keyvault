@@ -1,6 +1,7 @@
 import { View } from "@/components/header";
 import { Button } from "@/components/ui/button";
-import { chain, dappUrl } from "@/config";
+import { useChain } from "@/side_panel/chain";
+import { CHAIN_CONFIGS } from "@/constants/chains";
 import {
   KEYPAIRS,
   PENDING_CREDS,
@@ -20,6 +21,7 @@ const shorten = (s: string) => {
 };
 
 export const GenerateKeypair = () => {
+  const { chainId } = useChain();
   const [_pendingCreds, setPendingCreds] = useBrowserStoreLocal<Cred[]>(
     PENDING_CREDS,
     []
@@ -90,7 +92,7 @@ export const GenerateKeypair = () => {
     const data = {
       pubkey: keypairs[keypairs.length - 1].publicKey,
       address: pubkey,
-      chainId: chain.id,
+      chainId,
     };
 
     for (const tabId of tabIds) {
@@ -116,7 +118,7 @@ export const GenerateKeypair = () => {
   };
 
   const openTab = async () => {
-    const tab = await chrome.tabs.create({ url: `${dappUrl}/updatePublicKey` });
+    const tab = await chrome.tabs.create({ url: `${CHAIN_CONFIGS[chainId].dappUrl}/updatePublicKey` });
     if (tab.id) setTabIds([...tabIds, tab.id]);
   };
 

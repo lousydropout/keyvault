@@ -80,12 +80,38 @@ describe("Chain Registry", () => {
   });
 
   describe("DEFAULT_CHAIN_ID", () => {
-    it("should be Astar chain ID", () => {
+    it("should be Astar chain ID for production use", () => {
       expect(DEFAULT_CHAIN_ID).toBe(astar.id);
     });
 
     it("should be a supported chain ID", () => {
       expect(SUPPORTED_CHAIN_IDS).toContain(DEFAULT_CHAIN_ID);
+    });
+
+    it("should equal Astar chain ID value (592)", () => {
+      expect(DEFAULT_CHAIN_ID).toBe(592);
+    });
+  });
+
+  describe("Default chain fallback behavior", () => {
+    it("should have isValidChainId return false for invalid chain IDs", () => {
+      expect(isValidChainId(99999)).toBe(false);
+      expect(isValidChainId(0)).toBe(false);
+      expect(isValidChainId(-1)).toBe(false);
+    });
+
+    it("should have isValidChainId return true for all supported chains", () => {
+      expect(isValidChainId(astar.id)).toBe(true);
+      expect(isValidChainId(base.id)).toBe(true);
+      expect(isValidChainId(hardhat.id)).toBe(true);
+    });
+
+    it("should enable fallback to DEFAULT_CHAIN_ID (Astar) when chainId is invalid", () => {
+      const invalidChainId = 99999;
+      const effectiveChainId = isValidChainId(invalidChainId)
+        ? invalidChainId
+        : DEFAULT_CHAIN_ID;
+      expect(effectiveChainId).toBe(astar.id);
     });
   });
 

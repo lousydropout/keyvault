@@ -9,7 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { dappUrl } from "@/config";
+import { useChain } from "@/side_panel/chain";
+import { CHAIN_CONFIGS } from "@/constants/chains";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCurrentTab } from "@/hooks/useCurrentTab";
 import { useState } from "react";
@@ -105,6 +106,7 @@ export const Header = () => {
   const [tabIds, setTabIds] = useBrowserStoreLocal<number[]>("tabIds", []);
   const [view, setView] = useBrowserStore<View>("view", "Current Page");
   const [tab] = useCurrentTab();
+  const { chainId } = useChain();
 
   return (
     <div className="flex justify-around items-end px-4 mt-4">
@@ -128,7 +130,7 @@ export const Header = () => {
           }
 
           const newTab = await chrome.tabs.create({
-            url: dappUrl,
+            url: CHAIN_CONFIGS[chainId].dappUrl,
           });
           if (!newTab) return;
 
