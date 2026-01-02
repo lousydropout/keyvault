@@ -27,7 +27,7 @@ export const useBrowserStore = <T>(
         try {
           setValue(JSON.parse(result[key]) as T);
         } catch (error) {
-          logger.warn("[Warning] Error parsing value from storage:", error);
+          logger.debug("Error parsing value from storage (using raw value):", error);
           setValue(result[key] as unknown as T);
         }
       }

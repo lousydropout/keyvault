@@ -74,7 +74,7 @@ export const discoverAccounts = async (
         result.reason instanceof Error
           ? result.reason.message
           : String(result.reason);
-      logger.warn(`Failed to query chain ${chainName}:`, errorMessage);
+      logger.debug(`Failed to query chain ${chainName}:`, errorMessage);
       errors.push({ chainId, chainName, error: errorMessage });
       allChains.push({ chainId, chainName, status: "error", numEntries: 0, error: errorMessage });
     }
