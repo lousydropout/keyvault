@@ -4,15 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
 import { DASHBOARD } from "@/constants/steps";
+import { CHAIN_CONFIGS } from "@/constants/chains";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
 import { useChain } from "@/side_panel/chain";
 import { logger } from "@/utils/logger";
 import { importCryptoKey } from "@/utils/encryption";
-import { getNumEntries } from "@/utils/getNumEntries";
+import { discoverAccounts, ChainAccountInfo, ChainStatus } from "@/utils/discoverAccounts";
 import { download } from "@/utils/utility";
 import { useEffect, useState } from "react";
 import { Hex } from "viem";
+import { CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
+
+type DiscoveryState = "loading" | "complete";
+type UserAction = "pending" | "import" | "reset";
 
 type EncryptionKeySetupProps = {
   setStep: (step: number) => void;
@@ -24,19 +29,45 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
     NUM_ENTRIES,
     -1
   );
-  const { chainId } = useChain();
+  const { chainId, switchChain } = useChain();
 
+  // Multi-chain discovery state
+  const [discoveryState, setDiscoveryState] = useState<DiscoveryState>("loading");
+  const [allChainStatuses, setAllChainStatuses] = useState<ChainStatus[]>([]);
+  const [discoveredAccounts, setDiscoveredAccounts] = useState<ChainAccountInfo[]>([]);
+  const [userAction, setUserAction] = useState<UserAction>("pending");
+  const [selectedChain, setSelectedChain] = useState<ChainAccountInfo | null>(null);
+
+  // Discover accounts across all chains
   useEffect(() => {
     if (!pubkey) return;
 
-    getNumEntries(pubkey as Hex, chainId).then((num) => {
-      if (num !== undefined) setNumOnChain(num);
-    });
-  }, [pubkey, chainId]);
+    setDiscoveryState("loading");
+    discoverAccounts(pubkey as Hex).then((result) => {
+      setAllChainStatuses(result.allChains);
+      setDiscoveredAccounts(result.accounts);
+      setDiscoveryState("complete");
 
+      // If single account found, auto-select it
+      if (result.accounts.length === 1) {
+        setSelectedChain(result.accounts[0]);
+      }
+    });
+  }, [pubkey]);
+
+  // Generate key when user chooses reset or no accounts exist
   useEffect(() => {
-    if (numOnChain === 0 && !jwk) generateKeyHandler();
-  }, [numOnChain]);
+    if (userAction === "reset" && !jwk) {
+      generateKeyHandler();
+    }
+  }, [userAction]);
+
+  // Generate key when discovery completes with no accounts
+  useEffect(() => {
+    if (discoveryState === "complete" && discoveredAccounts.length === 0 && !jwk) {
+      generateKeyHandler();
+    }
+  }, [discoveryState, discoveredAccounts]);
 
   type CreatingOrResetingAccountProps = {
     isNew: boolean;
@@ -137,10 +168,12 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
       if (tmpJwk) importJwk();
     }, [tmpJwk]);
 
+    const currentChainName = CHAIN_CONFIGS[chainId]?.name || "Unknown";
+
     if (importAccount === null) {
       return (
         <div className="flex flex-col gap-4 px-2 py-4">
-          <h1 className="text-4xl text-center mt-4">We found your account</h1>
+          <h1 className="text-4xl text-center mt-4">Account found on {currentChainName}</h1>
           <p className="text-xl mt-4">
             Would you like to import your encryption key or reset your account?
           </p>
@@ -194,24 +227,158 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
     }
   };
 
-  if (numOnChain === 0) {
-    return <CreatingOrResetingAccount isNew={true} />;
-  } else if (numOnChain > 0) {
+  // Chain status icon component
+  const ChainStatusIcon = ({ status }: { status: ChainStatus }) => {
+    if (discoveryState === "loading") {
+      return <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />;
+    }
+    switch (status.status) {
+      case "found":
+        return <CheckCircle2 className="w-5 h-5 text-green-500" />;
+      case "not_found":
+        return <XCircle className="w-5 h-5 text-red-500" />;
+      case "error":
+        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+    }
+  };
+
+  // Chain selection handler for multi-chain scenarios
+  const handleSelectChain = (account: ChainAccountInfo) => {
+    logger.info(`User selected ${account.chainName} with ${account.numEntries} entries`);
+    setSelectedChain(account);
+    switchChain(account.chainId, true);
+    setNumOnChain(account.numEntries);
+  };
+
+  // Handle import action
+  const handleImport = () => {
+    if (selectedChain) {
+      switchChain(selectedChain.chainId, true);
+      setNumOnChain(selectedChain.numEntries);
+    }
+    setUserAction("import");
+  };
+
+  // Handle reset action
+  const handleReset = () => {
+    setNumOnChain(0);
+    setUserAction("reset");
+  };
+
+  // If user chose to import, show import UI
+  if (userAction === "import") {
     return <ExistingAccount />;
-  } else if (numOnChain === undefined) {
-    return (
-      <div className="flex flex-col gap-4 px-2 py-4">
-        <h1 className="text-4xl text-center">Error</h1>
-        <h2 className="text-2xl mt-8">
-          Something went wrong and we don't know what.
-        </h2>
-        <h4 className="text-sm">{jwk?.k ?? "N/A"}</h4>
-        <Button className="border rounded-xl" onClick={generateKeyHandler}>
-          New key
-        </Button>
-      </div>
-    );
-  } else {
-    return <h1>Loading...</h1>;
   }
+
+  // If user chose to reset or no accounts found, show new account UI
+  if (userAction === "reset" || (discoveryState === "complete" && discoveredAccounts.length === 0)) {
+    return <CreatingOrResetingAccount isNew={userAction !== "reset"} />;
+  }
+
+  // Check if a chain is currently selected
+  const isChainSelected = (chainId: number) => {
+    if (selectedChain) return selectedChain.chainId === chainId;
+    if (discoveredAccounts.length === 1) return discoveredAccounts[0].chainId === chainId;
+    return false;
+  };
+
+  // Get the active chain (selected or single found)
+  const activeChain = selectedChain || (discoveredAccounts.length === 1 ? discoveredAccounts[0] : null);
+
+  // Main discovery view
+  return (
+    <div className="flex flex-col gap-4 px-2 py-4">
+      <h1 className="text-4xl text-center mt-4">
+        {discoveryState === "loading" ? "Searching for existing accounts" : "Accounts search"}
+      </h1>
+
+      {/* Chain status list */}
+      <div className="flex flex-col gap-2 mt-4">
+        {discoveryState === "loading" ? (
+          // Show placeholder rows while loading
+          Object.values(CHAIN_CONFIGS).map((config) => (
+            <div
+              key={config.chain.id}
+              className="flex items-center justify-between p-3 rounded-lg bg-slate-800"
+            >
+              <span className="text-lg">{config.name}</span>
+              <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+            </div>
+          ))
+        ) : (
+          // Show actual results
+          allChainStatuses.map((status) => {
+            const isFound = status.status === "found";
+            const isSelected = isChainSelected(status.chainId);
+
+            return (
+              <div
+                key={status.chainId}
+                className={`flex items-center justify-between p-3 rounded-lg transition-all ${
+                  isSelected
+                    ? "bg-slate-700 border-2 border-green-500"
+                    : isFound
+                    ? "bg-slate-800 border border-slate-600 cursor-pointer hover:bg-slate-700 hover:border-green-500/50"
+                    : "bg-slate-800/50"
+                }`}
+                onClick={() => {
+                  if (isFound) {
+                    const account = discoveredAccounts.find(a => a.chainId === status.chainId);
+                    if (account) handleSelectChain(account);
+                  }
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <ChainStatusIcon status={status} />
+                  <span className={`text-lg ${isFound ? "text-white" : "text-slate-400"}`}>
+                    {status.chainName}
+                  </span>
+                </div>
+                {isFound && (
+                  <span className="text-sm text-green-400">
+                    {status.numEntries} credential{status.numEntries !== 1 ? "s" : ""}
+                  </span>
+                )}
+                {status.status === "error" && (
+                  <span className="text-xs text-yellow-400">unavailable</span>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Action buttons - shown after discovery completes */}
+      {discoveryState === "complete" && discoveredAccounts.length > 0 && (
+        <div className="flex flex-col gap-4 mt-6">
+          {activeChain ? (
+            <>
+              <p className="text-lg text-center text-slate-300">
+                Using <span className="text-white font-medium">{activeChain.chainName}</span>
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Button
+                  className="border rounded-xl"
+                  onClick={handleImport}
+                >
+                  Import encryption key
+                </Button>
+                <Button
+                  className="border rounded-xl"
+                  variant="outline"
+                  onClick={handleReset}
+                >
+                  Reset account
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-slate-400 text-center">
+              Select a chain above to continue
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 };
