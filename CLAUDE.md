@@ -46,9 +46,16 @@ cd contract && bun run local:node          # Local Anvil node
 
 ## Networks
 
-- **Production**: Astar
+- **Production**: Astar, Base
 - **Development**: localhost (Anvil)
-- **Planned**: Base
+
+### Contract Addresses
+
+| Network | Address |
+|---------|---------|
+| Astar | `0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B` |
+| Base | `0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5` |
+| Localhost | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
 
 ## Standards
 
