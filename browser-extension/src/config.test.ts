@@ -79,7 +79,7 @@ describe("Config - Dynamic Chain Client/Contract Creation", () => {
       const testContract = createChainContract(astar.id);
       expect(testContract.read).toBeDefined();
       expect(typeof testContract.read.numEntries).toBe("function");
-      expect(typeof testContract.read.entries).toBe("function");
+      expect(typeof testContract.read.getEntries).toBe("function");
     });
 
     it("should use correct address for each chain", () => {
