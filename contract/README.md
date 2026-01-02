@@ -30,9 +30,17 @@ The commands have already been added to `package.json` as scripts for dev conven
    $ bun run local:deploy
    ```
 
-## Deploying to Sibuya or Astar
+## Deploying to Shibuya, Astar, or Base
 
-This project is already on the `Astar` network, but you can also deploy your own contract instance by following the instructions in this section if you prefer.
+This project is deployed on both **Astar** and **Base** networks. You can also deploy your own contract instance by following the instructions in this section.
+
+### Current Deployments
+
+| Network | Address |
+|---------|---------|
+| Astar | `0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B` |
+| Base | `0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5` |
+| Localhost | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
 
 To deploy, first you'll need to provide `Hardhat` the private key of whatever account you want to deploy from. This is to be provided locally via the `Hardhat` cli. This way, you won't accidentally commit and push your private key to GitHub or the likes.
 
@@ -45,7 +53,7 @@ To deploy, first you'll need to provide `Hardhat` the private key of whatever ac
    ```bash
    $ bunx hardhat \
       ignition deploy ignition/modules/Keyvault.ts \
-      --network <shibuya or astar> \
+      --network <shibuya, astar, or base> \
       --deployment-id <some-id>
    ```
 3. delete the record of your private key from `Hardhat`:

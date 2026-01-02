@@ -9,7 +9,7 @@ The frontend serves as the bridge between users and the blockchain, featuring:
 - **Browser Extension Communication**: Receives encrypted data from the browser extension via postMessage API
 - **Smart Contract Integration**: Interacts with the Keyvault smart contract using Wagmi and Viem
 - **Wallet Support**: Currently supports MetaMask wallet connections (additional wallets can be added by modifying the `allowedWallets` set in `src/Connect.tsx`)
-- **Dual Network Support**: Supports both localhost (Hardhat) for development and Astar mainnet for production
+- **Multi-Network Support**: Supports localhost (Hardhat) for development, plus Astar and Base mainnets for production
 - **Real-time Updates**: Features toast notifications, error handling, and retry mechanisms
 
 ## Network Configuration
@@ -19,7 +19,15 @@ Network switching is controlled by the `VITE_NETWORK` environment variable:
 - **Development**: `VITE_NETWORK=localhost` (default for `bun run dev`)
 - **Production**: `VITE_NETWORK=astar` (default for `bun run build`)
 
-The network configuration is managed in `src/config.ts` and automatically selects the appropriate chain and contract address.
+### Supported Networks
+
+| Network | Chain ID | Contract Address |
+|---------|----------|------------------|
+| Astar | 592 | `0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B` |
+| Base | 8453 | `0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5` |
+| Localhost | 31337 | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
+
+The network configuration is managed in `src/chainConfig.ts` and automatically selects the appropriate chain and contract address.
 
 ## Development Setup
 

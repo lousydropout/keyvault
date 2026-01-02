@@ -26,8 +26,11 @@ Keyvault consists of three main components that work together to provide a compl
 
 ## Deployments
 
-- **Astar Mainnet**: [0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B](https://astar.blockscout.com/address/0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B)
-- **Local Development**: `0x5FbDB2315678afecb367f032d93F642f64180aa3` (default Hardhat address)
+| Network | Address | Explorer |
+|---------|---------|----------|
+| Astar | `0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B` | [Blockscout](https://astar.blockscout.com/address/0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B) |
+| Base | `0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5` | [Basescan](https://basescan.org/address/0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5) |
+| Localhost | `0x5FbDB2315678afecb367f032d93F642f64180aa3` | - |
 
 ## Quick Start
 
@@ -177,8 +180,9 @@ This design ensures:
 - **Localhost** (Chain ID: 31337): Hardhat development network
 - **Shibuya** (Chain ID: 81): Astar testnet (contract deployment only)
 - **Astar** (Chain ID: 592): Production mainnet
+- **Base** (Chain ID: 8453): Production mainnet
 
-**Note**: Frontend currently supports only localhost and Astar. Shibuya support is available for contract deployment but not in the frontend interface.
+**Note**: Frontend and browser extension support localhost, Astar, and Base. Shibuya support is available for contract deployment but not in the frontend interface.
 
 ### Network Configuration
 - Frontend automatically detects and switches networks based on `VITE_NETWORK` environment variable
