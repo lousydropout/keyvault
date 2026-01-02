@@ -47,7 +47,7 @@ export const Credentials = () => {
     NUM_ENTRIES,
     -1
   );
-  const { chainId } = useChain();
+  const { chainId, chainConfig } = useChain();
 
   // Merge synced credentials (credsUrl) with unsynced credentials (pendingCreds)
   const mergedCredsUrl = useMemo(() => {
@@ -90,9 +90,9 @@ export const Credentials = () => {
         </div>
       </div>
       {seeAll ? (
-        <CredentialsAll credsUrl={mergedCredsUrl} />
+        <CredentialsAll credsUrl={mergedCredsUrl} chainName={chainConfig.name} />
       ) : (
-        <CurrentPage credsUrl={mergedCredsUrl} />
+        <CurrentPage credsUrl={mergedCredsUrl} chainName={chainConfig.name} />
       )}
     </div>
   );
