@@ -46,10 +46,10 @@ describe("discoverAccounts", () => {
     it("should capture errors per chain without blocking other chains", async () => {
       const { discoverAccounts } = await import("@/utils/discoverAccounts");
 
-      // Query Base which has invalid placeholder address - guaranteed to fail
-      const result = await discoverAccounts(testPubkey, [base.id]);
+      // Query Localhost which is not running - guaranteed to fail
+      const result = await discoverAccounts(testPubkey, [hardhat.id]);
 
-      // Base should be in errors (invalid placeholder address)
+      // Localhost should be in errors (not running)
       expect(result.errors.length).toBe(1);
 
       // Each error should have chainId, chainName, and error message
@@ -66,24 +66,24 @@ describe("discoverAccounts", () => {
     it("should include chain names in error objects", async () => {
       const { discoverAccounts } = await import("@/utils/discoverAccounts");
 
-      // Query Base which will fail
-      const result = await discoverAccounts(testPubkey, [base.id]);
+      // Query Localhost which will fail (not running)
+      const result = await discoverAccounts(testPubkey, [hardhat.id]);
 
       // Verify chain names are correctly populated in errors
       const chainNames = result.errors.map((e) => e.chainName);
-      expect(chainNames).toContain("Base");
+      expect(chainNames).toContain("Localhost");
     });
 
     it("should succeed on accessible chains while capturing errors on others", async () => {
       const { discoverAccounts } = await import("@/utils/discoverAccounts");
 
-      // Astar RPC is accessible, Base will fail
-      const result = await discoverAccounts(testPubkey, [astar.id, base.id]);
+      // Astar RPC is accessible, Localhost will fail (not running)
+      const result = await discoverAccounts(testPubkey, [astar.id, hardhat.id]);
 
       // Astar should succeed (returns 0 entries for test address)
-      // Base should fail (invalid placeholder address)
+      // Localhost should fail (not running)
       expect(result.errors.length).toBe(1);
-      expect(result.errors[0].chainName).toBe("Base");
+      expect(result.errors[0].chainName).toBe("Localhost");
       // accounts array is empty since test address has 0 entries
       expect(result.accounts.length).toBe(0);
       // allChains should have entries for both
@@ -139,8 +139,8 @@ describe("discoverAccounts", () => {
     it("should mark errored chains with error status", async () => {
       const { discoverAccounts } = await import("@/utils/discoverAccounts");
 
-      // Base has invalid placeholder address
-      const result = await discoverAccounts(testPubkey, [base.id]);
+      // Localhost is not running during tests
+      const result = await discoverAccounts(testPubkey, [hardhat.id]);
 
       expect(result.allChains.length).toBe(1);
       expect(result.allChains[0].status).toBe("error");
