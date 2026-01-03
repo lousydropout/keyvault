@@ -1,4 +1,5 @@
-import { ChainAccountInfo } from "@/utils/discoverAccounts";
+import { ChainAccountInfo, ChainStatus } from "@/utils/discoverAccounts";
+import { hardhat } from "viem/chains";
 
 /**
  * Returns the chain ID with the most entries from a list of chain account info.
@@ -50,4 +51,36 @@ export const enabledChainsHelpers = {
   isChainInArray: (chainIds: number[], chainId: number): boolean => {
     return chainIds.includes(chainId);
   },
+};
+
+/**
+ * Filters chain IDs based on dev mode setting.
+ * When dev mode is off, localhost (hardhat) is excluded.
+ *
+ * @param chainIds - Array of chain IDs to filter
+ * @param devMode - Whether dev mode is enabled
+ * @returns Filtered array of chain IDs
+ */
+export const filterChainIdsByDevMode = (
+  chainIds: number[],
+  devMode: boolean
+): number[] => {
+  if (devMode) return chainIds;
+  return chainIds.filter((id) => id !== hardhat.id);
+};
+
+/**
+ * Filters chain statuses based on dev mode setting.
+ * When dev mode is off, localhost (hardhat) is excluded.
+ *
+ * @param statuses - Array of chain statuses to filter
+ * @param devMode - Whether dev mode is enabled
+ * @returns Filtered array of chain statuses
+ */
+export const filterChainStatusesByDevMode = (
+  statuses: ChainStatus[],
+  devMode: boolean
+): ChainStatus[] => {
+  if (devMode) return statuses;
+  return statuses.filter((s) => s.chainId !== hardhat.id);
 };

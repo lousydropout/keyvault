@@ -688,6 +688,26 @@ export const getCredsByUrl = (creds: Cred[]): CredsByUrl => {
 };
 
 /**
+ * Flattens a CredsByUrl object into a flat array of credentials.
+ * Takes the latest version of each credential chain.
+ *
+ * @param credsByUrl - The CredsByUrl object to flatten
+ * @returns A flat array of the most recent credential from each chain
+ */
+export const flattenCredsByUrl = (credsByUrl: CredsByUrl): Cred[] => {
+  const creds: Cred[] = [];
+  for (const url in credsByUrl) {
+    const chains = credsByUrl[url];
+    for (const chain of chains) {
+      if (chain.length > 0) {
+        creds.push(chain[chain.length - 1]);
+      }
+    }
+  }
+  return creds;
+};
+
+/**
  * Merges two CredsByUrl objects, combining credential chains for the same URLs
  * and deduplicating by credential ID and timestamp.
  *

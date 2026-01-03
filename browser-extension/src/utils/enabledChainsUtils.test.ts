@@ -1,9 +1,11 @@
 import { describe, it, expect } from "bun:test";
 import {
   enabledChainsHelpers,
+  filterChainIdsByDevMode,
+  filterChainStatusesByDevMode,
   getChainWithMostEntries,
 } from "@/utils/enabledChainsUtils";
-import { ChainAccountInfo } from "@/utils/discoverAccounts";
+import { ChainAccountInfo, ChainStatus } from "@/utils/discoverAccounts";
 import { astar, base, hardhat } from "viem/chains";
 
 describe("enabledChainsHelpers", () => {
@@ -111,5 +113,68 @@ describe("getChainWithMostEntries", () => {
     ];
     const result = getChainWithMostEntries(accounts);
     expect(result).toBe(base.id);
+  });
+});
+
+describe("filterChainIdsByDevMode", () => {
+  it("should return all chain IDs when devMode is true", () => {
+    const chainIds = [astar.id, base.id, hardhat.id];
+    const result = filterChainIdsByDevMode(chainIds, true);
+    expect(result).toEqual([astar.id, base.id, hardhat.id]);
+  });
+
+  it("should filter out localhost when devMode is false", () => {
+    const chainIds = [astar.id, base.id, hardhat.id];
+    const result = filterChainIdsByDevMode(chainIds, false);
+    expect(result).toEqual([astar.id, base.id]);
+  });
+
+  it("should return unchanged array if localhost not present and devMode is false", () => {
+    const chainIds = [astar.id, base.id];
+    const result = filterChainIdsByDevMode(chainIds, false);
+    expect(result).toEqual([astar.id, base.id]);
+  });
+
+  it("should return empty array when filtering empty array", () => {
+    const result = filterChainIdsByDevMode([], false);
+    expect(result).toEqual([]);
+  });
+
+  it("should return empty array when only localhost and devMode is false", () => {
+    const result = filterChainIdsByDevMode([hardhat.id], false);
+    expect(result).toEqual([]);
+  });
+});
+
+describe("filterChainStatusesByDevMode", () => {
+  const mockStatuses: ChainStatus[] = [
+    { chainId: astar.id, chainName: "Astar", numEntries: 10, hasAccount: true },
+    { chainId: base.id, chainName: "Base", numEntries: 5, hasAccount: true },
+    { chainId: hardhat.id, chainName: "Localhost", numEntries: 3, hasAccount: true },
+  ];
+
+  it("should return all statuses when devMode is true", () => {
+    const result = filterChainStatusesByDevMode(mockStatuses, true);
+    expect(result).toHaveLength(3);
+    expect(result.map((s) => s.chainId)).toEqual([astar.id, base.id, hardhat.id]);
+  });
+
+  it("should filter out localhost status when devMode is false", () => {
+    const result = filterChainStatusesByDevMode(mockStatuses, false);
+    expect(result).toHaveLength(2);
+    expect(result.map((s) => s.chainId)).toEqual([astar.id, base.id]);
+  });
+
+  it("should return empty array when filtering empty array", () => {
+    const result = filterChainStatusesByDevMode([], false);
+    expect(result).toEqual([]);
+  });
+
+  it("should return empty array when only localhost and devMode is false", () => {
+    const localhostOnly: ChainStatus[] = [
+      { chainId: hardhat.id, chainName: "Localhost", numEntries: 3, hasAccount: true },
+    ];
+    const result = filterChainStatusesByDevMode(localhostOnly, false);
+    expect(result).toEqual([]);
   });
 });
