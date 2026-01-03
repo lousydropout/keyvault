@@ -27,14 +27,14 @@ type BatchData = {
  * Result type for useMessage hook with batch support.
  */
 export type MessageResult = {
-  /** Current entry to process (null if queue empty) */
-  current: Context | null;
+  /** Full queue of entries to process */
+  queue: Context[];
   /** Total entries in current batch */
   total: number;
   /** Number of entries remaining (including current) */
   remaining: number;
-  /** Advance to next entry after successful submission */
-  next: () => void;
+  /** Advance queue by count after successful batch submission */
+  advance: (count: number) => void;
 };
 
 export function isEncrypted(obj: any): obj is Encrypted {
@@ -77,12 +77,11 @@ export const useMessage = (): MessageResult => {
   const [queue, setQueue] = useState<Context[]>([]);
   const [total, setTotal] = useState(0);
 
-  const current = queue.length > 0 ? queue[0] : null;
   const remaining = queue.length;
 
-  // Advance to next entry after successful submission
-  const next = useCallback(() => {
-    setQueue((prev) => prev.slice(1));
+  // Advance queue by count after successful batch submission
+  const advance = useCallback((count: number) => {
+    setQueue((prev) => prev.slice(count));
   }, []);
 
   useEffect(() => {
@@ -124,5 +123,5 @@ export const useMessage = (): MessageResult => {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  return { current, total, remaining, next };
+  return { queue, total, remaining, advance };
 };

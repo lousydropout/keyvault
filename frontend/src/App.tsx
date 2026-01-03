@@ -10,15 +10,17 @@ import { useMessage } from "@/hooks/useMessage";
 import { useEffect, useMemo, useState } from "react";
 import { useAccount, useChainId, useWriteContract } from "wagmi";
 
+const MAX_BATCH_SIZE = 20;
+
 export default function App() {
-  const { current: message, total, remaining, next } = useMessage();
+  const { queue, total, remaining, advance } = useMessage();
   const account = useAccount();
   const walletChainId = useChainId();
   const { toast } = useToast();
   const [isOkay, setIsOkay] = useState<boolean>(false);
-  const [ciphertext, setCiphertext] = useState<string>("");
   const { writeContract, isPending, isSuccess, error, reset } = useWriteContract();
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const [currentBatchSize, setCurrentBatchSize] = useState<number>(0);
 
   // Get expected chain from URL query param
   const { chainId: expectedChainId, chainName: expectedChainName, isFromUrl } = useExpectedChain();
@@ -29,31 +31,37 @@ export default function App() {
   // Get contract address for the expected chain
   const contractAddress = useMemo(() => getContractAddress(expectedChainId), [expectedChainId]);
 
-  // Progress indicator for batch operations
-  const progress = total > 0 ? `${total - remaining + 1}/${total}` : "";
+  // Current message for validation (first in queue)
+  const message = queue.length > 0 ? queue[0] : null;
 
-  const submit = async (ciphertext: string) => {
-    if (!account?.address) return;
+  const submitBatch = async () => {
+    if (!account?.address || queue.length === 0) return;
+
+    // Take up to MAX_BATCH_SIZE entries
+    const batch = queue.slice(0, MAX_BATCH_SIZE);
+    const ciphertexts = batch.map((entry) => entry.encrypted.iv + entry.encrypted.ciphertext);
+
+    setCurrentBatchSize(batch.length);
     writeContract({
       abi,
       address: contractAddress,
-      functionName: "storeEntry",
-      args: [ciphertext],
+      functionName: "storeEntries",
+      args: [ciphertexts],
     });
     setSubmitted(true);
   };
 
-  // Handle successful submission - advance to next entry
+  // Handle successful submission - advance queue by batch size
   useEffect(() => {
-    if (isSuccess) {
-      toast({ description: `Entry ${total - remaining + 1}/${total} saved!` });
-      // Reset for next entry and advance queue
+    if (isSuccess && currentBatchSize > 0) {
+      toast({ description: `Saved ${currentBatchSize} ${currentBatchSize === 1 ? "entry" : "entries"}!` });
+      // Reset for next batch and advance queue
       reset();
       setSubmitted(false);
-      setCiphertext("");
-      next();
+      advance(currentBatchSize);
+      setCurrentBatchSize(0);
     }
-  }, [isSuccess, total, remaining, next, reset, toast]);
+  }, [isSuccess, currentBatchSize, advance, reset, toast]);
 
   useEffect(() => {
     if (error) {
@@ -62,7 +70,7 @@ export default function App() {
         title: error?.name,
         description: "Would you like to retry?",
         action: (
-          <ToastAction altText="Try again" onClick={() => submit(ciphertext)}>
+          <ToastAction altText="Try again" onClick={() => submitBatch()}>
             Resubmit
           </ToastAction>
         ),
@@ -95,22 +103,14 @@ export default function App() {
     }
   }, [message, account, isCorrectChain]);
 
-  // Set ciphertext when message is valid
+  // Auto-submit batch when queue is ready and not already pending/errored
   useEffect(() => {
-    if (!isOkay) return;
-
-    const encrypted = message?.encrypted;
-    if (!encrypted) return;
-    setCiphertext(encrypted.iv + encrypted.ciphertext);
-  }, [isOkay, message]);
-
-  // Auto-submit when ciphertext is ready and not already pending/errored
-  useEffect(() => {
-    if (ciphertext && isOkay && !isPending && !error && !submitted) {
-      console.log("[Auto-submit] Submitting entry", total - remaining + 1, "of", total);
-      submit(ciphertext);
+    if (queue.length > 0 && isOkay && !isPending && !error && !submitted) {
+      const batchSize = Math.min(queue.length, MAX_BATCH_SIZE);
+      console.log("[Auto-submit] Submitting batch of", batchSize, "entries");
+      submitBatch();
     }
-  }, [ciphertext, isOkay, isPending, error, submitted, total, remaining]);
+  }, [queue.length, isOkay, isPending, error, submitted]);
 
   return (
     <ErrorBoundary>
@@ -149,8 +149,8 @@ export default function App() {
                 </p>
                 <p className="text-slate-400 text-sm">
                   {isPending
-                    ? `Confirming entry ${total - remaining + 1}...`
-                    : `Preparing entry ${total - remaining + 1}...`}
+                    ? `Confirming batch of ${Math.min(remaining, MAX_BATCH_SIZE)} entries...`
+                    : `Preparing batch...`}
                 </p>
               </div>
             )}
@@ -166,7 +166,7 @@ export default function App() {
                     setSubmitted(false);
                   }}
                 >
-                  Retry entry {total - remaining + 1}
+                  Retry batch
                 </Button>
               </div>
             )}
