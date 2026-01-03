@@ -25,7 +25,7 @@ Network switching is controlled by the `VITE_NETWORK` environment variable:
 |---------|----------|------------------|
 | Astar | 592 | `0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B` |
 | Base | 8453 | `0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5` |
-| Localhost | 31337 | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
+| Localhost | 31337 | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
 
 The network configuration is managed in `src/chainConfig.ts` and automatically selects the appropriate chain and contract address.
 
@@ -73,7 +73,7 @@ bun run preview
    bun run local:deploy
    ```
    
-   Note the deployed address (typically `0x5FbDB2315678afecb367f032d93F642f64180aa3`)
+   Note the deployed address (typically `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`)
 
 3. **Start the frontend**:
    ```bash

@@ -40,7 +40,7 @@ This project is deployed on both **Astar** and **Base** networks. You can also d
 |---------|---------|
 | Astar | `0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B` |
 | Base | `0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5` |
-| Localhost | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
+| Localhost | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
 
 To deploy, first you'll need to provide `Hardhat` the private key of whatever account you want to deploy from. This is to be provided locally via the `Hardhat` cli. This way, you won't accidentally commit and push your private key to GitHub or the likes.
 
@@ -80,7 +80,7 @@ After running the anvil localnet and deploying the smart contract there, the rem
 2. switch the environment to use `Foundry Provider`,
 3. copy the `Keyvault.sol` smart contract to `remix` and compile (usually just hitting `ctrl-S` will do the trick),
 4. go to the `deploy` tab on the left, and
-5. provide the `At Address` input with the address of the smart contract on the anvil localnet (it is likely `0x5FbDB2315678afecb367f032d93F642f64180aa3`).
+5. provide the `At Address` input with the address of the smart contract on the anvil localnet (it is likely `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`).
 
 This should provide you with a nice, simple interface for interacting `Keyvault` with.
 
@@ -98,7 +98,7 @@ To then grab and interact with the deployed `Keyvault` smart contract, run
 
 ```typescript
 $ Keyvault = await ethers.getContractFactory("Keyvault")
-$ keyvault = Keyvault.attach("0x5FbDB2315678afecb367f032d93F642f64180aa3")  # grabs the specific `Keyvault` contract at provided address
+$ keyvault = Keyvault.attach("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")  # grabs the specific `Keyvault` contract at provided address
 ```
 
 You can then interact with the smart contract as you wish.

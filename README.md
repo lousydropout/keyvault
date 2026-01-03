@@ -30,7 +30,7 @@ Keyvault consists of three main components that work together to provide a compl
 |---------|---------|----------|
 | Astar | `0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B` | [Blockscout](https://astar.blockscout.com/address/0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B) |
 | Base | `0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5` | [Basescan](https://basescan.org/address/0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5) |
-| Localhost | `0x5FbDB2315678afecb367f032d93F642f64180aa3` | - |
+| Localhost | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` | - |
 
 ## Quick Start
 

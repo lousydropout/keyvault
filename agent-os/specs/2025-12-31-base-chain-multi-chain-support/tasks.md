@@ -34,7 +34,7 @@ Total Tasks: 28 (26 complete, 2 remaining)
     - Run `cd contract && bun run local:node` to start Anvil
     - Deploy using `bun run local:deploy`
     - Verify contract address matches localKeyvaultAddress
-    - **COMPLETED**: Deployed to `0x5FbDB2315678afecb367f032d93F642f64180aa3`, matches localKeyvaultAddress
+    - **COMPLETED**: Deployed to `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`, matches localKeyvaultAddress
     - All 5 deployment tests pass against localhost
   - [ ] 2.3 Test extension against localhost deployment
     - Enable dev mode in extension settings
