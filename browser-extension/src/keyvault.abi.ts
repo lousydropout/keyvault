@@ -47,6 +47,20 @@ export const keyvaultAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'MAX_BATCH_SIZE',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_entries', internalType: 'string[]', type: 'string[]' }],
+    name: 'storeEntries',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'entry', internalType: 'string', type: 'string' }],
     name: 'storeEntry',
     outputs: [],

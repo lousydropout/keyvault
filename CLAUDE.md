@@ -54,7 +54,7 @@ cd contract && bun run local:node          # Local Anvil node
 | Network | Address |
 |---------|---------|
 | Astar | `0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B` |
-| Base | `0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5` |
+| Base | `0x4DecB055bC80Ad00098A2CDda4E2c76b546E9403` |
 | Localhost | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
 
 ## Standards

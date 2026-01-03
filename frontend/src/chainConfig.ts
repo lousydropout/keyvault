@@ -18,7 +18,7 @@ export const CHAIN_CONFIGS: Record<number, ChainConfig> = {
   },
   [base.id]: {
     chain: base,
-    address: "0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5" as Hex,
+    address: "0x4DecB055bC80Ad00098A2CDda4E2c76b546E9403" as Hex,
     apiUrl: "https://mainnet.base.org",
     name: "Base",
   },
