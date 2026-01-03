@@ -14,10 +14,9 @@ const allChainsEndInDeletion = (chains: PasswordCred[][]) => {
 
 type CredentialsAllProps = {
   credsUrl: CredsByUrl;
-  chainName: string;
 };
 
-export const CredentialsAll = ({ credsUrl, chainName }: CredentialsAllProps) => {
+export const CredentialsAll = ({ credsUrl }: CredentialsAllProps) => {
   const [tab] = useCurrentTab();
 
   logger.debug("[CredentialsAll] credsUrl: ", credsUrl);
@@ -43,7 +42,7 @@ export const CredentialsAll = ({ credsUrl, chainName }: CredentialsAllProps) => 
   }
 
   if (hasNoCredentials) {
-    return <EmptyChainState chainName={chainName} isLoading={false} />;
+    return <EmptyChainState isLoading={false} />;
   }
 
   return (

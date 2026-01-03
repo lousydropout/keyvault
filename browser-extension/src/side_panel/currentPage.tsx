@@ -6,18 +6,17 @@ import { EmptyChainState } from "@/components/EmptyChainState";
 
 type CurrentPageProps = {
   credsUrl: CredsByUrl;
-  chainName: string;
 };
 
-export const CurrentPage = ({ credsUrl, chainName }: CurrentPageProps) => {
+export const CurrentPage = ({ credsUrl }: CurrentPageProps) => {
   const [tab, currentUrl] = useCurrentTab();
   const chains = credsUrl[currentUrl || "N/A"];
 
-  // Check if there are any credentials on this chain at all
-  const hasNoCredentialsOnChain = Object.keys(credsUrl).length === 0;
+  // Check if there are any credentials at all
+  const hasNoCredentials = Object.keys(credsUrl).length === 0;
 
-  if (hasNoCredentialsOnChain) {
-    return <EmptyChainState chainName={chainName} isLoading={false} />;
+  if (hasNoCredentials) {
+    return <EmptyChainState isLoading={false} />;
   }
 
   return (
