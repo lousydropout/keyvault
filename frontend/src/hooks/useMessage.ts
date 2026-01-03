@@ -1,17 +1,4 @@
-import { useEffect, useState } from "react";
-
-type MessageType =
-  | "ACCOUNT_CREATION"
-  | "TO_EXTENSION"
-  | "FROM_EXTENSION"
-  | "REQUEST";
-
-type Message = {
-  type: MessageType;
-  channelName: string;
-  data: Record<string, any>;
-  overwrite?: boolean;
-};
+import { useCallback, useEffect, useState } from "react";
 
 export type Encrypted = {
   iv: string;
@@ -26,12 +13,48 @@ export type Context = {
   overwrite?: boolean;
 };
 
+/**
+ * Batch message format from extension (new format).
+ */
+type BatchData = {
+  encrypteds: Encrypted[];
+  address: string;
+  startIndex: number;
+  chainId: number;
+};
+
+/**
+ * Result type for useMessage hook with batch support.
+ */
+export type MessageResult = {
+  /** Current entry to process (null if queue empty) */
+  current: Context | null;
+  /** Total entries in current batch */
+  total: number;
+  /** Number of entries remaining (including current) */
+  remaining: number;
+  /** Advance to next entry after successful submission */
+  next: () => void;
+};
+
 export function isEncrypted(obj: any): obj is Encrypted {
   return (
     typeof obj === "object" &&
     obj !== null &&
     typeof obj.iv === "string" &&
     typeof obj.ciphertext === "string"
+  );
+}
+
+function isBatchData(obj: any): obj is BatchData {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    Array.isArray(obj.encrypteds) &&
+    obj.encrypteds.every(isEncrypted) &&
+    typeof obj.address === "string" &&
+    typeof obj.startIndex === "number" &&
+    typeof obj.chainId === "number"
   );
 }
 
@@ -49,39 +72,57 @@ export function isContext(obj: any): obj is Context {
   );
 }
 
-export const useMessage = (): Context | null => {
-  const [context, setContext] = useState<Context | null>(null);
-  console.log("[useMessage] context: ", JSON.stringify(context));
+export const useMessage = (): MessageResult => {
+  // Queue of entries to process
+  const [queue, setQueue] = useState<Context[]>([]);
+  const [total, setTotal] = useState(0);
+
+  const current = queue.length > 0 ? queue[0] : null;
+  const remaining = queue.length;
+
+  // Advance to next entry after successful submission
+  const next = useCallback(() => {
+    setQueue((prev) => prev.slice(1));
+  }, []);
 
   useEffect(() => {
-    // handler for messages from chrome extension via contentScript
     const handleMessage = (event: MessageEvent) => {
-      console.log("[useMessage] Received event: ", event);
-      const { data: message }: { data: Message } = event;
+      const { data: message } = event;
 
-      if (typeof message === "object" && message.type === "FROM_EXTENSION") {
+      if (typeof message === "object" && message?.type === "FROM_EXTENSION") {
+        console.log("[useMessage] FROM_EXTENSION message:", message);
         const data = message.data;
-        console.log("Received data: ", data, isContext(data));
-        if (!isContext(data)) return;
 
-        console.log("Received context: ", data);
-
-        if (data.overwrite) {
-          console.log("Overwriting context: ", data);
-          setContext(data);
-        } else {
-          console.log("Not overwriting context: ", data);
-          setContext((prevContext) => ({ ...prevContext, ...data }));
+        // Handle new batch format
+        if (isBatchData(data)) {
+          console.log("[useMessage] Received batch:", data.encrypteds.length, "entries");
+          const entries: Context[] = data.encrypteds.map((encrypted, i) => ({
+            address: data.address,
+            chainId: data.chainId,
+            encrypted,
+            numEntries: data.startIndex + i,
+            overwrite: true,
+          }));
+          setQueue(entries);
+          setTotal(entries.length);
+          return;
         }
+
+        // Handle legacy single-entry format
+        if (isContext(data)) {
+          console.log("[useMessage] Received single entry (legacy format)");
+          setQueue([data]);
+          setTotal(1);
+          return;
+        }
+
+        console.log("[useMessage] Validation failed. Unknown format:", data);
       }
     };
 
     window.addEventListener("message", handleMessage);
-
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  return context;
+  return { current, total, remaining, next };
 };

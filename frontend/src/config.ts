@@ -1,11 +1,11 @@
 import { keyvaultAbi as abi } from "@/keyvault.abi";
 import { localKeyvaultAddress } from "@/localKeyvaultAddress.ts";
-import { CHAIN_CONFIGS } from "@/chainConfig";
+import { CHAIN_CONFIGS, getChainConfig as getChainConfigFromMap } from "@/chainConfig";
 import { createPublicClient, Hex } from "viem";
 import { createConfig, http } from "wagmi";
 import { astar, base, hardhat } from "wagmi/chains";
 
-// Build-time network selection
+// Build-time network selection (used as fallback)
 export const NETWORK: "localhost" | "astar" | "base" =
   import.meta.env.VITE_NETWORK === "astar" ? "astar" :
   import.meta.env.VITE_NETWORK === "base" ? "base" : "localhost";
@@ -59,3 +59,29 @@ export const config = createConfig({
 });
 
 export const client = createPublicClient({ chain, transport: http() });
+
+/**
+ * Get contract address for a specific chain ID.
+ * Used when the chain is determined at runtime from URL params.
+ */
+export const getContractAddress = (chainId: number): Hex => {
+  return getChainConfigFromMap(chainId).address;
+};
+
+/**
+ * Get chain object for a specific chain ID.
+ */
+export const getChainById = (chainId: number) => {
+  return getChainConfigFromMap(chainId).chain;
+};
+
+/**
+ * Create a public client for a specific chain ID.
+ */
+export const createClientForChain = (chainId: number) => {
+  const chainConfig = getChainConfigFromMap(chainId);
+  return createPublicClient({
+    chain: chainConfig.chain,
+    transport: http(),
+  });
+};
