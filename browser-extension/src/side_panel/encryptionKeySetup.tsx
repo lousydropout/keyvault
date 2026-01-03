@@ -2,22 +2,28 @@ import { CustomSeparator } from "@/components/CustomSeparator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ChainSelectionScreen } from "@/components/ChainSelectionScreen";
 import { NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
 import { DASHBOARD } from "@/constants/steps";
 import { CHAIN_CONFIGS } from "@/constants/chains";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
+import { useEnabledChains, getChainWithMostEntries } from "@/hooks/useEnabledChains";
 import { useChain } from "@/side_panel/chain";
 import { logger } from "@/utils/logger";
 import { importCryptoKey } from "@/utils/encryption";
 import { discoverAccounts, ChainAccountInfo, ChainStatus } from "@/utils/discoverAccounts";
 import { download } from "@/utils/utility";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Hex } from "viem";
 import { CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
 
 type DiscoveryState = "loading" | "complete";
-type UserAction = "pending" | "import" | "reset";
+type UserAction = "pending" | "chainSelection" | "import" | "reset";
+
+// Module-level flag to prevent duplicate discovery calls across remounts
+let setupDiscoveryInProgress = false;
+let setupDiscoveryPubkey: string | null = null;
 
 type EncryptionKeySetupProps = {
   setStep: (step: number) => void;
@@ -30,6 +36,7 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
     -1
   );
   const { chainId, switchChain } = useChain();
+  const { setEnabledChainIds } = useEnabledChains();
 
   // Multi-chain discovery state
   const [discoveryState, setDiscoveryState] = useState<DiscoveryState>("loading");
@@ -38,20 +45,33 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
   const [userAction, setUserAction] = useState<UserAction>("pending");
   const [selectedChain, setSelectedChain] = useState<ChainAccountInfo | null>(null);
 
-  // Discover accounts across all chains
+  // Discover accounts across all chains (runs once per pubkey)
   useEffect(() => {
-    if (!pubkey) return;
+    // Guard: skip if no pubkey, already in progress, or already done for this pubkey
+    if (!pubkey || setupDiscoveryInProgress || setupDiscoveryPubkey === pubkey) {
+      return;
+    }
 
+    setupDiscoveryInProgress = true;
+    setupDiscoveryPubkey = pubkey;
     setDiscoveryState("loading");
+
     discoverAccounts(pubkey as Hex).then((result) => {
       setAllChainStatuses(result.allChains);
       setDiscoveredAccounts(result.accounts);
       setDiscoveryState("complete");
+      setupDiscoveryInProgress = false;
 
-      // If single account found, auto-select it
+      // If single account found, auto-select and auto-enable it
       if (result.accounts.length === 1) {
-        setSelectedChain(result.accounts[0]);
+        const singleAccount = result.accounts[0];
+        setSelectedChain(singleAccount);
+        setEnabledChainIds([singleAccount.chainId]);
+        switchChain(singleAccount.chainId, true);
+        setNumOnChain(singleAccount.numEntries);
       }
+    }).catch(() => {
+      setupDiscoveryInProgress = false;
     });
   }, [pubkey]);
 
@@ -250,6 +270,27 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
     setNumOnChain(account.numEntries);
   };
 
+  // Handle chain selection completion from ChainSelectionScreen
+  const handleChainSelectionComplete = (selectedChainIds: number[]) => {
+    // Store enabled chain IDs
+    setEnabledChainIds(selectedChainIds);
+
+    // Find the chain with the most entries to use as the primary chain
+    const primaryChainId = getChainWithMostEntries(discoveredAccounts);
+    const primaryAccount = discoveredAccounts.find(
+      (a) => a.chainId === primaryChainId
+    );
+
+    if (primaryAccount) {
+      setSelectedChain(primaryAccount);
+      switchChain(primaryAccount.chainId, true);
+      setNumOnChain(primaryAccount.numEntries);
+    }
+
+    // Proceed to import screen
+    setUserAction("import");
+  };
+
   // Handle import action
   const handleImport = () => {
     if (selectedChain) {
@@ -275,10 +316,20 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
     return <CreatingOrResetingAccount isNew={userAction !== "reset"} />;
   }
 
+  // If multiple chains found and user hasn't selected chains yet, show chain selection screen
+  if (userAction === "chainSelection" || (discoveryState === "complete" && discoveredAccounts.length > 1 && userAction === "pending")) {
+    return (
+      <ChainSelectionScreen
+        discoveredChains={discoveredAccounts}
+        onContinue={handleChainSelectionComplete}
+      />
+    );
+  }
+
   // Check if a chain is currently selected
-  const isChainSelected = (chainId: number) => {
-    if (selectedChain) return selectedChain.chainId === chainId;
-    if (discoveredAccounts.length === 1) return discoveredAccounts[0].chainId === chainId;
+  const isChainSelected = (cId: number) => {
+    if (selectedChain) return selectedChain.chainId === cId;
+    if (discoveredAccounts.length === 1) return discoveredAccounts[0].chainId === cId;
     return false;
   };
 

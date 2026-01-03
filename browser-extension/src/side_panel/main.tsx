@@ -13,10 +13,10 @@ import {
 import { DASHBOARD, SETUP_ENCRYPTION_KEY, WELCOME } from "@/constants/steps";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
+import { useSourceChain } from "@/hooks/useSourceChain";
 import "@/index.css";
 import { PubkeyRequest } from "@/side_panel/PubkeyRequest";
 import { AddCred } from "@/side_panel/addCred";
-import { useChain } from "@/side_panel/chain";
 import { Credentials } from "@/side_panel/credentials";
 import { EditCred } from "@/side_panel/editCred";
 import { EncryptDecrypt } from "@/side_panel/encryptDecrypt";
@@ -68,7 +68,7 @@ export const Root = () => {
   const [decryptionErrors, setDecryptionErrors] = useState<DecryptionError[]>(
     []
   );
-  const { chainId } = useChain();
+  const { sourceChainId, sourceDisplayText } = useSourceChain({ step });
 
   // Retry failed decryptions
   const retryFailed = async () => {
@@ -127,6 +127,8 @@ export const Root = () => {
     // Wait for pendingCreds to load from storage before running
     // to avoid overwriting stored values with empty array
     if (!pendingCredsLoaded) return;
+    // Wait for source chain discovery to complete
+    if (!sourceChainId) return;
 
     logger.debug(
       "[Main] numOnChain, encrypteds.length: ",
@@ -134,11 +136,11 @@ export const Root = () => {
       encrypteds.length
     );
     if (numOnChain > encrypteds.length) {
-      // query entries on chain
+      // query entries on chain (from source chain with most entries)
       const limit = numOnChain - encrypteds.length;
       const updatedEncrypteds = structuredClone(encrypteds);
 
-      getEntries(pubkey as Hex, encrypteds.length, limit, chainId)
+      getEntries(pubkey as Hex, encrypteds.length, limit, sourceChainId)
         .then((newEntries) => {
           logger.debug("[Main] getEntries: ", JSON.stringify(newEntries));
           updatedEncrypteds.push(...newEntries);
@@ -200,7 +202,7 @@ export const Root = () => {
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [numOnChain, cryptoKey, step, pendingCredsLoaded, chainId]);
+  }, [numOnChain, cryptoKey, step, pendingCredsLoaded, sourceChainId]);
 
   return (
     <>
@@ -216,6 +218,11 @@ export const Root = () => {
       {step === DASHBOARD && (
         <>
           <Header />
+          {sourceDisplayText && (
+            <div className="text-xs text-slate-400 text-center px-4 py-1">
+              {sourceDisplayText}
+            </div>
+          )}
           {decryptionErrors.length > 0 && (
             <div className="bg-red-900/20 border border-red-500 p-2 rounded-md text-sm text-red-400 mx-4 mt-2">
               {decryptionErrors.length} credential(s) failed to decrypt.

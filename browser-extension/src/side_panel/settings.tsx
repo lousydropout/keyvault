@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { EnabledChainsSection } from "@/components/EnabledChainsSection";
 import {
   CREDENTIALS,
   ENCRYPTEDS,
@@ -21,8 +22,10 @@ import {
   mergeImportedCredentials,
   parseCSV,
 } from "@/utils/csv";
+import { discoverAccounts, ChainStatus } from "@/utils/discoverAccounts";
 import { Encrypted } from "@/utils/encryption";
-import { ChangeEvent, useRef, useState } from "react";
+import { Hex } from "viem";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 const downloadJSON = (data: Record<string, any>, filename: string) => {
   const jsonString = JSON.stringify(data, null, 2);
@@ -85,6 +88,32 @@ export const Settings = () => {
   });
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Chain discovery state
+  const [chainStatuses, setChainStatuses] = useState<ChainStatus[]>([]);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+
+  // Discover chains when pubkey is available
+  useEffect(() => {
+    if (!pubkey) {
+      setChainStatuses([]);
+      return;
+    }
+
+    const discover = async () => {
+      setIsDiscovering(true);
+      try {
+        const result = await discoverAccounts(pubkey as Hex);
+        setChainStatuses(result.allChains);
+      } catch {
+        setChainStatuses([]);
+      } finally {
+        setIsDiscovering(false);
+      }
+    };
+
+    discover();
+  }, [pubkey]);
 
   const handleExportCSV = () => {
     const csv = credentialsToCSV(creds);
@@ -211,6 +240,17 @@ export const Settings = () => {
           onCheckedChange={setDevMode}
         />
       </div>
+
+      {/* Enabled Chains */}
+      <h3 className="mt-8 mb-4 text-center text-lg">Enabled Chains</h3>
+      <p className="text-xs text-slate-400 text-center px-4 mb-2">
+        Select which chains to use for syncing your credentials. Only chains
+        where you have existing data can be enabled.
+      </p>
+      <EnabledChainsSection
+        chainStatuses={chainStatuses}
+        isLoading={isDiscovering}
+      />
 
       {/* encryption key */}
       <h3 className="mt-8 mb-4 text-center text-lg">Encryption key</h3>

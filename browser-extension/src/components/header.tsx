@@ -1,4 +1,3 @@
-import { ChainSelector } from "@/components/ChainSelector";
 import { CredsIcon } from "@/components/icons/credsIcon";
 import { MoreIcon } from "@/components/icons/moreIcon";
 import { SettingsIcon } from "@/components/icons/settingsIcon";
@@ -9,28 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useChain } from "@/side_panel/chain";
-import { CHAIN_CONFIGS } from "@/constants/chains";
-import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
-import { useCurrentTab } from "@/hooks/useCurrentTab";
+import { useBrowserStore } from "@/hooks/useBrowserStore";
 import { useState } from "react";
-
-const isOpen = async (tabId: number) => {
-  try {
-    await chrome.tabs.get(tabId);
-  } catch (_e) {
-    return false;
-  }
-  return true;
-};
-
-const openedTabs = async (tabIds: number[]) => {
-  const newTabIds = [];
-  for (const tabId of tabIds) {
-    if (await isOpen(tabId)) newTabIds.push(tabId);
-  }
-  return newTabIds;
-};
 
 export type View =
   | "All Credentials"
@@ -103,10 +82,7 @@ const Icon = ({
 };
 
 export const Header = () => {
-  const [tabIds, setTabIds] = useBrowserStoreLocal<number[]>("tabIds", []);
   const [view, setView] = useBrowserStore<View>("view", "Current Page");
-  const [tab] = useCurrentTab();
-  const { chainId } = useChain();
 
   return (
     <div className="flex justify-around items-end px-4 mt-4">
@@ -115,33 +91,8 @@ export const Header = () => {
         <CredsIcon className="w-6 h-6" />
       </Icon>
 
-      {/* Chain Selector */}
-      <ChainSelector />
-
-      {/* Sync */}
-      <Icon
-        view={view}
-        label="Sync"
-        onClick={async () => {
-          // don't open a new tab if it's already open
-          if (new Set(tabIds).has(tab?.id || -1)) {
-            setView("Sync");
-            return;
-          }
-
-          const newTab = await chrome.tabs.create({
-            url: CHAIN_CONFIGS[chainId].dappUrl,
-          });
-          if (!newTab) return;
-
-          setTabIds([
-            ...(await openedTabs(tabIds)),
-            newTab.id ?? chrome.tabs.TAB_ID_NONE,
-          ]);
-
-          setView("Sync");
-        }}
-      >
+      {/* Sync - navigates to sync page, per-chain buttons open frontend */}
+      <Icon view={view} label="Sync" onClick={() => setView("Sync")}>
         <SyncIcon className="w-6 h-6" />
       </Icon>
 

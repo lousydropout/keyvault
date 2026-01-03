@@ -28,6 +28,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-switch": "^1.1.0",
     "@tanstack/react-query": "^5.51.21",
+    "@xstate/react": "^6.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.0.8",
@@ -43,7 +44,8 @@
     "tailwindcss-animate": "^1.0.7",
     "tweetnacl": "^1.0.3",
     "viem": "~2.18.7",
-    "webextension-polyfill": "^0.12.0"
+    "webextension-polyfill": "^0.12.0",
+    "xstate": "^5.25.0"
   },
   "devDependencies": {
     "@openpgp/web-stream-tools": "0.0.11-patch-0",
