@@ -5,6 +5,7 @@ const PRIVATE_KEY = vars.get(
   "PRIVATE_KEY",
   "0x0000000000000000000000000000000000000000000000000000000000000000"
 );
+const BASESCAN_API_KEY = vars.get("BASESCAN_API_KEY", "");
 
 // This `LOCAL_PRIVATE_KEY` is for the Hardhat account #0 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 const LOCAL_PRIVATE_KEY =
@@ -49,20 +50,7 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: {
-      base: process.env.BASESCAN_API_KEY || "",
-      baseSepolia: process.env.BASESCAN_API_KEY || "",
-    },
-    customChains: [
-      {
-        network: "base",
-        chainId: 8453,
-        urls: {
-          apiURL: "https://api.basescan.org/api",
-          browserURL: "https://basescan.org",
-        },
-      },
-    ],
+    apiKey: BASESCAN_API_KEY,
   },
   defaultNetwork: "localhost",
 };

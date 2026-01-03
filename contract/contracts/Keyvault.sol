@@ -12,6 +12,8 @@ contract Keyvault {
     mapping(address => string[]) private entries;
     mapping(address => string) public pubKey;
 
+    uint256 public constant MAX_BATCH_SIZE = 20;
+
     /**
      * @dev Stores an entry for the message sender.
      * @param entry The entry to store.
@@ -24,6 +26,28 @@ contract Keyvault {
             entries[msg.sender].push(entry);
         }
         numEntries[msg.sender]++;
+    }
+
+    /**
+     * @dev Stores multiple entries for the message sender in a single transaction.
+     * @param _entries The array of entries to store.
+     */
+    function storeEntries(string[] memory _entries) public {
+        require(_entries.length <= MAX_BATCH_SIZE, "Batch size exceeds limit");
+
+        uint256 num = numEntries[msg.sender];
+        uint256 arrayLen = entries[msg.sender].length;
+
+        for (uint256 i = 0; i < _entries.length; i++) {
+            if (num < arrayLen) {
+                entries[msg.sender][num] = _entries[i];
+            } else {
+                entries[msg.sender].push(_entries[i]);
+                arrayLen++;
+            }
+            num++;
+        }
+        numEntries[msg.sender] = num;
     }
 
     /**
