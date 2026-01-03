@@ -4,8 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { EnabledChainsSection } from "@/components/EnabledChainsSection";
 import {
-  CREDENTIALS,
-  ENCRYPTEDS,
+  CREDS_BY_URL,
   MODIFIED_ENCRYPTEDS,
   PENDING_CREDS,
   PUBKEY,
@@ -13,7 +12,13 @@ import {
 import { WELCOME } from "@/constants/steps";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
-import { Cred, PasswordAdditionCred } from "@/utils/credentials";
+import { useEnabledChains } from "@/hooks/useEnabledChains";
+import {
+  Cred,
+  CredsByUrl,
+  flattenCredsByUrl,
+  PasswordAdditionCred,
+} from "@/utils/credentials";
 import {
   credentialsToCSV,
   credentialsToEncryptedCSV,
@@ -23,9 +28,9 @@ import {
   parseCSV,
 } from "@/utils/csv";
 import { discoverAccounts, ChainStatus } from "@/utils/discoverAccounts";
-import { Encrypted } from "@/utils/encryption";
 import { Hex } from "viem";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { hardhat } from "viem/chains";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const downloadJSON = (data: Record<string, any>, filename: string) => {
   const jsonString = JSON.stringify(data, null, 2);
@@ -71,17 +76,33 @@ type ImportStatus =
 export const Settings = () => {
   const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
   const [jwk, , cryptoKey] = useCryptoKeyManager();
-  const [encrypteds] = useBrowserStoreLocal<Encrypted[]>(ENCRYPTEDS, []);
-  const [creds] = useBrowserStoreLocal<Cred[]>(CREDENTIALS, []);
+  const [credsByUrl] = useBrowserStoreLocal<CredsByUrl>(CREDS_BY_URL, {});
   const [pendingCreds, setPendingCreds] = useBrowserStoreLocal<Cred[]>(
     PENDING_CREDS,
     []
   );
+
+  // Flatten synced credentials and combine with pending for export
+  const allCreds = useMemo(() => {
+    const synced = flattenCredsByUrl(credsByUrl);
+    return [...synced, ...pendingCreds];
+  }, [credsByUrl, pendingCreds]);
   const [, setModifiedEncrypteds] = useBrowserStoreLocal<boolean>(
     MODIFIED_ENCRYPTEDS,
     false
   );
   const [devMode, setDevMode] = useBrowserStoreLocal<boolean>("devMode", false);
+  const { removeChain } = useEnabledChains();
+
+  const handleDevModeChange = useCallback(
+    (enabled: boolean) => {
+      setDevMode(enabled);
+      if (!enabled) {
+        removeChain(hardhat.id);
+      }
+    },
+    [setDevMode, removeChain]
+  );
 
   const [importStatus, setImportStatus] = useState<ImportStatus>({
     type: "idle",
@@ -116,18 +137,18 @@ export const Settings = () => {
   }, [pubkey]);
 
   const handleExportCSV = () => {
-    const csv = credentialsToCSV(creds);
+    const csv = credentialsToCSV(allCreds);
     const timestamp = new Date().toISOString().split("T")[0];
     downloadCSV(csv, `keyvault_credentials_${timestamp}.csv`);
   };
 
-  const handleExportEncryptedCSV = async () => {
+  const handleExportEncryptedJSON = async () => {
     if (!cryptoKey) {
       return;
     }
-    const encrypted = await credentialsToEncryptedCSV(cryptoKey, creds);
+    const encrypted = await credentialsToEncryptedCSV(cryptoKey, allCreds);
     const timestamp = new Date().toISOString().split("T")[0];
-    downloadJSON(encrypted, `keyvault_encrypted_credentials_${timestamp}.json`);
+    downloadJSON(encrypted, `keyvault_credentials_${timestamp}.encrypted.json`);
   };
 
   const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -180,8 +201,7 @@ export const Settings = () => {
         return;
       }
 
-      const allExisting = [...creds, ...pendingCreds];
-      const newCreds = mergeImportedCredentials(allExisting, importedCreds);
+      const newCreds = mergeImportedCredentials(allCreds, importedCreds);
       const skippedCount = importedCreds.length - newCreds.length;
 
       if (newCreds.length === 0) {
@@ -237,19 +257,16 @@ export const Settings = () => {
         <Switch
           id="dev-mode"
           checked={devMode}
-          onCheckedChange={setDevMode}
+          onCheckedChange={handleDevModeChange}
         />
       </div>
 
       {/* Enabled Chains */}
       <h3 className="mt-8 mb-4 text-center text-lg">Enabled Chains</h3>
-      <p className="text-xs text-slate-400 text-center px-4 mb-2">
-        Select which chains to use for syncing your credentials. Only chains
-        where you have existing data can be enabled.
-      </p>
       <EnabledChainsSection
         chainStatuses={chainStatuses}
         isLoading={isDiscovering}
+        devMode={devMode}
       />
 
       {/* encryption key */}
@@ -261,35 +278,23 @@ export const Settings = () => {
         Download encryption key
       </Button>
 
-      {/* credentials - JSON format */}
-      <h3 className="mt-8 mb-4 text-center text-lg">Credentials (JSON)</h3>
-      <Button
-        variant="secondary"
-        onClick={() => downloadJSON(encrypteds, "encrypted_credentials.json")}
-      >
-        Download (encrypted) credentials
-      </Button>
-      <Button
-        variant="secondary"
-        onClick={() => downloadJSON(creds, "unencrypted_credentials.json")}
-      >
-        Download (unencrypted) credentials
-      </Button>
-
-      {/* credentials - CSV format */}
-      <h3 className="mt-8 mb-4 text-center text-lg">Credentials (CSV)</h3>
+      {/* Export credentials */}
+      <h3 className="mt-8 mb-4 text-center text-lg">Export Credentials</h3>
       <Button variant="secondary" onClick={handleExportCSV}>
-        Export as CSV
+        Export as CSV (unencrypted)
       </Button>
       <Button
         variant="secondary"
-        onClick={handleExportEncryptedCSV}
+        onClick={handleExportEncryptedJSON}
         disabled={!cryptoKey}
       >
-        Export as Encrypted CSV
+        Export as Encrypted JSON
       </Button>
+      <p className="text-xs text-slate-400 text-center px-4">
+        Encrypted exports require your encryption key to import.
+      </p>
 
-      {/* CSV Import */}
+      {/* Import */}
       <h3 className="mt-8 mb-4 text-center text-lg">Import Credentials</h3>
       <Input
         ref={fileInputRef}
@@ -297,18 +302,17 @@ export const Settings = () => {
         accept=".csv,.json"
         onChange={handleFileSelect}
         className="hidden"
-        aria-label="Select CSV file to import"
+        aria-label="Select file to import"
       />
       <Button
         variant="secondary"
         onClick={handleImportClick}
         disabled={isImporting}
       >
-        {isImporting ? "Importing..." : "Import from CSV"}
+        {isImporting ? "Importing..." : "Import from File"}
       </Button>
       <p className="text-xs text-slate-400 text-center px-4">
-        Supports Chrome password manager CSV format and encrypted KeyVault
-        exports.
+        Supports CSV (Chrome password manager format) and encrypted JSON exports.
       </p>
 
       {/* Import status messages */}

@@ -1,5 +1,5 @@
 import { useMachine } from "@xstate/react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useEnabledChains } from "@/hooks/useEnabledChains";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { PUBKEY } from "@/constants/hookVariables";
@@ -10,6 +10,7 @@ import {
 } from "@/machines/multiChainSync.machine";
 import { Hex } from "viem";
 import { Encrypted } from "@/utils/encryption";
+import { filterChainIdsByDevMode } from "@/utils/enabledChainsUtils";
 import { MultiChainSyncView } from "@/components/MultiChainSyncView";
 
 /**
@@ -17,26 +18,33 @@ import { MultiChainSyncView } from "@/components/MultiChainSyncView";
  */
 type MultiChainSyncProps = {
   sourceEncrypteds?: Encrypted[];
+  devMode?: boolean;
 };
 
 /**
  * Container component for multi-chain sync functionality.
  * Uses XState machine for state management.
+ * Localhost is hidden when devMode is off.
  */
-export const MultiChainSync = ({ sourceEncrypteds = [] }: MultiChainSyncProps) => {
+export const MultiChainSync = ({ sourceEncrypteds = [], devMode = false }: MultiChainSyncProps) => {
   const { enabledChainIds, hasLoaded } = useEnabledChains();
   const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
 
+  const filteredChainIds = useMemo(
+    () => filterChainIdsByDevMode(enabledChainIds, devMode),
+    [enabledChainIds, devMode]
+  );
+
   const [state, send] = useMachine(multiChainSyncMachine, {
-    input: { enabledChainIds },
+    input: { enabledChainIds: filteredChainIds },
   });
 
   // Trigger discovery when loaded and pubkey available
   useEffect(() => {
-    if (hasLoaded && pubkey && enabledChainIds.length > 0) {
-      send({ type: "DISCOVER", pubkey: pubkey as Hex, enabledChainIds });
+    if (hasLoaded && pubkey && filteredChainIds.length > 0) {
+      send({ type: "DISCOVER", pubkey: pubkey as Hex, enabledChainIds: filteredChainIds });
     }
-  }, [hasLoaded, pubkey, enabledChainIds, send]);
+  }, [hasLoaded, pubkey, filteredChainIds, send]);
 
   // Opens the frontend for a specific chain (user should connect wallet there)
   const handleOpenFrontend = async (targetChainId: number) => {
@@ -58,11 +66,11 @@ export const MultiChainSync = ({ sourceEncrypteds = [] }: MultiChainSyncProps) =
   };
 
   const handleRetry = () => {
-    send({ type: "DISCOVER", pubkey: pubkey as Hex, enabledChainIds });
+    send({ type: "DISCOVER", pubkey: pubkey as Hex, enabledChainIds: filteredChainIds });
   };
 
   const handleDiscover = () => {
-    send({ type: "DISCOVER", pubkey: pubkey as Hex, enabledChainIds });
+    send({ type: "DISCOVER", pubkey: pubkey as Hex, enabledChainIds: filteredChainIds });
   };
 
   const isDiscovering = state.matches("discovering");
@@ -70,7 +78,7 @@ export const MultiChainSync = ({ sourceEncrypteds = [] }: MultiChainSyncProps) =
 
   return (
     <MultiChainSyncView
-      enabledChainIds={enabledChainIds}
+      enabledChainIds={filteredChainIds}
       chainStatuses={state.context.chainStatuses}
       isDiscovering={isDiscovering}
       isSyncing={isSyncing}

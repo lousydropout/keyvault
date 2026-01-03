@@ -1,6 +1,10 @@
 import { useEnabledChains } from "@/hooks/useEnabledChains";
 import { ChainStatus } from "@/utils/discoverAccounts";
 import {
+  filterChainIdsByDevMode,
+  filterChainStatusesByDevMode,
+} from "@/utils/enabledChainsUtils";
+import {
   EnabledChainsSectionView,
   type EnabledChainsSectionViewProps,
 } from "./EnabledChainsSectionView";
@@ -11,6 +15,7 @@ export type { EnabledChainsSectionViewProps };
 export type EnabledChainsSectionProps = {
   chainStatuses: ChainStatus[];
   isLoading?: boolean;
+  devMode?: boolean;
 };
 
 /**
@@ -18,10 +23,12 @@ export type EnabledChainsSectionProps = {
  *
  * Displays a list of supported chains with toggles to enable/disable them.
  * All chains can be enabled, allowing users to sync to chains without existing data.
+ * Localhost is only shown when devMode is enabled.
  */
 export const EnabledChainsSection = ({
   chainStatuses,
   isLoading = false,
+  devMode = false,
 }: EnabledChainsSectionProps) => {
   const { enabledChainIds, addChain, removeChain } = useEnabledChains();
 
@@ -33,7 +40,10 @@ export const EnabledChainsSection = ({
     }
   };
 
-  const viewChainStatuses = chainStatuses.map((status) => ({
+  const filteredStatuses = filterChainStatusesByDevMode(chainStatuses, devMode);
+  const filteredChainIds = filterChainIdsByDevMode(enabledChainIds, devMode);
+
+  const viewChainStatuses = filteredStatuses.map((status) => ({
     chainId: status.chainId,
     chainName: status.chainName,
     numEntries: status.numEntries,
@@ -42,7 +52,7 @@ export const EnabledChainsSection = ({
   return (
     <EnabledChainsSectionView
       chainStatuses={viewChainStatuses}
-      enabledChainIds={enabledChainIds}
+      enabledChainIds={filteredChainIds}
       onToggleChain={handleToggleChain}
       isLoading={isLoading}
     />

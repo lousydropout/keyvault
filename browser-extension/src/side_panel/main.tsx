@@ -13,6 +13,7 @@ import {
 import { DASHBOARD, SETUP_ENCRYPTION_KEY, WELCOME } from "@/constants/steps";
 import { useBrowserStore, useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
+import { useEnabledChains } from "@/hooks/useEnabledChains";
 import { useSourceChain } from "@/hooks/useSourceChain";
 import "@/index.css";
 import { PubkeyRequest } from "@/side_panel/PubkeyRequest";
@@ -41,6 +42,7 @@ import { logger } from "@/utils/logger";
 import { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
 import { Hex } from "viem";
+import { hardhat } from "viem/chains";
 
 export const Root = () => {
   const [step, setStep] = useBrowserStoreLocal<number>(STEP, WELCOME);
@@ -68,7 +70,17 @@ export const Root = () => {
   const [decryptionErrors, setDecryptionErrors] = useState<DecryptionError[]>(
     []
   );
+  const [devMode] = useBrowserStoreLocal<boolean>("devMode", false);
+  const { enabledChainIds, removeChain, hasLoaded: chainsLoaded } = useEnabledChains();
   const { sourceChainId, sourceDisplayText } = useSourceChain({ step });
+
+  // Sync: remove localhost from enabledChainIds when devMode is off
+  useEffect(() => {
+    if (!chainsLoaded) return;
+    if (!devMode && enabledChainIds.includes(hardhat.id)) {
+      removeChain(hardhat.id);
+    }
+  }, [chainsLoaded, devMode, enabledChainIds, removeChain]);
 
   // Retry failed decryptions
   const retryFailed = async () => {

@@ -4,6 +4,7 @@ import { useEnabledChains } from "@/hooks/useEnabledChains";
 import { PUBKEY, NUM_ENTRIES } from "@/constants/hookVariables";
 import { SETUP_ENCRYPTION_KEY } from "@/constants/steps";
 import { discoverAccounts } from "@/utils/discoverAccounts";
+import { filterChainIdsByDevMode } from "@/utils/enabledChainsUtils";
 import {
   SourceChainInfo,
   getSourceChainFromAccounts,
@@ -37,6 +38,7 @@ export const useSourceChain = (options: UseSourceChainOptions = {}) => {
   const { step } = options;
   const { enabledChainIds, hasLoaded: enabledChainsLoaded } = useEnabledChains();
   const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
+  const [devMode] = useBrowserStoreLocal<boolean>("devMode", false);
   const [_numEntries, setNumEntries] = useBrowserStoreLocal<number>(
     NUM_ENTRIES,
     -1
@@ -46,12 +48,12 @@ export const useSourceChain = (options: UseSourceChainOptions = {}) => {
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoize enabledChainIds to prevent reference changes from triggering re-runs
-  const stableEnabledChainIds = useMemo(
-    () => enabledChainIds,
+  // Filter and memoize enabledChainIds - excludes localhost when devMode is off
+  const stableEnabledChainIds = useMemo(() => {
+    const filtered = filterChainIdsByDevMode(enabledChainIds, devMode);
+    return filtered;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [enabledChainIds.join(",")]
-  );
+  }, [enabledChainIds.join(","), devMode]);
 
   /**
    * Discovers chain statuses and determines source chain.
