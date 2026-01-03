@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ChainSelectionScreen } from "@/components/ChainSelectionScreen";
 import { NUM_ENTRIES, PUBKEY } from "@/constants/hookVariables";
-import { DASHBOARD } from "@/constants/steps";
+import { DASHBOARD, WELCOME } from "@/constants/steps";
 import { CHAIN_CONFIGS } from "@/constants/chains";
 import { useBrowserStoreLocal } from "@/hooks/useBrowserStore";
 import { useCryptoKeyManager } from "@/hooks/useCryptoKey";
@@ -29,7 +29,7 @@ type EncryptionKeySetupProps = {
   setStep: (step: number) => void;
 };
 export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
-  const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
+  const [pubkey, setPubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
   const [jwk, setJwk, _, generateKeyHandler] = useCryptoKeyManager();
   const [numOnChain, setNumOnChain] = useBrowserStoreLocal<number>(
     NUM_ENTRIES,
@@ -44,6 +44,17 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
   const [discoveredAccounts, setDiscoveredAccounts] = useState<ChainAccountInfo[]>([]);
   const [userAction, setUserAction] = useState<UserAction>("pending");
   const [selectedChain, setSelectedChain] = useState<ChainAccountInfo | null>(null);
+
+  // Go back to pubkey entry step
+  const handleBack = () => {
+    // Reset module-level discovery state
+    setupDiscoveryInProgress = false;
+    setupDiscoveryPubkey = null;
+    // Clear pubkey to allow re-entry
+    setPubkey("");
+    // Go back to welcome step
+    setStep(WELCOME);
+  };
 
   // Discover accounts across all chains (runs once per pubkey)
   useEffect(() => {
@@ -96,6 +107,13 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
   const CreatingOrResetingAccount = ({
     isNew,
   }: CreatingOrResetingAccountProps) => {
+    const [showImport, setShowImport] = useState(false);
+
+    // Import encryption key flow for new accounts
+    if (showImport) {
+      return <ImportKeyFlow onBack={() => setShowImport(false)} />;
+    }
+
     return (
       <div className="flex flex-col gap-4 px-2 py-4">
         <h1 className="text-4xl text-center mt-4">
@@ -121,26 +139,45 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
         >
           Done with setup
         </Button>
+
+        {isNew && (
+          <>
+            <CustomSeparator text="Or" />
+            <p className="text-lg text-slate-300">
+              Already have an encryption key from a previous setup?
+            </p>
+            <Button
+              variant="outline"
+              className="border rounded-xl"
+              onClick={() => setShowImport(true)}
+            >
+              Import existing encryption key
+            </Button>
+          </>
+        )}
+
+        <Button
+          variant="ghost"
+          className="mt-4 text-slate-400 hover:text-white"
+          onClick={handleBack}
+        >
+          ← Use a different wallet
+        </Button>
       </div>
     );
   };
 
-  const ExistingAccount = () => {
+  // Reusable import key flow component
+  const ImportKeyFlow = ({ onBack }: { onBack?: () => void }) => {
     const [tmpJwk, setTmpJwk] = useState<JsonWebKey | null>(null);
-    const [importAccount, setImportAccount] = useState<boolean | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [fileErrorMessage, setFileErrorMessage] = useState<string | null>(
-      null
-    );
-
-    logger.debug("ExistingAccount");
+    const [fileErrorMessage, setFileErrorMessage] = useState<string | null>(null);
 
     const importJwk = async () => {
       setErrorMessage(null);
       if (!tmpJwk) return;
       try {
         const _ = await importCryptoKey(tmpJwk ?? {});
-        // the string was a valid JWK if no error was thrown
         setJwk(tmpJwk);
         setStep(DASHBOARD);
       } catch (e) {
@@ -149,9 +186,7 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
       }
     };
 
-    const handleJWKFileUpload = (
-      event: React.ChangeEvent<HTMLInputElement>
-    ) => {
+    const handleJWKFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) {
         logger.error("No file selected: ", { event });
@@ -159,20 +194,15 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
       }
 
       const reader = new FileReader();
-
-      // Read the file content as text
       reader.onload = () => {
         try {
           const _jwk = JSON.parse(reader.result as string) as JsonWebKey;
           setTmpJwk(_jwk);
-          setStep(DASHBOARD);
         } catch (e) {
           setFileErrorMessage("Invalid JWK file");
           logger.error("Error parsing file:", e);
         }
       };
-
-      // Start reading the file as text
       reader.readAsText(file);
     };
 
@@ -180,20 +210,67 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
       const _jwkString = (
         document.getElementById("jwkInput") as HTMLInputElement
       ).value;
-      const _jwk = JSON.parse(_jwkString) as JsonWebKey;
-      setTmpJwk(_jwk);
+      try {
+        const _jwk = JSON.parse(_jwkString) as JsonWebKey;
+        setTmpJwk(_jwk);
+      } catch (e) {
+        setErrorMessage("Invalid JSON format");
+      }
     };
 
     useEffect(() => {
       if (tmpJwk) importJwk();
     }, [tmpJwk]);
 
-    const currentChainName = CHAIN_CONFIGS[chainId]?.name || "Unknown";
+    return (
+      <div className="flex flex-col gap-4 px-2 py-4">
+        <h1 className="text-4xl text-center mt-4">Import encryption key</h1>
+        <p className="text-xl mt-4">
+          Please select your encryption key file to import
+        </p>
+        <Input
+          type="file"
+          id="jwt-file-selector"
+          className="cursor-pointer"
+          onChange={handleJWKFileUpload}
+        />
+        {fileErrorMessage && (
+          <p className="text-red-400">{fileErrorMessage}</p>
+        )}
+
+        <CustomSeparator text="Alternatively" />
+
+        <p className="text-xl">
+          Please paste your encryption key (JWK format) here:
+        </p>
+        <Textarea id="jwkInput" className="min-h-24" />
+        {errorMessage && <p className="text-red-400">{errorMessage}</p>}
+        <Button className="border rounded-xl" onClick={updateTmpJwk}>
+          Import key
+        </Button>
+
+        {onBack && (
+          <Button
+            variant="ghost"
+            className="mt-4 text-slate-400 hover:text-white"
+            onClick={onBack}
+          >
+            ← Back
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  const ExistingAccount = () => {
+    const [importAccount, setImportAccount] = useState<boolean | null>(null);
+
+    logger.debug("ExistingAccount");
 
     if (importAccount === null) {
       return (
         <div className="flex flex-col gap-4 px-2 py-4">
-          <h1 className="text-4xl text-center mt-4">Account found on {currentChainName}</h1>
+          <h1 className="text-4xl text-center mt-4">Account found</h1>
           <p className="text-xl mt-4">
             Would you like to import your encryption key or reset your account?
           </p>
@@ -211,38 +288,18 @@ export const EncryptionKeySetup = ({ setStep }: EncryptionKeySetupProps) => {
               Reset account
             </Button>
           </div>
-        </div>
-      );
-    } else if (importAccount) {
-      return (
-        <div className="flex flex-col gap-4 px-2 py-4">
-          <h1 className="text-4xl text-center mt-4">Import encryption key</h1>
-          <p className="text-xl mt-4">
-            Please select your encryption key file to import
-          </p>
-          <Input
-            type="file"
-            id="jwt-file-selector"
-            className="cursor-pointer"
-            onChange={handleJWKFileUpload}
-          />
-          {fileErrorMessage && (
-            <p className="text-red-400">{fileErrorMessage}</p>
-          )}
-
-          <CustomSeparator text="Alternatively" />
-
-          <p className="text-xl">
-            Please paste your encryption key (JWT format) here:
-          </p>
-          <Textarea id="jwkInput" className="min-h-24" />
-          {errorMessage && <p className="text-red-400">{errorMessage}</p>}
-          <Button className="border rounded-xl" onClick={updateTmpJwk}>
-            Import key
+          <Button
+            variant="ghost"
+            className="mt-4 text-slate-400 hover:text-white"
+            onClick={handleBack}
+          >
+            ← Use a different wallet
           </Button>
         </div>
       );
-    } else if (!importAccount) {
+    } else if (importAccount) {
+      return <ImportKeyFlow onBack={() => setImportAccount(null)} />;
+    } else {
       return <CreatingOrResetingAccount isNew={false} />;
     }
   };
