@@ -112,7 +112,7 @@ export const generateWrappedKey = async (password: string): Promise<Keys> => {
  * @returns A promise that resolves with the exported JsonWebKey.
  */
 export const exportCryptoKey = (key: CryptoKey): Promise<JsonWebKey> => {
-  return window.crypto.subtle.exportKey("jwk", key);
+  return crypto.subtle.exportKey("jwk", key);
 };
 
 /**
@@ -122,7 +122,7 @@ export const exportCryptoKey = (key: CryptoKey): Promise<JsonWebKey> => {
  * @returns A Promise that resolves to a CryptoKey.
  */
 export const importCryptoKey = (jwkString: JsonWebKey): Promise<CryptoKey> => {
-  return window.crypto.subtle.importKey(
+  return crypto.subtle.importKey(
     "jwk",
     jwkString,
     { name: "AES-GCM", length: 256 },
