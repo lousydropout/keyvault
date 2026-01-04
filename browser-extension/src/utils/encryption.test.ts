@@ -2,6 +2,9 @@ import {
   decrypt,
   encrypt,
   generateKey,
+  generateWrappedKey,
+  exportCryptoKey,
+  importCryptoKey,
   parseEncryptedText,
   deriveKeyFromPassword,
   wrapKey,
@@ -17,6 +20,91 @@ describe("Encryption", () => {
 
     const plainObj = await decrypt(key, secret);
     expect(plainObj).toEqual(x);
+  });
+});
+
+describe("generateWrappedKey", () => {
+  it("should generate a key and wrapped key pair", async () => {
+    const password = "testpassword";
+    const result = await generateWrappedKey(password);
+
+    expect(result).toHaveProperty("key");
+    expect(result).toHaveProperty("wrappedKey");
+    expect(result.key).toBeInstanceOf(CryptoKey);
+    expect(typeof result.wrappedKey).toBe("string");
+    expect(result.wrappedKey.length).toBeGreaterThan(0);
+  });
+
+  it("should generate keys that can encrypt/decrypt", async () => {
+    const password = "testpassword";
+    const result = await generateWrappedKey(password);
+
+    const data = { message: "secret" };
+    const encrypted = await encrypt(result.key, data);
+    const decrypted = await decrypt(result.key, encrypted);
+
+    expect(decrypted).toEqual(data);
+  });
+
+  it("should generate wrapped key that can be unwrapped", async () => {
+    const password = "testpassword";
+    const result = await generateWrappedKey(password);
+
+    const unwrappedKey = await unwrapKey(result.wrappedKey, password);
+
+    expect(unwrappedKey).toBeInstanceOf(CryptoKey);
+  });
+
+  it("should generate different wrapped keys for same password (due to random salt)", async () => {
+    const password = "samepassword";
+    const result1 = await generateWrappedKey(password);
+    const result2 = await generateWrappedKey(password);
+
+    expect(result1.wrappedKey).not.toBe(result2.wrappedKey);
+  });
+});
+
+describe("exportCryptoKey and importCryptoKey", () => {
+  it("should export key to JWK format", async () => {
+    const key = await generateKey();
+    const jwk = await exportCryptoKey(key);
+
+    expect(jwk).toHaveProperty("kty");
+    expect(jwk).toHaveProperty("k");
+    expect(jwk.kty).toBe("oct");
+  });
+
+  it("should import key from JWK format", async () => {
+    const key = await generateKey();
+    const jwk = await exportCryptoKey(key);
+    const importedKey = await importCryptoKey(jwk);
+
+    expect(importedKey).toBeInstanceOf(CryptoKey);
+  });
+
+  it("should roundtrip export/import preserving encryption capability", async () => {
+    const originalKey = await generateKey();
+    const data = { test: "data" };
+    const encrypted = await encrypt(originalKey, data);
+
+    const jwk = await exportCryptoKey(originalKey);
+    const importedKey = await importCryptoKey(jwk);
+
+    const decrypted = await decrypt(importedKey, encrypted);
+    expect(decrypted).toEqual(data);
+  });
+
+  it("should export/import key that produces same encryption results", async () => {
+    const key = await generateKey();
+    const jwk = await exportCryptoKey(key);
+    const importedKey = await importCryptoKey(jwk);
+
+    // Both keys should be able to decrypt each other's encryptions
+    const data = { message: "test" };
+    const encryptedWithOriginal = await encrypt(key, data);
+    const decryptedWithImported = await decrypt(importedKey, encryptedWithOriginal);
+
+    expect(decryptedWithImported).toEqual(data);
   });
 });
 
