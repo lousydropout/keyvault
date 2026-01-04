@@ -1,18 +1,6 @@
 import { base, astar, hardhat } from "viem/chains";
-import {
-  createChainClient,
-  createChainContract,
-  NETWORK,
-  abi,
-  chain,
-  address,
-  apiUrl,
-  dappUrl,
-  client,
-  contract,
-} from "@/config";
+import { createChainClient, createChainContract, abi } from "@/config";
 import { CHAIN_CONFIGS } from "@/constants/chains";
-import { ASTAR, BASE, LOCALHOST } from "@/constants/networks";
 
 describe("Config - Dynamic Chain Client/Contract Creation", () => {
   describe("createChainClient", () => {
@@ -86,54 +74,8 @@ describe("Config - Dynamic Chain Client/Contract Creation", () => {
       const astarContract = createChainContract(astar.id);
       const baseContract = createChainContract(base.id);
 
-      expect(astarContract.address).toBe("0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B");
+      expect(astarContract.address).toBe(CHAIN_CONFIGS[astar.id].address);
       expect(baseContract.address).toBe(CHAIN_CONFIGS[base.id].address);
-    });
-  });
-
-  describe("NETWORK constant", () => {
-    it("should be one of the allowed network values", () => {
-      const allowedNetworks = [LOCALHOST, ASTAR, BASE];
-      expect(allowedNetworks).toContain(NETWORK);
-    });
-
-    it("should be a string", () => {
-      expect(typeof NETWORK).toBe("string");
-    });
-  });
-
-  describe("Legacy exports", () => {
-    it("should export chain object", () => {
-      expect(chain).toBeDefined();
-      expect(chain.id).toBeDefined();
-    });
-
-    it("should export address as hex string", () => {
-      expect(address).toBeDefined();
-      expect(typeof address).toBe("string");
-      expect(address).toMatch(/^0x[a-fA-F0-9]{40}$/);
-    });
-
-    it("should export apiUrl as string", () => {
-      expect(apiUrl).toBeDefined();
-      expect(typeof apiUrl).toBe("string");
-      expect(apiUrl).toMatch(/^https?:\/\//);
-    });
-
-    it("should export dappUrl as string", () => {
-      expect(dappUrl).toBeDefined();
-      expect(typeof dappUrl).toBe("string");
-      expect(dappUrl).toMatch(/^https?:\/\//);
-    });
-
-    it("should export client with correct chain", () => {
-      expect(client).toBeDefined();
-      expect(client.chain).toBe(chain);
-    });
-
-    it("should export contract with correct address", () => {
-      expect(contract).toBeDefined();
-      expect(contract.address).toBe(address);
     });
   });
 
@@ -148,6 +90,13 @@ describe("Config - Dynamic Chain Client/Contract Creation", () => {
         (item: any) => item.type === "function" && item.name === "storeEntry"
       );
       expect(storeEntry).toBeDefined();
+    });
+
+    it("should have storeEntries batch function in abi", () => {
+      const storeEntries = abi.find(
+        (item: any) => item.type === "function" && item.name === "storeEntries"
+      );
+      expect(storeEntries).toBeDefined();
     });
 
     it("should have numEntries function in abi", () => {

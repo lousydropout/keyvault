@@ -12,8 +12,8 @@
     "dev:chrome": "nodemon --exec 'bun run local:chrome' --watch src --watch scripts -e ts,tsx,js",
     "dev:firefox": "nodemon --exec 'bun run local:firefox' --watch src --watch scripts -e ts,tsx,js",
     "dev": "nodemon --exec 'bun run local:chrome' --watch src --watch scripts -e ts,tsx,js",
-    "build": "VITE_NETWORK=astar bun run vite-build --mode chrome",
-    "build-firefox": "VITE_NETWORK=astar bun run vite-build --mode firefox && bun run zip",
+    "build": "bun run vite-build --mode chrome",
+    "build-firefox": "bun run vite-build --mode firefox && bun run zip",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
