@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useMessage, isContext, isEncrypted, Context, Encrypted } from "./useMessage";
+import { useMessage, isContext, isEncrypted, Context, Encrypted, MessageResult } from "./useMessage";
 
 describe("useMessage", () => {
   let messageHandler: ((event: MessageEvent) => void) | null = null;
@@ -21,10 +21,13 @@ describe("useMessage", () => {
     });
   });
 
-  it("should return null initially", () => {
+  it("should return empty queue initially", () => {
     const { result } = renderHook(() => useMessage());
 
-    expect(result.current).toBe(null);
+    expect(result.current.queue).toEqual([]);
+    expect(result.current.total).toBe(0);
+    expect(result.current.remaining).toBe(0);
+    expect(typeof result.current.advance).toBe("function");
   });
 
   it("should set up message event listener on mount", () => {
@@ -47,7 +50,7 @@ describe("useMessage", () => {
     );
   });
 
-  it("should update context when receiving valid FROM_EXTENSION message", () => {
+  it("should add to queue when receiving valid FROM_EXTENSION message", () => {
     const { result } = renderHook(() => useMessage());
 
     const validContext: Context = {
@@ -76,10 +79,13 @@ describe("useMessage", () => {
       }
     });
 
-    expect(result.current).toEqual(validContext);
+    expect(result.current.queue).toHaveLength(1);
+    expect(result.current.queue[0]).toEqual(validContext);
+    expect(result.current.total).toBe(1);
+    expect(result.current.remaining).toBe(1);
   });
 
-  it("should merge context when overwrite is false", () => {
+  it("should replace queue with new context (no merging)", () => {
     const { result } = renderHook(() => useMessage());
 
     const initialContext: Context = {
@@ -118,7 +124,7 @@ describe("useMessage", () => {
       }
     });
 
-    // Update with merge
+    // Update replaces the queue
     act(() => {
       if (messageHandler) {
         const event2 = new MessageEvent("message", {
@@ -133,14 +139,15 @@ describe("useMessage", () => {
       }
     });
 
-    // Should merge, so all fields from updateContext should be present
-    expect(result.current?.address).toBe(updateContext.address);
-    expect(result.current?.chainId).toBe(updateContext.chainId);
-    expect(result.current?.encrypted).toEqual(updateContext.encrypted);
-    expect(result.current?.numEntries).toBe(updateContext.numEntries);
+    // Queue should contain only the latest context
+    expect(result.current.queue).toHaveLength(1);
+    expect(result.current.queue[0].address).toBe(updateContext.address);
+    expect(result.current.queue[0].chainId).toBe(updateContext.chainId);
+    expect(result.current.queue[0].encrypted).toEqual(updateContext.encrypted);
+    expect(result.current.queue[0].numEntries).toBe(updateContext.numEntries);
   });
 
-  it("should overwrite context when overwrite is true", () => {
+  it("should replace queue when overwrite is true", () => {
     const { result } = renderHook(() => useMessage());
 
     const initialContext: Context = {
@@ -194,7 +201,8 @@ describe("useMessage", () => {
       }
     });
 
-    expect(result.current).toEqual(overwriteContext);
+    expect(result.current.queue).toHaveLength(1);
+    expect(result.current.queue[0]).toEqual(overwriteContext);
   });
 
   it("should ignore messages with wrong type", () => {
@@ -214,7 +222,8 @@ describe("useMessage", () => {
       }
     });
 
-    expect(result.current).toBe(null);
+    expect(result.current.queue).toEqual([]);
+    expect(result.current.total).toBe(0);
   });
 
   it("should ignore invalid context data", () => {
@@ -236,7 +245,83 @@ describe("useMessage", () => {
       }
     });
 
-    expect(result.current).toBe(null);
+    expect(result.current.queue).toEqual([]);
+    expect(result.current.total).toBe(0);
+  });
+
+  it("should advance queue correctly", () => {
+    const { result } = renderHook(() => useMessage());
+
+    const batchData = {
+      encrypteds: [
+        { iv: "iv1", ciphertext: "ct1" },
+        { iv: "iv2", ciphertext: "ct2" },
+        { iv: "iv3", ciphertext: "ct3" },
+      ],
+      address: "0x1234567890abcdef1234567890abcdef12345678",
+      startIndex: 0,
+      chainId: 1,
+    };
+
+    act(() => {
+      if (messageHandler) {
+        const event = new MessageEvent("message", {
+          data: {
+            type: "FROM_EXTENSION",
+            channelName: "test",
+            data: batchData,
+          },
+          origin: window.location.origin,
+        });
+        messageHandler(event);
+      }
+    });
+
+    expect(result.current.queue).toHaveLength(3);
+    expect(result.current.total).toBe(3);
+    expect(result.current.remaining).toBe(3);
+
+    // Advance by 2
+    act(() => {
+      result.current.advance(2);
+    });
+
+    expect(result.current.queue).toHaveLength(1);
+    expect(result.current.remaining).toBe(1);
+    expect(result.current.queue[0].encrypted).toEqual({ iv: "iv3", ciphertext: "ct3" });
+  });
+
+  it("should handle batch data format", () => {
+    const { result } = renderHook(() => useMessage());
+
+    const batchData = {
+      encrypteds: [
+        { iv: "iv1", ciphertext: "ct1" },
+        { iv: "iv2", ciphertext: "ct2" },
+      ],
+      address: "0x1234567890abcdef1234567890abcdef12345678",
+      startIndex: 5,
+      chainId: 1,
+    };
+
+    act(() => {
+      if (messageHandler) {
+        const event = new MessageEvent("message", {
+          data: {
+            type: "FROM_EXTENSION",
+            channelName: "test",
+            data: batchData,
+          },
+          origin: window.location.origin,
+        });
+        messageHandler(event);
+      }
+    });
+
+    expect(result.current.queue).toHaveLength(2);
+    expect(result.current.total).toBe(2);
+    expect(result.current.queue[0].numEntries).toBe(5); // startIndex + 0
+    expect(result.current.queue[1].numEntries).toBe(6); // startIndex + 1
   });
 });
 

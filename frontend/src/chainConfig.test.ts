@@ -16,7 +16,7 @@ describe("Frontend Chain Config", () => {
       expect(config.chain).toEqual(astar);
       expect(config.name).toBe("Astar");
       expect(config.apiUrl).toBe("https://evm.astar.network");
-      expect(config.address).toBe("0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B");
+      expect(config.address).toBe("0x3afe36158bBA43715b22ECfeFa530f0981FAC9C0");
     });
 
     it("should have configuration for Base", () => {
