@@ -1,14 +1,52 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
 import { base, astar, hardhat } from "viem/chains";
+import * as config from "@/config";
+
+// Mock for createChainContract to control test behavior
+let mockContractBehavior: Record<number, { numEntries?: number; error?: Error }> = {};
+
+const mockCreateChainContract = (chainId: number) => {
+  return {
+    read: {
+      numEntries: async () => {
+        const behavior = mockContractBehavior[chainId];
+        if (behavior?.error) {
+          throw behavior.error;
+        }
+        return BigInt(behavior?.numEntries ?? 0);
+      },
+    },
+  };
+};
 
 describe("discoverAccounts", () => {
   const testPubkey = "0x0000000000000000000000000000000000000001" as const;
 
+  beforeEach(() => {
+    // Reset mock behavior before each test
+    mockContractBehavior = {};
+    // Apply the mock
+    mock.module("@/config", () => ({
+      ...config,
+      createChainContract: mockCreateChainContract,
+    }));
+  });
+
+  afterEach(() => {
+    // Clear module cache to reset mocks
+    mock.restore();
+  });
+
   describe("function signature validation", () => {
     it("should accept pubkey and return DiscoveryResult structure", async () => {
-      const { discoverAccounts } = await import("@/utils/discoverAccounts");
+      // Set up: all chains return 0 entries
+      mockContractBehavior = {
+        [astar.id]: { numEntries: 0 },
+        [base.id]: { numEntries: 0 },
+        [hardhat.id]: { numEntries: 0 },
+      };
 
-      // Will fail on network calls but validates structure
+      const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const result = await discoverAccounts(testPubkey);
 
       // Should return the correct structure with accounts and errors arrays
@@ -19,9 +57,11 @@ describe("discoverAccounts", () => {
     });
 
     it("should accept optional chainIds array parameter", async () => {
-      const { discoverAccounts } = await import("@/utils/discoverAccounts");
+      mockContractBehavior = {
+        [astar.id]: { numEntries: 0 },
+      };
 
-      // Test with specific chains only
+      const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const result = await discoverAccounts(testPubkey, [astar.id]);
 
       expect(result).toHaveProperty("accounts");
@@ -29,14 +69,20 @@ describe("discoverAccounts", () => {
     });
 
     it("should query all supported chains when no chainIds provided", async () => {
+      // Set up: one chain has entries, others don't
+      mockContractBehavior = {
+        [astar.id]: { numEntries: 5 },
+        [base.id]: { numEntries: 0 },
+        [hardhat.id]: { error: new Error("Connection refused") },
+      };
+
       const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const { SUPPORTED_CHAIN_IDS } = await import("@/constants/chains");
 
       const result = await discoverAccounts(testPubkey);
 
       // Result should contain information about all queried chains
-      // Some may succeed (Astar is accessible), some may fail (localhost not running, Base invalid address)
-      // We just verify we got results for the chains we queried
+      // accounts (astar) + errors (hardhat) should be > 0
       expect(result.accounts.length + result.errors.length).toBeGreaterThan(0);
       expect(result.accounts.length + result.errors.length).toBeLessThanOrEqual(SUPPORTED_CHAIN_IDS.length);
     });
@@ -44,12 +90,15 @@ describe("discoverAccounts", () => {
 
   describe("error handling", () => {
     it("should capture errors per chain without blocking other chains", async () => {
-      const { discoverAccounts } = await import("@/utils/discoverAccounts");
+      // Set up: localhost throws an error
+      mockContractBehavior = {
+        [hardhat.id]: { error: new Error("Connection refused") },
+      };
 
-      // Query Localhost which is not running - guaranteed to fail
+      const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const result = await discoverAccounts(testPubkey, [hardhat.id]);
 
-      // Localhost should be in errors (not running)
+      // Localhost should be in errors
       expect(result.errors.length).toBe(1);
 
       // Each error should have chainId, chainName, and error message
@@ -64,9 +113,11 @@ describe("discoverAccounts", () => {
     });
 
     it("should include chain names in error objects", async () => {
-      const { discoverAccounts } = await import("@/utils/discoverAccounts");
+      mockContractBehavior = {
+        [hardhat.id]: { error: new Error("Connection refused") },
+      };
 
-      // Query Localhost which will fail (not running)
+      const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const result = await discoverAccounts(testPubkey, [hardhat.id]);
 
       // Verify chain names are correctly populated in errors
@@ -75,13 +126,16 @@ describe("discoverAccounts", () => {
     });
 
     it("should succeed on accessible chains while capturing errors on others", async () => {
-      const { discoverAccounts } = await import("@/utils/discoverAccounts");
+      mockContractBehavior = {
+        [astar.id]: { numEntries: 0 },
+        [hardhat.id]: { error: new Error("Connection refused") },
+      };
 
-      // Astar RPC is accessible, Localhost will fail (not running)
+      const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const result = await discoverAccounts(testPubkey, [astar.id, hardhat.id]);
 
-      // Astar should succeed (returns 0 entries for test address)
-      // Localhost should fail (not running)
+      // Astar should succeed (returns 0 entries)
+      // Localhost should fail
       expect(result.errors.length).toBe(1);
       expect(result.errors[0].chainName).toBe("Localhost");
       // accounts array is empty since test address has 0 entries
@@ -93,11 +147,17 @@ describe("discoverAccounts", () => {
 
   describe("ChainAccountInfo structure", () => {
     it("should define ChainAccountInfo with required fields", async () => {
-      // Type validation - if this compiles, the types are correct
+      mockContractBehavior = {
+        [astar.id]: { numEntries: 3 },
+        [base.id]: { numEntries: 0 },
+        [hardhat.id]: { numEntries: 0 },
+      };
+
       const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const result = await discoverAccounts(testPubkey);
 
-      // Even with empty accounts, the structure is valid
+      // Should have one account (astar with entries > 0)
+      expect(result.accounts.length).toBe(1);
       for (const account of result.accounts) {
         expect(account).toHaveProperty("chainId");
         expect(account).toHaveProperty("chainName");
@@ -108,8 +168,12 @@ describe("discoverAccounts", () => {
 
   describe("allChains field", () => {
     it("should return status for all queried chains", async () => {
-      const { discoverAccounts } = await import("@/utils/discoverAccounts");
+      mockContractBehavior = {
+        [astar.id]: { numEntries: 0 },
+        [base.id]: { numEntries: 0 },
+      };
 
+      const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const result = await discoverAccounts(testPubkey, [astar.id, base.id]);
 
       // allChains should have entries for both queried chains
@@ -126,9 +190,11 @@ describe("discoverAccounts", () => {
     });
 
     it("should mark chains with numEntries > 0 as found", async () => {
-      const { discoverAccounts } = await import("@/utils/discoverAccounts");
+      mockContractBehavior = {
+        [astar.id]: { numEntries: 0 },
+      };
 
-      // Astar should succeed but with 0 entries for test address
+      const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const result = await discoverAccounts(testPubkey, [astar.id]);
 
       expect(result.allChains.length).toBe(1);
@@ -137,9 +203,11 @@ describe("discoverAccounts", () => {
     });
 
     it("should mark errored chains with error status", async () => {
-      const { discoverAccounts } = await import("@/utils/discoverAccounts");
+      mockContractBehavior = {
+        [hardhat.id]: { error: new Error("Connection refused") },
+      };
 
-      // Localhost is not running during tests
+      const { discoverAccounts } = await import("@/utils/discoverAccounts");
       const result = await discoverAccounts(testPubkey, [hardhat.id]);
 
       expect(result.allChains.length).toBe(1);
@@ -152,46 +220,109 @@ describe("discoverAccounts", () => {
 describe("hasAccountOnAnyChain", () => {
   const testPubkey = "0x0000000000000000000000000000000000000001" as const;
 
-  it("should return boolean", async () => {
-    const { hasAccountOnAnyChain } = await import("@/utils/discoverAccounts");
+  beforeEach(() => {
+    mockContractBehavior = {};
+    mock.module("@/config", () => ({
+      ...config,
+      createChainContract: mockCreateChainContract,
+    }));
+  });
 
-    // Will be false since all chains fail in test
+  afterEach(() => {
+    mock.restore();
+  });
+
+  it("should return boolean", async () => {
+    mockContractBehavior = {
+      [astar.id]: { numEntries: 0 },
+      [base.id]: { numEntries: 0 },
+      [hardhat.id]: { numEntries: 0 },
+    };
+
+    const { hasAccountOnAnyChain } = await import("@/utils/discoverAccounts");
     const result = await hasAccountOnAnyChain(testPubkey);
     expect(typeof result).toBe("boolean");
   });
 
   it("should return false when no accounts found", async () => {
-    const { hasAccountOnAnyChain } = await import("@/utils/discoverAccounts");
+    mockContractBehavior = {
+      [astar.id]: { numEntries: 0 },
+      [base.id]: { numEntries: 0 },
+      [hardhat.id]: { numEntries: 0 },
+    };
 
-    // All chains fail in test, so no accounts found
+    const { hasAccountOnAnyChain } = await import("@/utils/discoverAccounts");
     const result = await hasAccountOnAnyChain(testPubkey);
     expect(result).toBe(false);
+  });
+
+  it("should return true when accounts are found", async () => {
+    mockContractBehavior = {
+      [astar.id]: { numEntries: 5 },
+      [base.id]: { numEntries: 0 },
+      [hardhat.id]: { numEntries: 0 },
+    };
+
+    const { hasAccountOnAnyChain } = await import("@/utils/discoverAccounts");
+    const result = await hasAccountOnAnyChain(testPubkey);
+    expect(result).toBe(true);
   });
 });
 
 describe("getSingleAccountChain", () => {
   const testPubkey = "0x0000000000000000000000000000000000000001" as const;
 
-  it("should return null when no accounts found", async () => {
-    const { getSingleAccountChain } = await import("@/utils/discoverAccounts");
+  beforeEach(() => {
+    mockContractBehavior = {};
+    mock.module("@/config", () => ({
+      ...config,
+      createChainContract: mockCreateChainContract,
+    }));
+  });
 
-    // All chains fail in test
+  afterEach(() => {
+    mock.restore();
+  });
+
+  it("should return null when no accounts found", async () => {
+    mockContractBehavior = {
+      [astar.id]: { numEntries: 0 },
+      [base.id]: { numEntries: 0 },
+      [hardhat.id]: { numEntries: 0 },
+    };
+
+    const { getSingleAccountChain } = await import("@/utils/discoverAccounts");
     const result = await getSingleAccountChain(testPubkey);
     expect(result).toBeNull();
   });
 
-  it("should return ChainAccountInfo or null", async () => {
-    const { getSingleAccountChain } = await import("@/utils/discoverAccounts");
+  it("should return ChainAccountInfo when single account found", async () => {
+    mockContractBehavior = {
+      [astar.id]: { numEntries: 5 },
+      [base.id]: { numEntries: 0 },
+      [hardhat.id]: { numEntries: 0 },
+    };
 
+    const { getSingleAccountChain } = await import("@/utils/discoverAccounts");
     const result = await getSingleAccountChain(testPubkey);
 
-    // Result is either null or has the expected structure
-    if (result !== null) {
-      expect(result).toHaveProperty("chainId");
-      expect(result).toHaveProperty("chainName");
-      expect(result).toHaveProperty("numEntries");
-    } else {
-      expect(result).toBeNull();
-    }
+    expect(result).not.toBeNull();
+    expect(result).toHaveProperty("chainId");
+    expect(result).toHaveProperty("chainName");
+    expect(result).toHaveProperty("numEntries");
+    expect(result!.chainId).toBe(astar.id);
+    expect(result!.numEntries).toBe(5);
+  });
+
+  it("should return null when multiple accounts found", async () => {
+    mockContractBehavior = {
+      [astar.id]: { numEntries: 5 },
+      [base.id]: { numEntries: 3 },
+      [hardhat.id]: { numEntries: 0 },
+    };
+
+    const { getSingleAccountChain } = await import("@/utils/discoverAccounts");
+    const result = await getSingleAccountChain(testPubkey);
+    expect(result).toBeNull();
   });
 });
