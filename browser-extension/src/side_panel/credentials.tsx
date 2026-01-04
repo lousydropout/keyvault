@@ -55,7 +55,7 @@ export const Credentials = () => {
     return mergeCredsByUrl(credsUrl, unsyncedCredsByUrl);
   }, [credsUrl, pendingCreds]);
 
-  const [seeAll, setSeeAll] = useState<boolean>(true);
+  const [seeAll, setSeeAll] = useState<boolean>(false);
   const toggleSeeAll = () => setSeeAll((prev: boolean) => !prev);
 
   return (

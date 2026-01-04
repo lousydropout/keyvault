@@ -72,7 +72,7 @@ export const Root = () => {
   );
   const [devMode] = useBrowserStoreLocal<boolean>("devMode", false);
   const { enabledChainIds, removeChain, hasLoaded: chainsLoaded } = useEnabledChains();
-  const { sourceChainId, sourceDisplayText } = useSourceChain({ step });
+  const { sourceChainId } = useSourceChain({ step });
 
   // Sync: remove localhost from enabledChainIds when devMode is off
   useEffect(() => {
@@ -230,11 +230,6 @@ export const Root = () => {
       {step === DASHBOARD && (
         <>
           <Header />
-          {sourceDisplayText && (
-            <div className="text-xs text-slate-400 text-center px-4 py-1">
-              {sourceDisplayText}
-            </div>
-          )}
           {decryptionErrors.length > 0 && (
             <div className="bg-red-900/20 border border-red-500 p-2 rounded-md text-sm text-red-400 mx-4 mt-2">
               {decryptionErrors.length} credential(s) failed to decrypt.
