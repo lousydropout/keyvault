@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import {
   escapeCSVField,
+  unescapeCSVField,
   credentialsToCSV,
   credentialsToEncryptedCSV,
   parseCSV,
@@ -116,6 +117,52 @@ describe("CSV Export", () => {
     it("should handle null/undefined values", () => {
       expect(escapeCSVField(null as any)).toBe("");
       expect(escapeCSVField(undefined as any)).toBe("");
+    });
+
+    it("should handle empty string", () => {
+      expect(escapeCSVField("")).toBe("");
+    });
+  });
+
+  describe("unescapeCSVField (reverse of escaping)", () => {
+    it("should unescape quoted field with commas", () => {
+      const escaped = '"hello, world"';
+      const unescaped = unescapeCSVField(escaped);
+      expect(unescaped).toBe("hello, world");
+    });
+
+    it("should unescape doubled quotes", () => {
+      const escaped = '"say ""hello"""';
+      const unescaped = unescapeCSVField(escaped);
+      expect(unescaped).toBe('say "hello"');
+    });
+
+    it("should handle non-quoted fields", () => {
+      expect(unescapeCSVField("normal text")).toBe("normal text");
+    });
+
+    it("should handle empty string", () => {
+      expect(unescapeCSVField("")).toBe("");
+    });
+
+    it("should handle null/undefined values", () => {
+      expect(unescapeCSVField(null as any)).toBe("");
+      expect(unescapeCSVField(undefined as any)).toBe("");
+    });
+
+    it("should trim whitespace", () => {
+      expect(unescapeCSVField("  hello  ")).toBe("hello");
+    });
+
+    it("should handle quoted empty string", () => {
+      expect(unescapeCSVField('""')).toBe("");
+    });
+
+    it("should roundtrip escape/unescape", () => {
+      const original = 'hello, "world"\nnewline';
+      const escaped = escapeCSVField(original);
+      const unescaped = unescapeCSVField(escaped);
+      expect(unescaped).toBe(original);
     });
 
     it("should properly escape credentials with special characters", () => {
@@ -401,11 +448,44 @@ Site,https://site.com,user,pass,note`;
         expect(result.error).toContain("Decryption failed");
       }
     });
+
+    it("should return error for JSON without ciphertext field", async () => {
+      const key = await generateKey();
+      const invalidContent = JSON.stringify({ iv: "abc123" });
+
+      const result = await decryptAndParseCSV(key, invalidContent);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Invalid encrypted format");
+      }
+    });
+
+    it("should return error for JSON without iv field", async () => {
+      const key = await generateKey();
+      const invalidContent = JSON.stringify({ ciphertext: "encrypted_data" });
+
+      const result = await decryptAndParseCSV(key, invalidContent);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Invalid encrypted format");
+      }
+    });
   });
 
   describe("invalid CSV format handling", () => {
     it("should return error for empty content", () => {
       const result = parseCSV("");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("empty");
+      }
+    });
+
+    it("should return error for whitespace-only content", () => {
+      const result = parseCSV("   \n\n   ");
 
       expect(result.success).toBe(false);
       if (!result.success) {
