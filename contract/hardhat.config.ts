@@ -50,7 +50,20 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: BASESCAN_API_KEY,
+    apiKey: {
+      base: BASESCAN_API_KEY,
+      astar: "no-api-key-needed",
+    },
+    customChains: [
+      {
+        network: "astar",
+        chainId: 592,
+        urls: {
+          apiURL: "https://astar.blockscout.com/api",
+          browserURL: "https://astar.blockscout.com",
+        },
+      },
+    ],
   },
   defaultNetwork: "localhost",
 };
