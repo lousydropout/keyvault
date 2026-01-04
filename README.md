@@ -28,8 +28,8 @@ Keyvault consists of three main components that work together to provide a compl
 
 | Network | Address | Explorer |
 |---------|---------|----------|
-| Astar | `0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B` | [Blockscout](https://astar.blockscout.com/address/0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B) |
-| Base | `0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5` | [Basescan](https://basescan.org/address/0xfF8810ab83DD4404E71a917c4925e8f686Ab75F5) |
+| Astar | `0x3afe36158bBA43715b22ECfeFa530f0981FAC9C0` | [Blockscout](https://astar.blockscout.com/address/0x3afe36158bBA43715b22ECfeFa530f0981FAC9C0) |
+| Base | `0x4DecB055bC80Ad00098A2CDda4E2c76b546E9403` | [Basescan](https://basescan.org/address/0x4DecB055bC80Ad00098A2CDda4E2c76b546E9403) |
 | Localhost | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` | - |
 
 ## Quick Start
@@ -185,8 +185,8 @@ This design ensures:
 **Note**: Frontend and browser extension support localhost, Astar, and Base. Shibuya support is available for contract deployment but not in the frontend interface.
 
 ### Network Configuration
-- Frontend automatically detects and switches networks based on `VITE_NETWORK` environment variable
-- Smart contract addresses are automatically selected per network
+- Chain selection is handled dynamically at runtime via the extension's chain selector
+- Smart contract addresses are configured in `CHAIN_CONFIGS` and automatically selected per network
 - Wallet network switching is handled through the UI
 
 ## Development Commands
@@ -199,11 +199,11 @@ bun run local:deploy    # Deploy to localhost
 bun run hardhat console # Interactive contract debugging
 ```
 
-### Frontend Development  
+### Frontend Development
 ```bash
 cd frontend
-bun run dev            # Development server (localhost network)
-bun run build          # Production build (Astar network)
+bun run dev            # Development server
+bun run build          # Production build
 bun run lint           # Code linting
 ```
 

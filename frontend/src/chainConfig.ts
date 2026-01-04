@@ -12,7 +12,7 @@ export type ChainConfig = {
 export const CHAIN_CONFIGS: Record<number, ChainConfig> = {
   [astar.id]: {
     chain: astar,
-    address: "0xC273ea964b5C975Fdbba9DF9624649F1038aAf9B" as Hex,
+    address: "0x3afe36158bBA43715b22ECfeFa530f0981FAC9C0" as Hex,
     apiUrl: "https://evm.astar.network",
     name: "Astar",
   },
