@@ -36,6 +36,39 @@ describe("multiChainSyncMachine transitions", () => {
   });
 
   describe("discovering state", () => {
+    it("discovering + error -> error with error message in context", async () => {
+      const testMachine = multiChainSyncMachine.provide({
+        actors: {
+          discoverChainStatuses: fromPromise(async (): Promise<DiscoverOutput> => {
+            throw new Error("Public key required for chain discovery");
+          }),
+        },
+      });
+
+      const actor = createActor(testMachine, {
+        input: { enabledChainIds: [astar.id, base.id] },
+      });
+
+      actor.start();
+      actor.send({ type: "DISCOVER" });
+
+      // Wait for error state
+      await new Promise<void>((resolve) => {
+        const sub = actor.subscribe((state) => {
+          if (state.value === "error") {
+            sub.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.value).toBe("error");
+      expect(snapshot.context.error).toBe("Public key required for chain discovery");
+
+      actor.stop();
+    });
+
     it("discovering + success -> ready with chain statuses in context", async () => {
       const mockChainStatuses = new Map<number, ChainSyncStatus>([
         [astar.id, { numEntries: 10, status: "up-to-date", behind: 0 }],
@@ -248,6 +281,153 @@ describe("multiChainSyncMachine transitions", () => {
     });
   });
 
+  describe("success state", () => {
+    it("success auto-transitions to discovering after delay", async () => {
+      const mockChainStatuses = new Map<number, ChainSyncStatus>([
+        [astar.id, { numEntries: 10, status: "up-to-date", behind: 0 }],
+        [base.id, { numEntries: 5, status: "behind", behind: 5 }],
+      ]);
+
+      let discoverCallCount = 0;
+      // Override the 10s delay to 50ms for testing
+      const testMachine = multiChainSyncMachine.provide({
+        actors: {
+          discoverChainStatuses: fromPromise(
+            async (): Promise<DiscoverOutput> => {
+              discoverCallCount++;
+              return {
+                chainStatuses: mockChainStatuses,
+                sourceChainId: astar.id,
+              };
+            }
+          ),
+          syncToChain: fromPromise(
+            async (): Promise<SyncOutput> => ({ success: true })
+          ),
+        },
+        delays: {
+          refreshDelay: 50, // Override 10s delay to 50ms for testing
+        },
+      });
+
+      const actor = createActor(testMachine, {
+        input: { enabledChainIds: [astar.id, base.id] },
+      });
+
+      actor.start();
+      actor.send({ type: "DISCOVER" });
+
+      // Wait for ready state
+      await new Promise<void>((resolve) => {
+        const sub = actor.subscribe((state) => {
+          if (state.value === "ready") {
+            sub.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      expect(discoverCallCount).toBe(1);
+
+      // Send SYNC event
+      actor.send({ type: "SYNC", targetChainId: base.id, deltaEntries: [] });
+
+      // Wait for success state
+      await new Promise<void>((resolve) => {
+        const sub = actor.subscribe((state) => {
+          if (state.value === "success") {
+            sub.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      expect(actor.getSnapshot().value).toBe("success");
+
+      // Wait for auto-transition to discovering (mocked to 50ms)
+      await new Promise<void>((resolve) => {
+        const sub = actor.subscribe((state) => {
+          if (state.value === "discovering" && discoverCallCount > 1) {
+            sub.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      // Should have called discover again
+      expect(discoverCallCount).toBe(2);
+
+      actor.stop();
+    });
+
+    it("success + SYNC -> syncing (can sync again while in success)", async () => {
+      const mockChainStatuses = new Map<number, ChainSyncStatus>([
+        [astar.id, { numEntries: 10, status: "up-to-date", behind: 0 }],
+        [base.id, { numEntries: 5, status: "behind", behind: 5 }],
+      ]);
+
+      let syncCallCount = 0;
+      const testMachine = multiChainSyncMachine.provide({
+        actors: {
+          discoverChainStatuses: fromPromise(
+            async (): Promise<DiscoverOutput> => ({
+              chainStatuses: mockChainStatuses,
+              sourceChainId: astar.id,
+            })
+          ),
+          syncToChain: fromPromise(async (): Promise<SyncOutput> => {
+            syncCallCount++;
+            if (syncCallCount === 2) {
+              // Second call: never resolve to keep in syncing state
+              await new Promise(() => {});
+            }
+            return { success: true };
+          }),
+        },
+      });
+
+      const actor = createActor(testMachine, {
+        input: { enabledChainIds: [astar.id, base.id] },
+      });
+
+      actor.start();
+      actor.send({ type: "DISCOVER" });
+
+      // Wait for ready state
+      await new Promise<void>((resolve) => {
+        const sub = actor.subscribe((state) => {
+          if (state.value === "ready") {
+            sub.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      // First sync
+      actor.send({ type: "SYNC", targetChainId: base.id, deltaEntries: [] });
+
+      // Wait for success state
+      await new Promise<void>((resolve) => {
+        const sub = actor.subscribe((state) => {
+          if (state.value === "success") {
+            sub.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      expect(actor.getSnapshot().value).toBe("success");
+
+      // Second sync while in success state (before auto-transition)
+      actor.send({ type: "SYNC", targetChainId: astar.id, deltaEntries: [] });
+
+      expect(actor.getSnapshot().value).toBe("syncing");
+      expect(syncCallCount).toBe(2);
+
+      actor.stop();
+    });
+  });
+
   describe("error state", () => {
     it("error + RETRY -> syncing", async () => {
       const mockChainStatuses = new Map<number, ChainSyncStatus>([
@@ -312,6 +492,104 @@ describe("multiChainSyncMachine transitions", () => {
       actor.send({ type: "RETRY" });
 
       expect(actor.getSnapshot().value).toBe("syncing");
+
+      actor.stop();
+    });
+
+    it("error + DISCOVER -> discovering (recovery from error)", async () => {
+      const mockChainStatuses = new Map<number, ChainSyncStatus>([
+        [astar.id, { numEntries: 10, status: "up-to-date", behind: 0 }],
+        [base.id, { numEntries: 5, status: "behind", behind: 5 }],
+      ]);
+
+      let discoverCallCount = 0;
+      const testMachine = multiChainSyncMachine.provide({
+        actors: {
+          discoverChainStatuses: fromPromise(
+            async (): Promise<DiscoverOutput> => {
+              discoverCallCount++;
+              if (discoverCallCount === 1) {
+                throw new Error("Network error");
+              }
+              return {
+                chainStatuses: mockChainStatuses,
+                sourceChainId: astar.id,
+              };
+            }
+          ),
+        },
+      });
+
+      const actor = createActor(testMachine, {
+        input: { enabledChainIds: [astar.id, base.id] },
+      });
+
+      actor.start();
+      actor.send({ type: "DISCOVER" });
+
+      // Wait for error state
+      await new Promise<void>((resolve) => {
+        const sub = actor.subscribe((state) => {
+          if (state.value === "error") {
+            sub.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      expect(actor.getSnapshot().value).toBe("error");
+      expect(actor.getSnapshot().context.error).toBe("Network error");
+
+      // Recover by sending DISCOVER again
+      actor.send({ type: "DISCOVER" });
+
+      // Wait for ready state (second attempt succeeds)
+      await new Promise<void>((resolve) => {
+        const sub = actor.subscribe((state) => {
+          if (state.value === "ready") {
+            sub.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      expect(actor.getSnapshot().value).toBe("ready");
+      expect(discoverCallCount).toBe(2);
+
+      actor.stop();
+    });
+
+    it("error state preserves error message for display", async () => {
+      const testMachine = multiChainSyncMachine.provide({
+        actors: {
+          discoverChainStatuses: fromPromise(async (): Promise<DiscoverOutput> => {
+            throw new Error("Content script not available. Please refresh the dApp page.");
+          }),
+        },
+      });
+
+      const actor = createActor(testMachine, {
+        input: { enabledChainIds: [astar.id] },
+      });
+
+      actor.start();
+      actor.send({ type: "DISCOVER" });
+
+      // Wait for error state
+      await new Promise<void>((resolve) => {
+        const sub = actor.subscribe((state) => {
+          if (state.value === "error") {
+            sub.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.value).toBe("error");
+      expect(snapshot.context.error).toBe(
+        "Content script not available. Please refresh the dApp page."
+      );
 
       actor.stop();
     });

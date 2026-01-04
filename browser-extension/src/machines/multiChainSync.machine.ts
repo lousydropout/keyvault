@@ -235,6 +235,9 @@ export const multiChainSyncMachine = setup({
     discoverChainStatuses: discoverChainStatusesActor,
     syncToChain: syncToChainActor,
   },
+  delays: {
+    refreshDelay: 10000, // 10 seconds
+  },
   actions: {
     assignDiscoverResult: assign({
       chainStatuses: (_, params: DiscoverOutput) => params.chainStatuses,
@@ -409,7 +412,7 @@ export const multiChainSyncMachine = setup({
     success: {
       // Auto-refresh chain statuses after successful sync
       after: {
-        500: "discovering",
+        refreshDelay: "discovering",
       },
       on: {
         DISCOVER: {
