@@ -39,22 +39,22 @@ export const GenerateKeypair = () => {
 
   useEffect(() => {
     if (!pubkey) return;
-    getPublicKey(pubkey as Hex).then((key) => {
+    getPublicKey(pubkey as Hex, chainId).then((key) => {
       if (key) setPublicKey(key);
     });
-  }, [pubkey]);
+  }, [pubkey, chainId]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (sent) {
-        getPublicKey(pubkey as Hex).then((key) => {
+        getPublicKey(pubkey as Hex, chainId).then((key) => {
           if (key) setPublicKey(key);
         });
       }
     }, 10000);
 
     return () => clearInterval(intervalId);
-  }, [sent]);
+  }, [sent, chainId]);
 
   useEffect(() => {
     if (!keypairs || !publicKey) return;

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useChain } from "@/side_panel/chain";
 import { logger } from "@/utils/logger";
 import { getPublicKey } from "@/utils/getPublicKey";
 import { decryptMessage, importPublicKey } from "@/utils/openpgp";
@@ -11,6 +12,7 @@ import { useRef, useState } from "react";
 import { Hex } from "viem";
 
 export const DecryptMessage = ({ privateKey }: { privateKey: PrivateKey }) => {
+  const { chainId } = useChain();
   const publicKeyInput = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string>("");
   const ciphertextInput = useRef<HTMLTextAreaElement>(null);
@@ -58,7 +60,7 @@ export const DecryptMessage = ({ privateKey }: { privateKey: PrivateKey }) => {
             const _publicKey = publicKeyInput.current?.value ?? "";
             logger.debug("publicKey: ", _publicKey);
             try {
-              _pubkey = await getPublicKey(_publicKey as Hex);
+              _pubkey = await getPublicKey(_publicKey as Hex, chainId);
             } catch (e) {
               setError("Failed to retrieve recipient's pubkey");
               return;
