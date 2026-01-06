@@ -23,7 +23,44 @@ Test that your installation ran okay:
 $ bun test
 ```
 
-Finally, build the extension for Chromium/Brave and Firefox:
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+bun test
+
+# Run with coverage report
+bun test --coverage
+
+# Run specific test file
+bun test src/utils/credentials.test.ts
+
+# Watch mode
+bun test --watch
+```
+
+### Coverage
+
+Current coverage: **82.83% lines**, **71.06% functions** (429 tests)
+
+| Category | Coverage | Notes |
+|----------|----------|-------|
+| Core utilities | 93-100% | `encryption.ts`, `csv.ts`, `utility.ts`, `getHostname.ts` |
+| Credentials | 70% | Business logic well-tested; uncovered lines are error logging paths |
+| Network functions | 55% | `getEntries.ts` - requires contract mocking; signatures validated |
+| UI components | 0-36% | Thin Radix UI wrappers - no business logic to test |
+
+### Testing Philosophy
+
+- **Test real logic, not mocks** - Focus on business logic and edge cases
+- **Quality over quantity** - 429 meaningful tests > 600 tests with mock verification
+- **Coverage as a guide** - 70% coverage of real logic > 90% coverage including constants
+
+## Development
+
+Build the extension for Chromium/Brave and Firefox:
 
 ```bash
 $ bun dev
@@ -53,6 +90,111 @@ Then, to install the add-on,
 1. Go to [chrome://extensions/](chrome://extensions/)
 2. Ensure that `Developer mode` is `enabled`.
 3. Click on `Load unpacked` and select the `keyvault/browser-extension/dist/` directory.
+
+## Credential Storage Architecture
+
+KeyVault uses a dual-storage system to track credentials at different stages of their lifecycle:
+
+### Storage Keys
+
+| Key | Type | Purpose |
+|-----|------|---------|
+| `encrypteds` | `Encrypted[]` | Credentials synced to blockchain (encrypted entries from chain) |
+| `pendingCreds` | `Cred[]` | New credentials added locally, not yet pushed to any chain |
+| `credentials` | `Cred[]` | Decrypted credentials for display |
+
+### Credential Lifecycle
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        LOCAL (Browser Storage)                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   User adds credential                                              │
+│          │                                                          │
+│          ▼                                                          │
+│   ┌──────────────┐                                                  │
+│   │ pendingCreds │  ◄── Plain Cred[] objects (unencrypted)         │
+│   └──────────────┘                                                  │
+│          │                                                          │
+│          │ User clicks "Push" on Sync page                          │
+│          ▼                                                          │
+│   ┌──────────────────────────────────────────────────┐              │
+│   │ Extension encrypts using encryptEntries()        │              │
+│   │ (requires cryptoKey from useCryptoKeyManager)    │              │
+│   └──────────────────────────────────────────────────┘              │
+│          │                                                          │
+│          ▼                                                          │
+│   ┌──────────────────────────────────────────────────┐              │
+│   │ Sends Encrypted[] to frontend dApp via Chrome    │              │
+│   │ messaging, dApp submits to blockchain            │              │
+│   └──────────────────────────────────────────────────┘              │
+│          │                                                          │
+│          ▼                                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                        BLOCKCHAIN                                    │
+│   ┌──────────────────────────────────────────────────┐              │
+│   │ Smart Contract stores encrypted entry            │              │
+│   │ (Astar, Base, or localhost)                      │              │
+│   └──────────────────────────────────────────────────┘              │
+├─────────────────────────────────────────────────────────────────────┤
+│                        LOCAL (after sync)                            │
+│          │                                                          │
+│          │ Extension fetches entries from chain                      │
+│          ▼                                                          │
+│   ┌──────────────┐                                                  │
+│   │  encrypteds  │  ◄── Synced entries from blockchain              │
+│   └──────────────┘                                                  │
+│          │                                                          │
+│          │ Decrypted for display                                    │
+│          ▼                                                          │
+│   ┌──────────────┐                                                  │
+│   │ credentials  │  ◄── Merged view: encrypteds + pendingCreds     │
+│   └──────────────┘                                                  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Sync Status Calculation
+
+The Sync page determines if a chain is "behind" by comparing:
+
+```
+// Pending credentials are bundled into 1 entry when encrypted
+pendingEntryCount = pendingCreds.length > 0 ? 1 : 0
+localEntryCount = encrypteds.length + pendingEntryCount
+
+maxEntries = max(blockchain entries across all chains, localEntryCount)
+
+For each chain:
+  behind = maxEntries - chain.numEntries
+  status = behind === 0 ? "up-to-date" : "behind"
+```
+
+This ensures:
+1. **New local credentials** show chains as "behind" (need to push)
+2. **Cross-chain sync** shows chains behind if another chain has more entries
+3. **Fully synced** shows "Up to date" only when all chains match local count
+
+### Push Flow
+
+When user clicks "Push":
+1. Calculate `deltaFromEncrypteds` = existing encrypted entries the chain is missing
+2. If `pendingCreds.length > 0` and `cryptoKey` exists:
+   - Encrypt all pending credentials into one entry: `encryptEntries(cryptoKey, pendingCreds)`
+   - Add to delta
+3. Send combined delta to frontend dApp via Chrome messaging
+
+### Key Files
+
+| File | Responsibility |
+|------|----------------|
+| `side_panel/sync.tsx` | Passes `encrypteds`, `pendingCreds`, and `cryptoKey` to MultiChainSync |
+| `components/MultiChainSync.tsx` | Encrypts `pendingCreds` on push, calculates sync status |
+| `machines/multiChainSync.machine.ts` | XState machine for sync status discovery and push |
+| `side_panel/addCred.tsx` | Adds new credentials to `pendingCreds` |
+| `side_panel/main.tsx` | Provides `cryptoKey` to Sync page |
+| `utils/credentials.ts` | `encryptEntries()` - encrypts Cred[] into Encrypted |
 
 ## Process for transmitting data from React app to chrome extension side panel
 
