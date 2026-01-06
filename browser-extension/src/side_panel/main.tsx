@@ -244,7 +244,7 @@ export const Root = () => {
           {view === "All Credentials" && <Credentials />}
           {view === "Current Page" && <Credentials />}
           {view === "Settings" && <Settings />}
-          {view === "Sync" && <Sync />}
+          {view === "Sync" && <Sync cryptoKey={cryptoKey} />}
           {view === "New Credential" && <AddCred />}
           {view === "Edit Credential" && <EditCred />}
           {view === "Generate Keypair" && <GenerateKeypair />}

@@ -12,6 +12,7 @@ import { Hex } from "viem";
 import { Encrypted } from "@/utils/encryption";
 import { filterChainIdsByDevMode } from "@/utils/enabledChainsUtils";
 import { MultiChainSyncView } from "@/components/MultiChainSyncView";
+import { Cred, encryptEntries } from "@/utils/credentials";
 
 /**
  * Props for the container component.
@@ -19,6 +20,8 @@ import { MultiChainSyncView } from "@/components/MultiChainSyncView";
 type MultiChainSyncProps = {
   sourceEncrypteds?: Encrypted[];
   devMode?: boolean;
+  pendingCreds?: Cred[];
+  cryptoKey?: CryptoKey | null;
 };
 
 /**
@@ -26,7 +29,16 @@ type MultiChainSyncProps = {
  * Uses XState machine for state management.
  * Localhost is hidden when devMode is off.
  */
-export const MultiChainSync = ({ sourceEncrypteds = [], devMode = false }: MultiChainSyncProps) => {
+export const MultiChainSync = ({
+  sourceEncrypteds = [],
+  devMode = false,
+  pendingCreds = [],
+  cryptoKey = null,
+}: MultiChainSyncProps) => {
+  // Total local entries = synced entries + 1 if there are pending creds to encrypt
+  // Each push of pendingCreds becomes one new encrypted entry
+  const pendingEntryCount = pendingCreds.length > 0 ? 1 : 0;
+  const totalLocalCredentialCount = sourceEncrypteds.length + pendingEntryCount;
   const { enabledChainIds, hasLoaded } = useEnabledChains();
   const [pubkey] = useBrowserStoreLocal<string>(PUBKEY, "");
 
@@ -42,9 +54,14 @@ export const MultiChainSync = ({ sourceEncrypteds = [], devMode = false }: Multi
   // Trigger discovery when loaded and pubkey available
   useEffect(() => {
     if (hasLoaded && pubkey && filteredChainIds.length > 0) {
-      send({ type: "DISCOVER", pubkey: pubkey as Hex, enabledChainIds: filteredChainIds });
+      send({
+        type: "DISCOVER",
+        pubkey: pubkey as Hex,
+        enabledChainIds: filteredChainIds,
+        localCredentialCount: totalLocalCredentialCount,
+      });
     }
-  }, [hasLoaded, pubkey, filteredChainIds, send]);
+  }, [hasLoaded, pubkey, filteredChainIds, totalLocalCredentialCount, send]);
 
   // Opens the frontend for a specific chain (user should connect wallet there)
   const handleOpenFrontend = async (targetChainId: number) => {
@@ -53,24 +70,42 @@ export const MultiChainSync = ({ sourceEncrypteds = [], devMode = false }: Multi
   };
 
   // Pushes delta entries to the frontend via Chrome messaging
-  const handlePush = (targetChainId: number) => {
+  const handlePush = async (targetChainId: number) => {
     const targetStatus = state.context.chainStatuses.get(targetChainId);
     if (!targetStatus || !pubkey) return;
 
-    const deltaEntries = calculateDeltaEntries(
+    // Get entries from sourceEncrypteds that target chain is missing
+    const deltaFromEncrypteds = calculateDeltaEntries(
       sourceEncrypteds,
       targetStatus.numEntries
     );
+
+    // Encrypt pending credentials if any exist and we have a crypto key
+    let deltaEntries = [...deltaFromEncrypteds];
+    if (pendingCreds.length > 0 && cryptoKey) {
+      const encryptedPending = await encryptEntries(cryptoKey, pendingCreds);
+      deltaEntries.push(encryptedPending);
+    }
 
     send({ type: "SYNC", targetChainId, deltaEntries, address: pubkey as Hex });
   };
 
   const handleRetry = () => {
-    send({ type: "DISCOVER", pubkey: pubkey as Hex, enabledChainIds: filteredChainIds });
+    send({
+      type: "DISCOVER",
+      pubkey: pubkey as Hex,
+      enabledChainIds: filteredChainIds,
+      localCredentialCount: totalLocalCredentialCount,
+    });
   };
 
   const handleDiscover = () => {
-    send({ type: "DISCOVER", pubkey: pubkey as Hex, enabledChainIds: filteredChainIds });
+    send({
+      type: "DISCOVER",
+      pubkey: pubkey as Hex,
+      enabledChainIds: filteredChainIds,
+      localCredentialCount: totalLocalCredentialCount,
+    });
   };
 
   const isDiscovering = state.matches("discovering");

@@ -22,6 +22,7 @@ export type MultiChainSyncContext = {
   sourceChainId: number | null;
   syncTargetChainId: number | null;
   pubkey: Hex | null;
+  localCredentialCount: number;
   error: string | null;
 };
 
@@ -36,7 +37,7 @@ export type MultiChainSyncInput = {
  * Events that can be sent to the multi-chain sync machine.
  */
 export type MultiChainSyncEvent =
-  | { type: "DISCOVER"; pubkey?: Hex; enabledChainIds?: number[] }
+  | { type: "DISCOVER"; pubkey?: Hex; enabledChainIds?: number[]; localCredentialCount?: number }
   | { type: "SYNC"; targetChainId: number; deltaEntries: Encrypted[]; address: Hex }
   | { type: "RETRY" }
   | { type: "RESET" };
@@ -55,6 +56,7 @@ type DiscoverOutput = {
 type DiscoverInput = {
   enabledChainIds: number[];
   pubkey?: Hex;
+  localCredentialCount?: number;
 };
 
 /**
@@ -99,10 +101,19 @@ export const calculateDeltaEntries = (
  *
  * Queries numEntries for each enabled chain and calculates which chains
  * are behind relative to the chain with the most entries.
+ *
+ * Sync Status Calculation:
+ * - maxEntries = max(blockchain entries across chains, localCredentialCount)
+ * - localCredentialCount = encrypteds.length + pendingCreds.length
+ * - A chain is "behind" if its numEntries < maxEntries
+ *
+ * This ensures chains are marked "behind" when:
+ * 1. Local credentials exist that haven't been pushed (pendingCreds)
+ * 2. Another chain has more entries (cross-chain sync needed)
  */
 const discoverChainStatusesActor = fromPromise<DiscoverOutput, DiscoverInput>(
   async ({ input }): Promise<DiscoverOutput> => {
-    const { enabledChainIds, pubkey } = input;
+    const { enabledChainIds, pubkey, localCredentialCount = 0 } = input;
 
     if (!pubkey) {
       throw new Error("Public key required for chain discovery");
@@ -110,11 +121,13 @@ const discoverChainStatusesActor = fromPromise<DiscoverOutput, DiscoverInput>(
 
     const result = await discoverAccounts(pubkey, enabledChainIds);
 
-    // Find max entries across all chains
-    const maxEntries = result.accounts.reduce(
+    // Find max entries across all chains AND local credentials
+    // This ensures chains are marked "behind" when local credentials haven't been pushed
+    const maxBlockchainEntries = result.accounts.reduce(
       (max, account) => Math.max(max, account.numEntries),
       0
     );
+    const maxEntries = Math.max(maxBlockchainEntries, localCredentialCount);
 
     // Build chain statuses map
     const chainStatuses = new Map<number, ChainSyncStatus>();
@@ -250,6 +263,10 @@ export const multiChainSyncMachine = setup({
       enabledChainIds: (_, params: { enabledChainIds: number[] }) =>
         params.enabledChainIds,
     }),
+    assignLocalCredentialCount: assign({
+      localCredentialCount: (_, params: { localCredentialCount: number }) =>
+        params.localCredentialCount,
+    }),
     assignSyncTarget: assign({
       syncTargetChainId: (
         _,
@@ -267,6 +284,7 @@ export const multiChainSyncMachine = setup({
       sourceChainId: () => null,
       syncTargetChainId: () => null,
       pubkey: () => null,
+      localCredentialCount: () => 0,
       error: () => null,
     }),
   },
@@ -279,6 +297,7 @@ export const multiChainSyncMachine = setup({
     sourceChainId: null,
     syncTargetChainId: null,
     pubkey: null,
+    localCredentialCount: 0,
     error: null,
   }),
   on: {
@@ -303,6 +322,12 @@ export const multiChainSyncMachine = setup({
                 enabledChainIds: event.enabledChainIds ?? [],
               }),
             },
+            {
+              type: "assignLocalCredentialCount",
+              params: ({ event }) => ({
+                localCredentialCount: event.localCredentialCount ?? 0,
+              }),
+            },
           ],
         },
       },
@@ -319,6 +344,11 @@ export const multiChainSyncMachine = setup({
           // Use event pubkey if available, otherwise fall back to context (for auto-refresh)
           pubkey:
             event.type === "DISCOVER" ? event.pubkey : context.pubkey ?? undefined,
+          // Use event's localCredentialCount if available, otherwise use context
+          localCredentialCount:
+            event.type === "DISCOVER"
+              ? event.localCredentialCount ?? context.localCredentialCount
+              : context.localCredentialCount,
         }),
         onDone: {
           target: "ready",
@@ -364,6 +394,12 @@ export const multiChainSyncMachine = setup({
               type: "assignEnabledChainIds",
               params: ({ event }) => ({
                 enabledChainIds: event.enabledChainIds ?? [],
+              }),
+            },
+            {
+              type: "assignLocalCredentialCount",
+              params: ({ event }) => ({
+                localCredentialCount: event.localCredentialCount ?? 0,
               }),
             },
           ],
@@ -428,6 +464,12 @@ export const multiChainSyncMachine = setup({
                 enabledChainIds: event.enabledChainIds ?? [],
               }),
             },
+            {
+              type: "assignLocalCredentialCount",
+              params: ({ event }) => ({
+                localCredentialCount: event.localCredentialCount ?? 0,
+              }),
+            },
           ],
         },
         SYNC: {
@@ -460,6 +502,12 @@ export const multiChainSyncMachine = setup({
               type: "assignEnabledChainIds",
               params: ({ event }) => ({
                 enabledChainIds: event.enabledChainIds ?? [],
+              }),
+            },
+            {
+              type: "assignLocalCredentialCount",
+              params: ({ event }) => ({
+                localCredentialCount: event.localCredentialCount ?? 0,
               }),
             },
           ],
